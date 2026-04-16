@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  --ms-navy: #0d1b2a;
+  --ms-purple: #8b5cf6;
+  --ms-magenta: #d946ef;
+  --ms-gold: #c9a84c;
+  --ms-blush: #f9d0e8;
+  --ms-charcoal: #1f1f1f;
+  --ms-mauve: #8c7280;
+  --ms-ivory: #faf6f1;
+  --ms-white: #ffffff;
+  --ms-border: rgba(13, 27, 42, 0.1);
+  --ms-soft-bg: #f7f4f1;
+  --ms-success: #d9a441;
+  --ms-danger: #b44a5a;
+  --background: var(--ms-soft-bg);
+  --foreground: var(--ms-charcoal);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-playfair);
+  --font-script: var(--font-great-vibes);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-dm-sans), sans-serif;
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(217, 70, 239, 0.2);
+  color: var(--ms-navy);
+}
+
+.font-display {
+  font-family: var(--font-playfair), serif;
+}
+
+.font-script {
+  font-family: var(--font-great-vibes), cursive;
+}
+
+.surface-card {
+  border: 1px solid var(--ms-border);
+  background: white;
+  box-shadow: 0 18px 48px rgba(13, 27, 42, 0.08);
+}
+
+.soft-panel {
+  background:
+    radial-gradient(circle at top left, rgba(217, 70, 239, 0.12), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(201, 168, 76, 0.16), transparent 34%),
+    white;
+}
+
+.app-hero {
+  background:
+    radial-gradient(circle at top left, rgba(217, 70, 239, 0.18), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.16), transparent 36%),
+    linear-gradient(160deg, rgba(250, 246, 241, 0.96), rgba(255, 255, 255, 0.96));
+}
+
+.dark-atmosphere {
+  background:
+    radial-gradient(circle at top right, rgba(217, 70, 239, 0.2), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(201, 168, 76, 0.12), transparent 28%),
+    linear-gradient(145deg, #0d1b2a, #111827 55%, rgba(31, 31, 31, 0.96));
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.section-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .section-grid {
+    gap: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
