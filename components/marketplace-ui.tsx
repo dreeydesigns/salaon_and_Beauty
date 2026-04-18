@@ -119,15 +119,17 @@ export function ScrollSection({
   return (
     <section
       className={cn(
-        "section-grid min-w-0 rounded-[36px] border border-[var(--ms-border)] bg-white p-6 shadow-[0_18px_54px_rgba(13,27,42,0.06)] lg:p-8",
+        "section-grid min-w-0 max-w-full overflow-hidden rounded-[32px] border border-[var(--ms-border)] bg-white p-4 shadow-[0_18px_54px_rgba(13,27,42,0.06)] sm:rounded-[36px] sm:p-6 lg:p-8",
         className,
       )}
       id={id}
     >
-      <div className="flex items-end justify-between gap-4">
-        <div>
+      <div className="flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">{eyebrow}</p>
-          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">{title}</h2>
+          <h2 className="mt-3 max-w-full text-2xl font-semibold leading-tight text-[var(--ms-plum)] sm:text-3xl">
+            {title}
+          </h2>
           <span className="scroll-affordance mt-3">
             Scroll sideways
             <ChevronRight className="h-4 w-4" />
@@ -178,20 +180,22 @@ export function TrustFlowCard() {
   ];
 
   return (
-    <div className="decorative-orbit overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,var(--ms-plum),#7a255f_55%,var(--ms-rose))] p-6 text-white shadow-[0_28px_80px_rgba(132,36,92,0.24)]">
+    <div className="decorative-orbit min-w-0 max-w-full overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,var(--ms-plum),#7a255f_55%,var(--ms-rose))] p-5 text-white shadow-[0_28px_80px_rgba(132,36,92,0.24)] sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/62">Protected marketplace</p>
-      <h2 className="mt-3 text-3xl font-semibold">Pay first. Release after beauty is delivered.</h2>
-      <p className="mt-3 text-sm leading-7 text-white/72">
+      <h2 className="mt-3 max-w-full text-2xl font-semibold leading-tight sm:text-3xl">
+        Pay first. Release after beauty is delivered.
+      </h2>
+      <p className="mt-3 max-w-full break-words text-sm leading-7 text-white/72">
         Mobile Salon acts as the trusted bridge. Providers do not receive payout until the service is completed and confirmed.
       </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {steps.map((step) => (
-          <div className="rounded-[24px] bg-white/10 p-4 backdrop-blur" key={step.title}>
-            <div className="flex items-center gap-3">
+          <div className="min-w-0 rounded-[24px] bg-white/10 p-4 backdrop-blur" key={step.title}>
+            <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/14 text-[var(--ms-blush)]">
                 {step.icon}
               </span>
-              <p className="font-semibold">{step.title}</p>
+              <p className="min-w-0 font-semibold">{step.title}</p>
             </div>
             <p className="mt-3 text-sm leading-6 text-white/72">{step.copy}</p>
           </div>
@@ -893,21 +897,26 @@ export function SecureContactCard({
 export function SalonCard({ salon }: { salon: Salon }) {
   return (
     <motion.article
-      className="beauty-card overflow-hidden rounded-[32px]"
+      className="beauty-card min-w-0 max-w-full rounded-[32px] p-4 sm:p-5"
       whileHover={{ y: -4 }}
       transition={{ duration: 0.22 }}
     >
-      <div className={cn("relative min-h-[270px] overflow-hidden bg-gradient-to-br px-5 py-6 text-white", salon.heroMood)}>
+      <div
+        className={cn(
+          "relative mb-5 min-h-[230px] overflow-hidden rounded-[28px] bg-gradient-to-br px-5 py-6 text-white sm:min-h-[270px]",
+          salon.heroMood,
+        )}
+      >
         <ImageLayer asset={salon.image} priority />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.14)_0%,rgba(13,27,42,0.56)_48%,rgba(13,27,42,0.92)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-4 p-5">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex min-w-0 flex-col gap-3 p-4 sm:gap-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-2">
             {salon.verified ? <VerifiedBadge /> : null}
             <span className="rounded-full bg-white/16 px-3 py-1 text-xs font-medium">{salon.location}</span>
           </div>
-          <div>
-            <p className="font-display text-3xl leading-tight">{salon.name}</p>
-            <p className="mt-2 max-w-lg text-sm text-white/82">{salon.tagline}</p>
+          <div className="min-w-0">
+            <p className="break-words font-display text-2xl leading-tight sm:text-3xl">{salon.name}</p>
+            <p className="mt-2 max-w-lg break-words text-sm text-white/82">{salon.tagline}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {salon.categoryTags.map((tag) => (
@@ -918,19 +927,19 @@ export function SalonCard({ salon }: { salon: Salon }) {
           </div>
         </div>
       </div>
-      <div className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <p className="flex items-center gap-2 text-sm text-[var(--ms-mauve)]">
-              <MapPin className="h-4 w-4" />
+      <div className="space-y-4">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <div className="min-w-0 space-y-2">
+            <p className="flex min-w-0 items-start gap-2 break-words text-sm text-[var(--ms-mauve)]">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
               {salon.areasServed.join(" · ")}
             </p>
-            <p className="flex items-center gap-2 text-sm text-[var(--ms-mauve)]">
-              <Star className="h-4 w-4 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
+            <p className="flex min-w-0 items-center gap-2 break-words text-sm text-[var(--ms-mauve)]">
+              <Star className="h-4 w-4 shrink-0 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
               {salon.rating} ({salon.reviewCount} reviews)
             </p>
           </div>
-          <div className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3 text-right">
+          <div className="w-full rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3 text-left sm:w-auto sm:text-right">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">From</p>
             <p className="text-lg font-semibold text-[var(--ms-navy)]">{formatKES(salon.startingPrice)}</p>
           </div>
@@ -1026,9 +1035,9 @@ export function ProfessionalCard({ professional }: { professional: Professional 
 
 function MetaPill({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-full bg-[var(--ms-soft-bg)] px-3 py-2 text-sm text-[var(--ms-mauve)]">
-      {icon}
-      {label}
+    <div className="flex min-w-0 items-start gap-2 rounded-full bg-[var(--ms-soft-bg)] px-3 py-2 text-sm text-[var(--ms-mauve)]">
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <span className="min-w-0 break-words">{label}</span>
     </div>
   );
 }

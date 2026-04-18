@@ -93,14 +93,14 @@ export function MarketplaceDiscovery({
   }
 
   return (
-    <div className="space-y-6">
-      <SectionReveal className="silk-panel rounded-[32px] p-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)] xl:items-end">
-          <div>
+    <div className="min-w-0 space-y-6">
+      <SectionReveal className="silk-panel min-w-0 overflow-hidden rounded-[32px] p-4 sm:p-6">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)] xl:items-end">
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">
               {collection === "salons" ? "Salons" : "Professionals"}
             </p>
-            <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-plum)]">
+            <h1 className="mt-3 break-words text-3xl font-semibold leading-tight text-[var(--ms-plum)] sm:text-4xl">
               {collection === "salons"
                 ? "Find a place that feels right."
                 : "Find the person for your glow."}
@@ -118,7 +118,7 @@ export function MarketplaceDiscovery({
         </div>
       </SectionReveal>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <DesktopSidebar title="Refine results">
           <div className="space-y-5">
             {filters.map((section) => (
@@ -150,9 +150,9 @@ export function MarketplaceDiscovery({
           </div>
         </DesktopSidebar>
 
-        <div className="space-y-5">
-          <div className="beauty-card flex flex-col gap-3 rounded-[28px] p-4 md:flex-row md:items-center">
-            <div className="flex-1">
+        <div className="min-w-0 space-y-5">
+          <div className="beauty-card flex min-w-0 flex-col gap-3 overflow-hidden rounded-[28px] p-4 md:flex-row md:items-center">
+            <div className="min-w-0 flex-1">
               <SearchBar
                 onChange={setQuery}
                 placeholder={
@@ -163,10 +163,10 @@ export function MarketplaceDiscovery({
                 value={query}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] md:flex md:w-auto md:flex-wrap md:items-center">
               <FilterButton onClick={() => setMobileFiltersOpen(true)} />
               <select
-                className="min-h-12 rounded-full border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 text-sm text-[var(--ms-navy)] outline-none"
+                className="min-h-12 w-full min-w-0 rounded-full border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 text-sm text-[var(--ms-navy)] outline-none md:w-auto"
                 onChange={(event) => setSortBy(event.target.value)}
                 value={sortBy}
               >
@@ -207,7 +207,7 @@ export function MarketplaceDiscovery({
           </p>
 
           {results.length ? (
-            <div className={cn("grid gap-5", layout === "grid" ? "xl:grid-cols-2" : "grid-cols-1")}>
+            <div className={cn("grid min-w-0 gap-5", layout === "grid" ? "xl:grid-cols-2" : "grid-cols-1")}>
               {collection === "salons"
                 ? salonResults.map((salon) => <SalonCard key={salon.slug} salon={salon} />)
                 : professionalResults.map((professional) => (
