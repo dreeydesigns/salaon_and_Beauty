@@ -22,7 +22,6 @@ import {
   PriceSummary,
   SectionReveal,
   TimePill,
-  TrustFlowCard,
   WhatsAppButton,
 } from "@/components/marketplace-ui";
 import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
@@ -249,7 +248,7 @@ export function BookingExperience() {
                 <p className="text-xs uppercase tracking-[0.22em] opacity-70">Target</p>
                 <h2 className="mt-3 text-2xl font-semibold">Salon</h2>
                 <p className="mt-2 text-sm leading-6 opacity-80">
-                  Best when you want a studio environment, a team, or a wider service menu.
+                  Best when you want a salon setting, a team, or a wider service menu.
                 </p>
               </button>
               <button
@@ -448,7 +447,6 @@ export function BookingExperience() {
           priceTotal={selectedServices.length ? formatPriceRange(totalMin, totalMax) : "Select services"}
           serviceCount={selectedServices.length}
         />
-        <TrustFlowCard />
         <SectionReveal className="rounded-[32px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_12px_40px_rgba(13,27,42,0.08)]">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Selected target</p>
           <h2 className="mt-3 text-2xl font-semibold text-[var(--ms-navy)]">

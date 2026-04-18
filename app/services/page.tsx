@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
-import { SectionReveal, TrustFlowCard } from "@/components/marketplace-ui";
+import { SectionReveal } from "@/components/marketplace-ui";
 import { ServicesCatalogue } from "@/components/services-catalogue";
 import { platformRevenueRules } from "@/lib/business-model";
 import { marketplacePackages, services } from "@/lib/site-data";
@@ -64,18 +64,15 @@ export default function ServicesPage() {
 
         <ServicesCatalogue categories={categories} packages={marketplacePackages} services={services} />
 
-        <SectionReveal className="grid gap-5 xl:grid-cols-[minmax(0,0.5fr)_minmax(0,0.5fr)]">
-          <TrustFlowCard />
-          <div className="beauty-card rounded-[34px] p-6">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Business rules</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Mobile Salon protects both sides.</h2>
-            <div className="mt-5 space-y-3">
-              {platformRevenueRules.map((rule) => (
-                <p className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm leading-6 text-[var(--ms-charcoal)]" key={rule}>
-                  {rule}
-                </p>
-              ))}
-            </div>
+        <SectionReveal className="beauty-card rounded-[34px] p-6">
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Business rules</p>
+          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Mobile Salon protects both sides.</h2>
+          <div className="mt-5 space-y-3">
+            {platformRevenueRules.map((rule) => (
+              <p className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm leading-6 text-[var(--ms-charcoal)]" key={rule}>
+                {rule}
+              </p>
+            ))}
           </div>
         </SectionReveal>
       </div>

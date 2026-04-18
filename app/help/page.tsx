@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { CTAButton, SectionReveal, TrustFlowCard, WhatsAppButton } from "@/components/marketplace-ui";
+import { CTAButton, SectionReveal, WhatsAppButton } from "@/components/marketplace-ui";
 import { platformRevenueRules } from "@/lib/business-model";
 import { supportFaq } from "@/lib/site-data";
 
@@ -30,19 +30,16 @@ export default function HelpPage() {
           </div>
         </section>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.48fr)_minmax(0,0.52fr)]">
-          <TrustFlowCard />
-          <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Policy snapshot</p>
-            <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--ms-charcoal)]">
-              {platformRevenueRules.map((rule) => (
-                <p className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3" key={rule}>
-                  {rule}
-                </p>
-              ))}
-            </div>
-          </SectionReveal>
-        </div>
+        <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Policy snapshot</p>
+          <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--ms-charcoal)]">
+            {platformRevenueRules.map((rule) => (
+              <p className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3" key={rule}>
+                {rule}
+              </p>
+            ))}
+          </div>
+        </SectionReveal>
 
         <div className="grid gap-5 xl:grid-cols-2">
           <SectionReveal className="rounded-[32px] bg-[var(--ms-navy)] p-6 text-white shadow-[0_18px_48px_rgba(13,27,42,0.22)]">

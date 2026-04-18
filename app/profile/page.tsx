@@ -1,7 +1,8 @@
 import { CalendarDays, Heart, LockKeyhole, UserRound } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
-import { CTAButton, DecorativeStat, SectionReveal, TrustFlowCard, WhatsAppButton } from "@/components/marketplace-ui";
+import { LanguagePreferenceCard } from "@/components/language-preference-card";
+import { CTAButton, DecorativeStat, SectionReveal, WhatsAppButton } from "@/components/marketplace-ui";
 import { payoutStates } from "@/lib/business-model";
 
 export default function ProfilePage() {
@@ -54,24 +55,23 @@ export default function ProfilePage() {
           </SectionReveal>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.5fr)_minmax(0,0.5fr)]">
-          <TrustFlowCard />
-          <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Request status</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Everyone sees where the money is.</h2>
-            <div className="mt-5 space-y-3">
-              {payoutStates.slice(0, 4).map((state) => (
-                <div className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3" key={state.label}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold text-[var(--ms-navy)]">{state.label}</p>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs text-[var(--ms-mauve)]">{state.tone}</span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">{state.copy}</p>
+        <LanguagePreferenceCard />
+
+        <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Request status</p>
+          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Everyone sees where the money is.</h2>
+          <div className="mt-5 space-y-3">
+            {payoutStates.slice(0, 4).map((state) => (
+              <div className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3" key={state.label}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-[var(--ms-navy)]">{state.label}</p>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs text-[var(--ms-mauve)]">{state.tone}</span>
                 </div>
-              ))}
-            </div>
-          </SectionReveal>
-        </div>
+                <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">{state.copy}</p>
+              </div>
+            ))}
+          </div>
+        </SectionReveal>
 
         <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

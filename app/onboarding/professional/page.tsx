@@ -2,7 +2,7 @@ import { CreditCard, ImagePlus, Palette, ShieldCheck, WalletCards } from "lucide
 import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/app-shell";
-import { CTAButton, ProfileCompletionCard, SectionReveal, TrustFlowCard } from "@/components/marketplace-ui";
+import { CTAButton, ProfileCompletionCard, SectionReveal } from "@/components/marketplace-ui";
 import { professionalQualityStandards } from "@/lib/business-model";
 import { profileCompletionTasks, serviceCategories } from "@/lib/site-data";
 
@@ -20,7 +20,7 @@ export default function ProfessionalOnboardingPage() {
           <div className="mt-8 section-grid">
             <div className="grid gap-4 md:grid-cols-2">
               <FormField label="Display name" />
-              <FormField label="Business type" placeholder="Independent, salon team, studio owner" />
+              <FormField label="Business type" placeholder="Independent pro, salon team, salon owner" />
               <FormField label="Location" />
               <FormField label="Phone" />
             </div>
@@ -104,7 +104,6 @@ export default function ProfessionalOnboardingPage() {
 
         <div className="section-grid">
           <ProfileCompletionCard progress={72} tasks={profileCompletionTasks} />
-          <TrustFlowCard />
           <SectionReveal className="rounded-[32px] bg-[var(--ms-navy)] p-6 text-white shadow-[0_18px_48px_rgba(13,27,42,0.22)]">
             <p className="text-xs uppercase tracking-[0.22em] text-white/60">Why this matters</p>
             <h2 className="mt-3 text-3xl font-semibold">Professionals are not secondary.</h2>

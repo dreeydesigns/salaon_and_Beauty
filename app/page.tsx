@@ -169,7 +169,7 @@ export default function Home() {
           </div>
         </SectionReveal>
 
-        <ScrollSection eyebrow="Featured salons" href="/salons" hrefLabel="See all salons" title="Calm studios with clear prices">
+        <ScrollSection eyebrow="Featured salons" href="/salons" hrefLabel="See all salons" title="Trusted salons with clear prices">
           {salons.map((salon) => (
             <SalonCard key={salon.slug} salon={salon} />
           ))}

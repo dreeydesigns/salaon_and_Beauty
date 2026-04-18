@@ -6,7 +6,6 @@ import {
   SalonCard,
   SectionReveal,
   ScrollSection,
-  TrustFlowCard,
 } from "@/components/marketplace-ui";
 import { professionals, salons, serviceCategories } from "@/lib/site-data";
 
@@ -34,9 +33,9 @@ export default function ExplorePage() {
           <div className="grid gap-5 xl:grid-cols-2">
             <SectionReveal className="rounded-[32px] bg-white p-5 shadow-[0_12px_40px_rgba(13,27,42,0.08)]">
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Browse salons</p>
-              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Best when you want a studio or a wider menu</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Best when you want a salon visit or a wider menu</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-                Compare verified studios by area, price floor, categories, and whether they support mobile service too.
+                Compare verified salons by area, starting price, categories, and whether they support mobile service too.
               </p>
               <div className="mt-5">
                 <SalonCard salon={salons[0]} />
@@ -56,19 +55,16 @@ export default function ExplorePage() {
           </div>
         </section>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.5fr)_minmax(0,0.5fr)]">
-          <TrustFlowCard />
-          <SectionReveal className="beauty-card rounded-[34px] p-6">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Rush hour mode</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">For last-minute beauty emergencies.</h2>
-            <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-              Search the service, pick the closest trusted option, sign in, pay, and track the request without chasing replies.
-            </p>
-            <div className="mt-5">
-              <CTAButton href="/book?rush=true">Book in rush mode</CTAButton>
-            </div>
-          </SectionReveal>
-        </div>
+        <SectionReveal className="beauty-card rounded-[34px] p-6">
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Rush hour mode</p>
+          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">For last-minute beauty emergencies.</h2>
+          <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
+            Search the service, pick the closest trusted option, sign in, pay, and track the request without chasing replies.
+          </p>
+          <div className="mt-5">
+            <CTAButton href="/book?rush=true">Book in rush mode</CTAButton>
+          </div>
+        </SectionReveal>
 
         <ScrollSection eyebrow="Start by service" href="/services" hrefLabel="See all services" title="Move from what you need to who should do it">
             {serviceCategories.map((category) => (

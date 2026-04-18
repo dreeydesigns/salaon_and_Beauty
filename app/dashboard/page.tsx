@@ -21,7 +21,6 @@ import {
   ScrollSection,
   SectionReveal,
   ServiceCard,
-  TrustFlowCard,
 } from "@/components/marketplace-ui";
 import {
   marketplaceProtectionSteps,
@@ -108,26 +107,23 @@ export default function DashboardPage() {
           </SectionReveal>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.5fr)_minmax(0,0.5fr)]">
-          <TrustFlowCard />
-          <SectionReveal className="beauty-card rounded-[34px] p-6">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Payout pipeline</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Like a ride app: payout follows completed service.</h2>
-            <div className="mt-5 space-y-3">
-              {marketplaceProtectionSteps.map((step, index) => (
-                <div className="grid gap-3 rounded-[24px] bg-[var(--ms-soft-bg)] p-4 sm:grid-cols-[44px_minmax(0,1fr)]" key={step.title}>
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-sm font-semibold text-[var(--ms-rose)] shadow-[0_10px_24px_rgba(132,36,92,0.08)]">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="font-semibold text-[var(--ms-navy)]">{step.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--ms-mauve)]">{step.detail}</p>
-                  </div>
+        <SectionReveal className="beauty-card rounded-[34px] p-6">
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Payout pipeline</p>
+          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Like a ride app: payout follows completed service.</h2>
+          <div className="mt-5 space-y-3">
+            {marketplaceProtectionSteps.map((step, index) => (
+              <div className="grid gap-3 rounded-[24px] bg-[var(--ms-soft-bg)] p-4 sm:grid-cols-[44px_minmax(0,1fr)]" key={step.title}>
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-sm font-semibold text-[var(--ms-rose)] shadow-[0_10px_24px_rgba(132,36,92,0.08)]">
+                  {index + 1}
+                </span>
+                <div>
+                  <p className="font-semibold text-[var(--ms-navy)]">{step.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--ms-mauve)]">{step.detail}</p>
                 </div>
-              ))}
-            </div>
-          </SectionReveal>
-        </div>
+              </div>
+            ))}
+          </div>
+        </SectionReveal>
 
         <section className="section-grid">
           <div>
@@ -164,7 +160,7 @@ export default function DashboardPage() {
         <section className="section-grid">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Portfolio studio</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Portfolio showcase</p>
               <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Show work beautifully before anyone trusts you</h2>
             </div>
             <CTAButton className="hidden sm:inline-flex" href="/professionals/njeri-kamau" variant="outline">

@@ -14,7 +14,6 @@ import {
   ScrollSection,
   ServiceCard,
   SecureContactCard,
-  TrustFlowCard,
   VerifiedBadge,
   WhatsAppButton,
 } from "@/components/marketplace-ui";
@@ -217,7 +216,6 @@ export default async function DetailPage({
           </div>
 
           <div className="section-grid">
-            <TrustFlowCard />
             <SecureContactCard bookingHref={bookingHref} name={item.name} />
             <aside className="sticky top-44 rounded-[32px] bg-white p-5 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Ready to book</p>

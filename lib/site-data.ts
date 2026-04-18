@@ -31,7 +31,7 @@ export interface VisualAsset {
 export const imageAssets = {
   braidsPortrait: {
     url: "https://images.pexels.com/photos/11515382/pexels-photo-11515382.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1500&fit=crop",
-    alt: "Black woman with golden braids against a warm yellow studio background",
+    alt: "Black woman with golden braids against a warm yellow background",
     credit: "Pexels / Kehinde Ogunsanya",
     creditUrl: "https://www.pexels.com/photo/portrait-of-a-woman-with-braids-11515382/",
     position: "center 28%",
@@ -962,7 +962,7 @@ export const salons: Salon[] = [
     verified: true,
     mobileService: false,
     about:
-      "An appointment-led beauty studio for sharp nail work, clean sanitation standards, and dependable after-work slots.",
+      "An appointment-led salon for sharp nail work, clean sanitation standards, and dependable after-work slots.",
     description:
       "Ideal for clients who need quick, reliable beauty maintenance with visible pricing and neat finishing.",
     heroMood: "from-[var(--ms-blush)] via-white to-[var(--ms-gold)]/30",
@@ -1019,7 +1019,7 @@ export const salons: Salon[] = [
   },
   {
     slug: "south-b-groom-lab",
-    name: "South B Shear Studio",
+    name: "South B Shear Salon",
     tagline: "Feminine low cuts, undercut detail, and quick glow facials.",
     location: "South B, Nairobi",
     areasServed: ["South B", "South C", "Mombasa Road", "Industrial Area"],
@@ -1231,7 +1231,7 @@ export const professionals: Professional[] = [
     repeatBookings: 95,
     savedCount: 269,
     trendingScore: 84,
-    identityAttributes: ["Woman-led", "Detail-focused", "Studio based"],
+    identityAttributes: ["Woman-led", "Detail-focused", "Salon based"],
   },
   {
     slug: "kevin-ochieng",
@@ -1239,7 +1239,7 @@ export const professionals: Professional[] = [
     specialty: "Feminine low cuts, undercut detail, and mobile shave care",
     location: "South B",
     serviceMode: "Both",
-    salonAffiliation: "South B Shear Studio",
+    salonAffiliation: "South B Shear Salon",
     areasServed: ["South B", "South C", "Mombasa Road", "CBD"],
     rating: 4.7,
     reviewCount: 73,
@@ -1370,7 +1370,7 @@ export const activityItems = [
     meta: "Saturday, 9:30 AM · Karen delivery",
   },
   {
-    title: "Saved studio",
+    title: "Saved salon",
     detail: "Westlands Polish Room",
     meta: "Gel manicure from KES 1,500",
   },
