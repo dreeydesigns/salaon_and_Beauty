@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { bookingDates, bookingTimes } from "@/lib/site-data";
 
 type TargetType = "salons" | "professionals";
+export const BOOKING_DRAFT_CACHE_KEY = "mobile-salon.booking-draft.v1";
 
 interface ContactDetails {
   fullName: string;
@@ -17,6 +18,17 @@ interface NotificationPreferences {
   email: boolean;
   whatsapp: boolean;
   text: boolean;
+}
+
+export interface BookingDraft {
+  targetType: TargetType;
+  targetId: string | null;
+  selectedServiceIds: string[];
+  selectedDate: string;
+  selectedTime: string;
+  contact: ContactDetails;
+  notifications: NotificationPreferences;
+  savedAt: string;
 }
 
 interface BookingState {
@@ -40,6 +52,8 @@ interface BookingState {
   setContact: (field: keyof ContactDetails, value: string) => void;
   toggleNotification: (field: keyof NotificationPreferences) => void;
   setStatus: (status: BookingState["status"]) => void;
+  saveBookingDraft: () => void;
+  restoreBookingDraft: () => boolean;
   reset: () => void;
 }
 
@@ -64,7 +78,11 @@ const initialState = {
   status: "idle" as const,
 };
 
-export const useBookingStore = create<BookingState>((set) => ({
+function canUseSessionStorage() {
+  return typeof window !== "undefined" && "sessionStorage" in window;
+}
+
+export const useBookingStore = create<BookingState>((set, get) => ({
   ...initialState,
   setStep: (step) => set({ step }),
   nextStep: () =>
@@ -104,5 +122,60 @@ export const useBookingStore = create<BookingState>((set) => ({
       },
     })),
   setStatus: (status) => set({ status }),
-  reset: () => set(initialState),
+  saveBookingDraft: () => {
+    if (!canUseSessionStorage()) {
+      return;
+    }
+
+    const state = get();
+    const draft: BookingDraft = {
+      targetType: state.targetType,
+      targetId: state.targetId,
+      selectedServiceIds: state.selectedServiceIds,
+      selectedDate: state.selectedDate,
+      selectedTime: state.selectedTime,
+      contact: state.contact,
+      notifications: state.notifications,
+      savedAt: new Date().toISOString(),
+    };
+
+    window.sessionStorage.setItem(BOOKING_DRAFT_CACHE_KEY, JSON.stringify(draft));
+  },
+  restoreBookingDraft: () => {
+    if (!canUseSessionStorage()) {
+      return false;
+    }
+
+    const rawDraft = window.sessionStorage.getItem(BOOKING_DRAFT_CACHE_KEY);
+
+    if (!rawDraft) {
+      return false;
+    }
+
+    try {
+      const draft = JSON.parse(rawDraft) as BookingDraft;
+
+      set({
+        targetType: draft.targetType,
+        targetId: draft.targetId,
+        selectedServiceIds: draft.selectedServiceIds,
+        selectedDate: draft.selectedDate,
+        selectedTime: draft.selectedTime,
+        contact: draft.contact,
+        notifications: draft.notifications,
+      });
+
+      return true;
+    } catch {
+      window.sessionStorage.removeItem(BOOKING_DRAFT_CACHE_KEY);
+      return false;
+    }
+  },
+  reset: () => {
+    if (canUseSessionStorage()) {
+      window.sessionStorage.removeItem(BOOKING_DRAFT_CACHE_KEY);
+    }
+
+    set(initialState);
+  },
 }));

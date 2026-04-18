@@ -1,5 +1,8 @@
+import { CalendarDays, Heart, LockKeyhole, UserRound } from "lucide-react";
+
 import { AppShell } from "@/components/app-shell";
-import { CTAButton, SectionReveal, WhatsAppButton } from "@/components/marketplace-ui";
+import { CTAButton, DecorativeStat, SectionReveal, TrustFlowCard, WhatsAppButton } from "@/components/marketplace-ui";
+import { payoutStates } from "@/lib/business-model";
 
 export default function ProfilePage() {
   return (
@@ -13,14 +16,20 @@ export default function ProfilePage() {
           </p>
         </SectionReveal>
 
+        <div className="grid gap-5 md:grid-cols-3">
+          <DecorativeStat icon={<CalendarDays className="h-5 w-5" />} label="Client area" value="Bookings" />
+          <DecorativeStat icon={<Heart className="h-5 w-5" />} label="Saved beauty" value="Favourites" />
+          <DecorativeStat icon={<LockKeyhole className="h-5 w-5" />} label="Payment status" value="Protected" />
+        </div>
+
         <div className="grid gap-5 xl:grid-cols-2">
-          <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
+          <SectionReveal className="beauty-card rounded-[32px] p-6">
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Client view</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Upcoming and saved</h2>
+            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Upcoming, saved, and paid requests</h2>
             <div className="mt-5 space-y-3">
               {[
-                "Upcoming · Soft Glam with Faith Odhiambo · Saturday 9:30 AM",
-                "Saved · Kilimani Texture House",
+                "Upcoming · Soft Glam with Faith Odhiambo · Saturday 9:30 AM · Funded",
+                "Saved · Kilimani Texture House · Braids from KES 3,000",
                 "Settings · WhatsApp updates on, email reminders on",
               ].map((item) => (
                 <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-4 text-sm text-[var(--ms-charcoal)]" key={item}>
@@ -30,11 +39,11 @@ export default function ProfilePage() {
             </div>
           </SectionReveal>
 
-          <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
+          <SectionReveal className="beauty-card rounded-[32px] p-6">
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Professional view</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Public profile preview</h2>
+            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">A different workspace when your role is professional</h2>
             <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">
-              This area points professionals toward their live profile, pricing setup, availability, and portfolio.
+              Professionals get a business layout for requests, pricing, availability, portfolio, payout status, and public profile customisation.
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <CTAButton href="/dashboard">Open dashboard</CTAButton>
@@ -45,13 +54,38 @@ export default function ProfilePage() {
           </SectionReveal>
         </div>
 
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.5fr)_minmax(0,0.5fr)]">
+          <TrustFlowCard />
+          <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
+            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Request status</p>
+            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Everyone sees where the money is.</h2>
+            <div className="mt-5 space-y-3">
+              {payoutStates.slice(0, 4).map((state) => (
+                <div className="rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3" key={state.label}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-[var(--ms-navy)]">{state.label}</p>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs text-[var(--ms-mauve)]">{state.tone}</span>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">{state.copy}</p>
+                </div>
+              ))}
+            </div>
+          </SectionReveal>
+        </div>
+
         <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Need help fast?</p>
               <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Use WhatsApp support without losing the platform flow.</h2>
             </div>
-            <WhatsAppButton label="profile support" />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <CTAButton href="/auth/sign-in" variant="outline">
+                <UserRound className="h-4 w-4" />
+                Sign in
+              </CTAButton>
+              <WhatsAppButton label="profile support" />
+            </div>
           </div>
         </SectionReveal>
       </div>

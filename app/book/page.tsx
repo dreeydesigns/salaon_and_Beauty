@@ -9,8 +9,10 @@ export default function BookPage() {
     <AppShell currentNav="book" roleMode="salons">
       <Suspense
         fallback={
-          <SectionReveal className="rounded-[36px] bg-white p-6 text-center shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
-            <p className="text-sm text-[var(--ms-mauve)]">Loading booking flow...</p>
+          <SectionReveal className="silk-panel rounded-[36px] p-8 text-center">
+            <div className="loader-bloom mx-auto h-16 w-16" />
+            <p className="mt-6 font-script text-4xl text-[var(--ms-rose)]">Almost there</p>
+            <p className="mt-2 text-sm text-[var(--ms-mauve)]">Preparing your beauty request.</p>
           </SectionReveal>
         }
       >

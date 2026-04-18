@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Bell,
   CalendarDays,
   Check,
+  CheckCircle2,
   ChevronRight,
   Clock3,
+  CreditCard,
+  LockKeyhole,
   Filter,
   Home,
   LayoutGrid,
@@ -21,18 +25,30 @@ import {
   UserRound,
   WalletCards,
   MessageCircleMore,
+  PhoneCall,
+  EyeOff,
+  Scissors,
+  Paintbrush,
+  Crown,
+  Heart,
+  Waves,
+  Hand,
+  Eye,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import type {
   NavKey,
   PackageOffer,
+  PortfolioItem,
   Professional,
   ReviewSnapshot,
   RoleMode,
   Salon,
   Service,
+  VisualAsset,
 } from "@/lib/site-data";
+import { getServicesByIds, imageAssets } from "@/lib/site-data";
 import {
   buildBookingHref,
   buildWhatsAppLink,
@@ -63,14 +79,17 @@ const navItems: Array<{
 export function SectionReveal({
   children,
   className,
+  style,
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 20 }}
+      style={style}
+      initial={{ opacity: 0.98, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
@@ -80,11 +99,113 @@ export function SectionReveal({
   );
 }
 
+export function ScrollSection({
+  eyebrow,
+  title,
+  href,
+  hrefLabel = "See all",
+  children,
+  className,
+  id,
+}: {
+  eyebrow: string;
+  title: string;
+  href?: string;
+  hrefLabel?: string;
+  children: ReactNode;
+  className?: string;
+  id?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "section-grid min-w-0 rounded-[36px] border border-[var(--ms-border)] bg-white p-6 shadow-[0_18px_54px_rgba(13,27,42,0.06)] lg:p-8",
+        className,
+      )}
+      id={id}
+    >
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">{eyebrow}</p>
+          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">{title}</h2>
+          <span className="scroll-affordance mt-3">
+            Scroll sideways
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        </div>
+        {href ? (
+          <CTAButton className="hidden sm:inline-flex" href={href} variant="outline">
+            {hrefLabel}
+          </CTAButton>
+        ) : null}
+      </div>
+      <div className="scroll-row">{children}</div>
+      {href ? (
+        <CTAButton className="sm:hidden" href={href} variant="outline">
+          {hrefLabel}
+        </CTAButton>
+      ) : null}
+    </section>
+  );
+}
+
+export function DecorativeStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="beauty-card rounded-[28px] p-5">
+      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--ms-petal)] text-[var(--ms-rose)]">
+        {icon}
+      </div>
+      <p className="mt-4 text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-[var(--ms-plum)]">{value}</p>
+    </div>
+  );
+}
+
+export function TrustFlowCard() {
+  const steps = [
+    { icon: <UserRound className="h-5 w-5" />, title: "Sign in", copy: "Real account before request." },
+    { icon: <CreditCard className="h-5 w-5" />, title: "Pay", copy: "Checkout required to secure the slot." },
+    { icon: <LockKeyhole className="h-5 w-5" />, title: "Hold", copy: "Funds wait until completion." },
+    { icon: <CheckCircle2 className="h-5 w-5" />, title: "Release", copy: "Both sides confirm, then payout." },
+  ];
+
+  return (
+    <div className="decorative-orbit overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,var(--ms-plum),#7a255f_55%,var(--ms-rose))] p-6 text-white shadow-[0_28px_80px_rgba(132,36,92,0.24)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/62">Protected marketplace</p>
+      <h2 className="mt-3 text-3xl font-semibold">Pay first. Release after beauty is delivered.</h2>
+      <p className="mt-3 text-sm leading-7 text-white/72">
+        Mobile Salon acts as the trusted bridge. Providers do not receive payout until the service is completed and confirmed.
+      </p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {steps.map((step) => (
+          <div className="rounded-[24px] bg-white/10 p-4 backdrop-blur" key={step.title}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/14 text-[var(--ms-blush)]">
+                {step.icon}
+              </span>
+              <p className="font-semibold">{step.title}</p>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-white/72">{step.copy}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BrandMark() {
   return (
     <svg
       aria-hidden="true"
-      className="h-14 w-14 drop-shadow-[0_12px_26px_rgba(217,70,239,0.34)]"
+      className="h-9 w-9 drop-shadow-[0_10px_20px_rgba(217,70,239,0.32)]"
       viewBox="0 0 84 84"
       fill="none"
     >
@@ -127,8 +248,9 @@ export function CTAButton({
 }) {
   const classes = cn(
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition duration-300",
+    "disabled:pointer-events-none disabled:opacity-45 active:scale-[0.98]",
     variant === "primary" &&
-      "bg-[var(--ms-magenta)] text-white shadow-[0_14px_30px_rgba(217,70,239,0.28)] hover:-translate-y-0.5 hover:bg-[#c533dc]",
+      "bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white shadow-[0_16px_34px_rgba(232,62,140,0.28)] hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(232,62,140,0.34)]",
     variant === "secondary" &&
       "bg-[var(--ms-ivory)] text-[var(--ms-navy)] hover:bg-white",
     variant === "outline" &&
@@ -155,18 +277,45 @@ export function CTAButton({
   );
 }
 
+export function BreadcrumbTrail({
+  items,
+}: {
+  items: Array<{ label: string; href?: string }>;
+}) {
+  return (
+    <nav aria-label="Breadcrumb" className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--ms-mauve)]">
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
+
+        return (
+          <span className="flex min-w-0 items-center gap-2" key={`${item.label}-${index}`}>
+            {item.href && !isLast ? (
+              <Link className="beauty-link font-semibold text-[var(--ms-plum)]" href={item.href}>
+                {item.label}
+              </Link>
+            ) : (
+              <span className={cn("truncate", isLast ? "font-semibold text-[var(--ms-navy)]" : "")}>{item.label}</span>
+            )}
+            {!isLast ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : null}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function RoleSwitchTabs({
   roleMode,
 }: {
   roleMode: RoleMode;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-full border border-[var(--ms-border)] bg-white/85 p-1 shadow-[0_12px_30px_rgba(13,27,42,0.08)] backdrop-blur">
+    <div className="grid min-w-0 grid-cols-2 gap-2 overflow-hidden rounded-full border border-[var(--ms-border)] bg-white/85 p-1 shadow-[0_12px_30px_rgba(13,27,42,0.08)] backdrop-blur">
       <Link
         className={cn(
-          "rounded-full px-4 py-2 text-center text-xs font-semibold uppercase tracking-[0.22em] transition",
+          "min-w-0 whitespace-nowrap rounded-full px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] transition sm:px-3 sm:text-xs sm:tracking-[0.16em]",
           roleMode === "salons"
-            ? "bg-[var(--ms-navy)] text-white"
+            ? "bg-[var(--ms-plum)] text-white"
             : "text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
         )}
         href="/salons"
@@ -175,9 +324,9 @@ export function RoleSwitchTabs({
       </Link>
       <Link
         className={cn(
-          "rounded-full px-4 py-2 text-center text-xs font-semibold uppercase tracking-[0.22em] transition",
+          "min-w-0 whitespace-nowrap rounded-full px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] transition sm:px-3 sm:text-xs sm:tracking-[0.16em]",
           roleMode === "professionals"
-            ? "bg-[var(--ms-magenta)] text-white"
+            ? "bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white"
             : "text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
         )}
         href="/professionals"
@@ -195,68 +344,106 @@ export function SplitBrandHeader({
   currentNav: NavKey;
   roleMode: RoleMode;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--ms-border)] bg-[color:rgba(250,246,241,0.94)] backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 lg:px-6">
-        <div className="grid gap-3 md:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)]">
-          <div className="rounded-[28px] bg-[var(--ms-navy)] px-4 py-4 text-white shadow-[0_18px_50px_rgba(13,27,42,0.22)]">
-            <div className="flex items-center gap-3">
-              <BrandMark />
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-white/70">Nairobi marketplace</p>
-                <p className="text-base font-semibold">Beauty in your fingertips</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-[28px] border border-[var(--ms-border)] bg-white px-4 py-4 shadow-[0_18px_50px_rgba(13,27,42,0.08)]">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <Link className="font-display text-3xl leading-none text-[var(--ms-navy)]" href="/">
+    <>
+      <header className="sticky top-0 z-40 border-b border-[var(--ms-border)] bg-white/95 backdrop-blur-2xl">
+        <div className="mx-auto max-w-7xl px-4 py-3 lg:px-6">
+          <div className="flex items-center gap-3 rounded-[28px] border border-white/80 bg-white/90 px-3 py-3 shadow-[0_18px_55px_rgba(132,36,92,0.11)]">
+            <Link className="flex shrink-0 items-center gap-3" href="/">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] bg-[linear-gradient(145deg,var(--ms-plum),var(--ms-rose))] text-white shadow-[0_16px_36px_rgba(132,36,92,0.2)]">
+                <BrandMark />
+              </span>
+              <span className="min-w-0">
+                <span className="block whitespace-nowrap font-display text-2xl leading-none text-[var(--ms-navy)]">
                   Mobile Salon
-                </Link>
-                <p className="mt-1 text-sm text-[var(--ms-mauve)]">
-                  Trusted salons and professionals across Nairobi.
-                </p>
-              </div>
-              <nav className="hidden items-center gap-2 lg:flex">
-                <DesktopNavLink href="/" current={currentNav === "home"}>
-                  Home
-                </DesktopNavLink>
-                <DesktopNavLink href="/explore" current={currentNav === "explore"}>
-                  Explore
-                </DesktopNavLink>
-                <DesktopNavLink href="/salons" current={currentNav === "salons"}>
-                  Salons
-                </DesktopNavLink>
-                <DesktopNavLink href="/professionals" current={currentNav === "professionals"}>
-                  Professionals
-                </DesktopNavLink>
-                <DesktopNavLink href="/book" current={currentNav === "book"}>
-                  Book
-                </DesktopNavLink>
-                <DesktopNavLink href="/profile" current={currentNav === "profile"}>
-                  Profile
-                </DesktopNavLink>
-                <CTAButton className="ml-2" href="/book">
-                  Start Booking <ArrowRight className="h-4 w-4" />
-                </CTAButton>
-              </nav>
-              <div className="flex items-center gap-2 lg:hidden">
-                <div className="rounded-full bg-[var(--ms-soft-bg)] p-2 text-[var(--ms-navy)]">
-                  <Menu className="h-4 w-4" />
-                </div>
-                <CTAButton className="flex-1" href="/book">
-                  Book now
-                </CTAButton>
-              </div>
+                </span>
+                <span className="mt-1 hidden whitespace-nowrap text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)] sm:block">
+                  Beauty, softly handled
+                </span>
+              </span>
+            </Link>
+
+            <nav className="ml-auto hidden items-center gap-1 xl:flex">
+              <DesktopNavLink href="/" current={currentNav === "home"}>
+                Home
+              </DesktopNavLink>
+              <DesktopNavLink href="/explore" current={currentNav === "explore"}>
+                Explore
+              </DesktopNavLink>
+              <DesktopNavLink href="/guide">
+                Guide
+              </DesktopNavLink>
+              <DesktopNavLink href="/salons" current={currentNav === "salons"}>
+                Salons
+              </DesktopNavLink>
+              <DesktopNavLink href="/professionals" current={currentNav === "professionals"}>
+                Pros
+              </DesktopNavLink>
+              <DesktopNavLink href="/services" current={currentNav === "book"}>
+                Services
+              </DesktopNavLink>
+              <DesktopNavLink href="/book" current={currentNav === "book"}>
+                Book
+              </DesktopNavLink>
+              <DesktopNavLink href="/profile" current={currentNav === "profile"}>
+                Profile
+              </DesktopNavLink>
+              <CTAButton className="ml-2 min-h-12 px-6" href="/book?rush=true">
+                Start Booking <ArrowRight className="h-4 w-4" />
+              </CTAButton>
+            </nav>
+
+            <div className="ml-auto flex items-center gap-2 xl:hidden">
+              <button
+                aria-controls="mobile-menu"
+                aria-expanded={menuOpen}
+                aria-label="Open mobile menu"
+                className="rounded-full bg-[var(--ms-petal)] p-3 text-[var(--ms-plum)]"
+                onClick={() => setMenuOpen(true)}
+                type="button"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <CTAButton className="hidden px-4 sm:inline-flex" href="/book?rush=true">
+                Book
+              </CTAButton>
             </div>
           </div>
+          <div className="mx-auto mt-3 w-full max-w-80 sm:max-w-md">
+            <RoleSwitchTabs roleMode={roleMode} />
+          </div>
         </div>
-        <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-sm">
-          <RoleSwitchTabs roleMode={roleMode} />
-        </div>
-      </div>
-    </header>
+      </header>
+      <MobileSheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu">
+        <nav id="mobile-menu" className="grid gap-2">
+          {[
+            ["Home", "/"],
+            ["Guide", "/guide"],
+            ["Explore", "/explore"],
+            ["Salons", "/salons"],
+            ["Professionals", "/professionals"],
+            ["Services", "/services"],
+            ["Book now", "/book?rush=true"],
+            ["Activity", "/activity"],
+            ["Profile", "/profile"],
+            ["Sign in", "/auth/sign-in"],
+            ["Join as a pro", "/onboarding/professional"],
+            ["Help", "/help"],
+          ].map(([label, href]) => (
+            <Link
+              className="rounded-[20px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm font-semibold text-[var(--ms-navy)]"
+              href={href}
+              key={href}
+              onClick={() => setMenuOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </MobileSheet>
+    </>
   );
 }
 
@@ -286,17 +473,23 @@ function DesktopNavLink({
 
 export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-40 rounded-[28px] border border-white/60 bg-[color:rgba(13,27,42,0.94)] px-2 py-2 shadow-[0_18px_50px_rgba(13,27,42,0.35)] backdrop-blur md:hidden">
-      <ul className="grid grid-cols-5 gap-1">
+    <nav
+      className="mobile-bottom-nav fixed bottom-3 z-40 overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(135deg,rgba(58,24,58,0.96),rgba(132,36,92,0.94))] px-1.5 py-1.5 shadow-[0_18px_50px_rgba(132,36,92,0.32)] backdrop-blur md:hidden"
+      style={{ left: "0.5rem", maxWidth: "calc(100vw - 1rem)", right: "0.5rem", width: "auto" }}
+    >
+      <ul
+        className="mobile-bottom-nav-grid grid min-w-0 gap-0.5"
+        style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = item.key === currentNav;
 
           return (
-            <li key={item.key}>
+            <li className="min-w-0" key={item.key}>
               <Link
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium transition",
+                  "flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-medium transition",
                   active
                     ? "bg-white text-[var(--ms-navy)]"
                     : "text-white/72 hover:text-white",
@@ -353,14 +546,14 @@ export function MobileSheet({
         <>
           <motion.button
             aria-label="Close panel"
-            className="fixed inset-0 z-40 bg-[rgba(13,27,42,0.48)] md:hidden"
+            className="fixed inset-0 z-40 bg-[rgba(13,27,42,0.48)] xl:hidden"
             initial={{ opacity: 0 }}
             onClick={onClose}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 rounded-t-[32px] bg-white p-5 shadow-[0_-24px_60px_rgba(13,27,42,0.24)] md:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 rounded-t-[32px] bg-white p-5 shadow-[0_-24px_60px_rgba(13,27,42,0.24)] xl:hidden"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -467,24 +660,32 @@ export function CategoryCircle({
   name,
   detail,
   color,
+  image,
 }: {
   name: string;
   detail: string;
   color: string;
+  image?: VisualAsset;
 }) {
   return (
     <div className="group flex flex-col items-center gap-3 text-center">
       <div
         className={cn(
-          "flex h-24 w-24 items-center justify-center rounded-full border border-white/60 bg-gradient-to-br text-lg font-semibold text-[var(--ms-navy)] shadow-[0_16px_34px_rgba(13,27,42,0.12)] transition duration-300 group-hover:-translate-y-1",
+          "relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-white/60 bg-gradient-to-br text-lg font-semibold text-[var(--ms-navy)] shadow-[0_16px_34px_rgba(13,27,42,0.12)] transition duration-300 group-hover:-translate-y-1",
           color,
         )}
       >
-        {name
-          .split(" ")
-          .slice(0, 2)
-          .map((part) => part[0])
-          .join("")}
+        {image ? (
+          <>
+            <ImageLayer asset={image} />
+            <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.05),rgba(13,27,42,0.62))]" />
+            <span className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/18 text-white backdrop-blur">
+              {renderCategoryIcon(name, "h-6 w-6")}
+            </span>
+          </>
+        ) : (
+          renderCategoryIcon(name, "h-6 w-6")
+        )}
       </div>
       <div>
         <p className="text-sm font-semibold text-[var(--ms-navy)]">{name}</p>
@@ -494,13 +695,135 @@ export function CategoryCircle({
   );
 }
 
+function renderCategoryIcon(name: string, className: string) {
+  const normalized = name.toLowerCase();
+
+  if (normalized.includes("braid") || normalized.includes("hair")) {
+    return <Waves className={className} />;
+  }
+
+  if (normalized.includes("nail")) {
+    return <Hand className={className} />;
+  }
+
+  if (normalized.includes("make")) {
+    return <Paintbrush className={className} />;
+  }
+
+  if (normalized.includes("lash")) {
+    return <Eye className={className} />;
+  }
+
+  if (normalized.includes("short") || normalized.includes("shave")) {
+    return <Scissors className={className} />;
+  }
+
+  if (normalized.includes("bridal")) {
+    return <Crown className={className} />;
+  }
+
+  if (normalized.includes("self")) {
+    return <Heart className={className} />;
+  }
+
+  return <Sparkles className={className} />;
+}
+
 export function VerifiedBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--ms-navy)]/8 px-3 py-1 text-xs font-semibold text-[var(--ms-navy)]">
-      <ShieldCheck className="h-3.5 w-3.5 text-[var(--ms-magenta)]" />
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[var(--ms-plum)] shadow-[0_8px_20px_rgba(132,36,92,0.14)]">
+      <ShieldCheck className="h-3.5 w-3.5 text-[var(--ms-rose)]" />
       Verified
     </span>
   );
+}
+
+function ImageLayer({
+  asset,
+  className,
+  priority,
+}: {
+  asset?: VisualAsset;
+  className?: string;
+  priority?: boolean;
+}) {
+  if (!asset) {
+    return null;
+  }
+
+  return (
+    <Image
+      alt={asset.alt}
+      className={cn("object-cover", className)}
+      fill
+      priority={priority}
+      sizes="(min-width: 1280px) 42vw, (min-width: 768px) 50vw, 100vw"
+      src={asset.url}
+      style={{ objectPosition: asset.position ?? "center" }}
+    />
+  );
+}
+
+function serviceImage(service: Service) {
+  if (service.image) {
+    return service.image;
+  }
+
+  if (service.category === "Nails") {
+    return imageAssets.nails;
+  }
+
+  if (service.category === "Make-Up" || service.category === "Bridal & Events") {
+    return imageAssets.makeupArtist;
+  }
+
+  if (service.category === "Lashes / Brows") {
+    return imageAssets.lashesTools;
+  }
+
+  if (service.category === "Short Hair & Shave") {
+    return imageAssets.barber;
+  }
+
+  if (service.category === "Care / Skin") {
+    return imageAssets.skincareHands;
+  }
+
+  if (service.category === "Self-Care / Beauty") {
+    return imageAssets.spaCare;
+  }
+
+  return imageAssets.braidsPortrait;
+}
+
+function portfolioImage(title: string) {
+  const lower = title.toLowerCase();
+
+  if (lower.includes("nail") || lower.includes("chrome") || lower.includes("gel") || lower.includes("pedicure")) {
+    return imageAssets.nails;
+  }
+
+  if (lower.includes("lash") || lower.includes("brow")) {
+    return imageAssets.lashesTools;
+  }
+
+  if (lower.includes("fade") || lower.includes("beard") || lower.includes("groom") || lower.includes("low cut") || lower.includes("undercut")) {
+    return imageAssets.beardCare;
+  }
+
+  if (lower.includes("spa") || lower.includes("massage") || lower.includes("polish") || lower.includes("facial")) {
+    return imageAssets.spaCare;
+  }
+
+  if (lower.includes("bride") || lower.includes("glam") || lower.includes("makeup") || lower.includes("ceremony")) {
+    return imageAssets.makeupArtist;
+  }
+
+  if (lower.includes("loc") || lower.includes("twist") || lower.includes("wash") || lower.includes("silk")) {
+    return imageAssets.naturalHair;
+  }
+
+  return imageAssets.braidsPortrait;
 }
 
 export function WhatsAppButton({
@@ -518,19 +841,66 @@ export function WhatsAppButton({
   );
 }
 
+export function SecureContactCard({
+  name,
+  bookingHref,
+  confirmed = false,
+}: {
+  name: string;
+  bookingHref: string;
+  confirmed?: boolean;
+}) {
+  return (
+    <article className="beauty-card rounded-[32px] p-5">
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--ms-petal)] text-[var(--ms-rose)]">
+          <EyeOff className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Private contact</p>
+          <h3 className="mt-2 text-2xl font-semibold text-[var(--ms-plum)]">
+            Contact unlocks after a confirmed paid booking.
+          </h3>
+          <p className="mt-2 text-sm leading-7 text-[var(--ms-mauve)]">
+            Before payment, Mobile Salon keeps phone details protected. You can request a call, send a secure message, or use support without exposing either side too early.
+          </p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3">
+        <CTAButton href={bookingHref}>
+          <PhoneCall className="h-4 w-4" />
+          Request call safely
+        </CTAButton>
+        <CTAButton href={bookingHref} variant="outline">
+          <MessageCircleMore className="h-4 w-4" />
+          Send secure request
+        </CTAButton>
+        {confirmed ? (
+          <div className="rounded-[24px] bg-[var(--ms-soft-bg)] p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Confirmed booking</p>
+            <p className="mt-2 text-sm text-[var(--ms-charcoal)]">
+              Direct communication with {name} is available for this appointment.
+            </p>
+          </div>
+        ) : (
+          <WhatsAppButton label={`${name} secure contact support`} />
+        )}
+      </div>
+    </article>
+  );
+}
+
 export function SalonCard({ salon }: { salon: Salon }) {
   return (
     <motion.article
-      className="overflow-hidden rounded-[32px] border border-[var(--ms-border)] bg-white shadow-[0_20px_60px_rgba(13,27,42,0.08)]"
+      className="beauty-card overflow-hidden rounded-[32px]"
       whileHover={{ y: -4 }}
       transition={{ duration: 0.22 }}
     >
-      <div className={cn("relative overflow-hidden bg-gradient-to-br px-5 py-6 text-white", salon.heroMood)}>
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute -left-8 top-4 h-24 w-24 rounded-full bg-white/15 blur-xl" />
-          <div className="absolute bottom-0 right-2 h-32 w-32 rounded-full bg-black/20 blur-2xl" />
-        </div>
-        <div className="relative flex flex-col gap-4">
+      <div className={cn("relative min-h-[270px] overflow-hidden bg-gradient-to-br px-5 py-6 text-white", salon.heroMood)}>
+        <ImageLayer asset={salon.image} priority />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.14)_0%,rgba(13,27,42,0.56)_48%,rgba(13,27,42,0.92)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-4 p-5">
           <div className="flex flex-wrap items-center gap-2">
             {salon.verified ? <VerifiedBadge /> : null}
             <span className="rounded-full bg-white/16 px-3 py-1 text-xs font-medium">{salon.location}</span>
@@ -566,14 +936,18 @@ export function SalonCard({ salon }: { salon: Salon }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {salon.topServiceIds.slice(0, 3).map((serviceId) => (
+          {getServicesByIds(salon.topServiceIds.slice(0, 3)).map((service) => (
             <span
               className="rounded-full bg-[var(--ms-soft-bg)] px-3 py-1 text-xs font-medium text-[var(--ms-mauve)]"
-              key={serviceId}
+              key={service.id}
             >
-              {serviceId.replaceAll("-", " ")}
+              {service.name}
             </span>
           ))}
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <MetaPill icon={<Clock3 className="h-4 w-4" />} label={`Replies in ~${salon.responseSpeedMinutes} min`} />
+          <MetaPill icon={<CheckCircle2 className="h-4 w-4" />} label={`${salon.completionRate}% completion`} />
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <CTAButton className="flex-1" href={`/salons/${salon.slug}`} variant="outline">
@@ -591,12 +965,14 @@ export function SalonCard({ salon }: { salon: Salon }) {
 export function ProfessionalCard({ professional }: { professional: Professional }) {
   return (
     <motion.article
-      className="rounded-[32px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_20px_60px_rgba(13,27,42,0.08)]"
+      className="beauty-card rounded-[32px] p-5"
       whileHover={{ y: -4 }}
       transition={{ duration: 0.22 }}
     >
-      <div className={cn("mb-5 rounded-[28px] bg-gradient-to-br px-5 py-6 text-white", professional.heroMood)}>
-        <div className="flex items-start justify-between gap-4">
+      <div className={cn("relative mb-5 min-h-[250px] overflow-hidden rounded-[28px] bg-gradient-to-br px-5 py-6 text-white", professional.heroMood)}>
+        <ImageLayer asset={professional.image} />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.1)_0%,rgba(13,27,42,0.55)_52%,rgba(13,27,42,0.9)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 z-10 flex items-start justify-between gap-4 p-5">
           <div>
             <p className="font-display text-3xl leading-tight">{professional.name}</p>
             <p className="mt-2 text-sm text-white/82">{professional.specialty}</p>
@@ -615,9 +991,22 @@ export function ProfessionalCard({ professional }: { professional: Professional 
             label={`${professional.rating} rating`}
           />
         </div>
+        <div className="flex flex-wrap gap-2">
+          {professional.identityAttributes.map((attribute) => (
+            <span
+              className="rounded-full bg-[var(--ms-petal)] px-3 py-1 text-xs font-semibold text-[var(--ms-plum)]"
+              key={attribute}
+            >
+              {attribute}
+            </span>
+          ))}
+        </div>
         <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-3">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Starts at</p>
           <p className="mt-1 text-lg font-semibold text-[var(--ms-navy)]">{formatKES(professional.startingPrice)}</p>
+          <p className="mt-1 text-xs text-[var(--ms-mauve)]">
+            Replies in ~{professional.responseSpeedMinutes} min · {professional.completionRate}% completion
+          </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <CTAButton className="flex-1" href={`/professionals/${professional.slug}`} variant="outline">
@@ -651,49 +1040,78 @@ export function ServiceCard({
   service: Service;
   compact?: boolean;
 }) {
+  const visual = serviceImage(service);
+
   return (
-    <article className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_12px_40px_rgba(13,27,42,0.06)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">{service.category}</p>
-          <h3 className="mt-2 text-xl font-semibold text-[var(--ms-navy)]">{service.name}</h3>
+    <article className="beauty-card overflow-hidden rounded-[28px]">
+      <div className="relative min-h-[150px] p-5 text-white">
+        <ImageLayer asset={visual} />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.12)_0%,rgba(13,27,42,0.72)_70%,rgba(13,27,42,0.92)_100%)]" />
+        <div className="relative z-10 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-white/72">{service.category}</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">{service.name}</h3>
+          </div>
+          {service.popular ? (
+            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[var(--ms-navy)]">
+              Popular
+            </span>
+          ) : null}
         </div>
-        {service.popular ? (
-          <span className="rounded-full bg-[var(--ms-gold)]/16 px-3 py-1 text-xs font-semibold text-[var(--ms-gold)]">
-            Popular
+      </div>
+      <div className="p-5">
+        <p className="text-sm leading-6 text-[var(--ms-charcoal)]">{service.description}</p>
+        <p className="mt-3 text-sm text-[var(--ms-mauve)]">{service.inclusions}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+          <span className="rounded-full bg-[var(--ms-soft-bg)] px-3 py-2 text-[var(--ms-navy)]">
+            {formatPriceRange(service.minPrice, service.maxPrice)}
           </span>
+          <span className="rounded-full bg-[var(--ms-soft-bg)] px-3 py-2 text-[var(--ms-mauve)]">
+            {formatDurationRange(service.durationMin, service.durationMax)}
+          </span>
+        </div>
+        {!compact ? (
+          <div className="mt-5">
+            <CTAButton href={buildBookingHref({ targetType: "salons", serviceIds: [service.id] })}>
+              Select Service
+            </CTAButton>
+          </div>
         ) : null}
       </div>
-      <p className="mt-3 text-sm leading-6 text-[var(--ms-charcoal)]">{service.description}</p>
-      <p className="mt-3 text-sm text-[var(--ms-mauve)]">{service.inclusions}</p>
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-        <span className="rounded-full bg-[var(--ms-soft-bg)] px-3 py-2 text-[var(--ms-navy)]">
-          {formatPriceRange(service.minPrice, service.maxPrice)}
-        </span>
-        <span className="rounded-full bg-[var(--ms-soft-bg)] px-3 py-2 text-[var(--ms-mauve)]">
-          {formatDurationRange(service.durationMin, service.durationMax)}
-        </span>
-      </div>
-      {!compact ? (
-        <div className="mt-5">
-          <CTAButton href={buildBookingHref({ targetType: "salons", serviceIds: [service.id] })}>
-            Select Service
-          </CTAButton>
-        </div>
-      ) : null}
     </article>
   );
 }
 
 export function PackageCard({ offer }: { offer: PackageOffer }) {
   return (
-    <article className="rounded-[32px] bg-[linear-gradient(145deg,rgba(13,27,42,0.95),rgba(29,39,62,0.88)_52%,rgba(217,70,239,0.34))] p-5 text-white shadow-[0_22px_60px_rgba(13,27,42,0.18)]">
-      <p className="text-xs uppercase tracking-[0.22em] text-white/65">{offer.badge}</p>
+    <article className="decorative-orbit min-h-[310px] overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,var(--ms-plum),#512547_54%,var(--ms-navy))] p-5 text-white shadow-[0_22px_60px_rgba(13,27,42,0.18)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs uppercase tracking-[0.22em] text-white/65">{offer.badge}</p>
+        {offer.trending ? (
+          <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-semibold text-[var(--ms-blush)]">
+            Trending
+          </span>
+        ) : null}
+      </div>
       <h3 className="mt-3 font-display text-3xl leading-tight">{offer.name}</h3>
       <p className="mt-3 text-sm leading-6 text-white/78">{offer.description}</p>
+      {offer.bestFor ? (
+        <p className="mt-3 rounded-[20px] bg-white/10 px-4 py-3 text-sm leading-6 text-white/76">
+          Best for: {offer.bestFor}
+        </p>
+      ) : null}
+      {offer.includedServices?.length ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {offer.includedServices.slice(0, 4).map((service) => (
+            <span className="rounded-full border border-white/18 px-3 py-1 text-xs text-white/78" key={service}>
+              {service}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div className="mt-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/60">Package price</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/60">Starts from</p>
           <p className="mt-1 text-xl font-semibold text-[var(--ms-gold)]">{formatKES(offer.price)}</p>
         </div>
         <CTAButton
@@ -709,7 +1127,7 @@ export function PackageCard({ offer }: { offer: PackageOffer }) {
 
 export function ReviewCard({ review }: { review: ReviewSnapshot }) {
   return (
-    <article className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_12px_40px_rgba(13,27,42,0.06)]">
+    <article className="beauty-card rounded-[28px] p-5">
       <div className="flex items-center gap-1 text-[var(--ms-gold)]">
         {Array.from({ length: review.rating }).map((_, index) => (
           <Star className="h-4 w-4 fill-current" key={`${review.id}-${index}`} />
@@ -742,15 +1160,18 @@ export function BookingStepper({ step }: { step: number }) {
   const steps = ["Target", "Service", "Time", "Details", "Review"];
 
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div
+      className="grid min-w-0 gap-1.5 sm:gap-2"
+      style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}
+    >
       {steps.map((label, index) => {
         const itemStep = index + 1;
         const active = itemStep <= step;
 
         return (
-          <div className="space-y-2" key={label}>
+          <div className="min-w-0 space-y-2" key={label}>
             <div className={cn("h-1.5 rounded-full", active ? "bg-[var(--ms-magenta)]" : "bg-[var(--ms-border)]")} />
-            <p className={cn("text-xs", active ? "text-[var(--ms-navy)]" : "text-[var(--ms-mauve)]")}>{label}</p>
+            <p className={cn("truncate text-[10px] sm:text-xs", active ? "text-[var(--ms-navy)]" : "text-[var(--ms-mauve)]")}>{label}</p>
           </div>
         );
       })}
@@ -772,10 +1193,10 @@ export function DateChip({
   return (
     <button
       className={cn(
-        "min-w-[88px] rounded-[22px] border px-4 py-3 text-left transition",
+        "min-w-[88px] rounded-[22px] border px-4 py-3 text-left transition active:scale-[0.98]",
         selected
           ? "border-[var(--ms-gold)] bg-[var(--ms-gold)] text-[var(--ms-navy)]"
-          : "border-[var(--ms-border)] bg-white text-[var(--ms-mauve)]",
+          : "border-[var(--ms-border)] bg-white text-[var(--ms-mauve)] hover:border-[var(--ms-rose)]/40 hover:text-[var(--ms-plum)]",
       )}
       onClick={onClick}
       type="button"
@@ -798,10 +1219,10 @@ export function TimePill({
   return (
     <button
       className={cn(
-        "rounded-full border px-4 py-2 text-sm font-medium transition",
+        "rounded-full border px-4 py-2 text-sm font-medium transition active:scale-[0.98]",
         selected
           ? "border-[var(--ms-magenta)] bg-[var(--ms-magenta)] text-white"
-          : "border-[var(--ms-border)] bg-white text-[var(--ms-mauve)]",
+          : "border-[var(--ms-border)] bg-white text-[var(--ms-mauve)] hover:border-[var(--ms-rose)]/40 hover:text-[var(--ms-plum)]",
       )}
       onClick={onClick}
       type="button"
@@ -850,7 +1271,7 @@ export function NotificationToggle({
 }) {
   return (
     <button
-      className="flex w-full items-center justify-between gap-4 rounded-[24px] border border-[var(--ms-border)] bg-white px-4 py-4 text-left"
+      className="flex w-full items-center justify-between gap-4 rounded-[24px] border border-[var(--ms-border)] bg-white px-4 py-4 text-left transition hover:border-[var(--ms-rose)]/30 hover:shadow-[0_14px_34px_rgba(132,36,92,0.09)] active:scale-[0.99]"
       onClick={onToggle}
       type="button"
     >
@@ -874,11 +1295,11 @@ export function PortfolioGrid({
   items,
   dark,
 }: {
-  items: { id: string; title: string; note: string; tint: string }[];
+  items: PortfolioItem[];
   dark?: boolean;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="scroll-row sm:grid sm:grid-flow-row sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
         <div
           className={cn(
@@ -889,7 +1310,10 @@ export function PortfolioGrid({
           )}
           key={item.id}
         >
-          <div className={cn("h-36 rounded-[22px] bg-gradient-to-br", item.tint)} />
+          <div className={cn("relative h-40 overflow-hidden rounded-[22px] bg-gradient-to-br", item.tint)}>
+            <ImageLayer asset={item.image ?? portfolioImage(item.title)} />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.02),rgba(13,27,42,0.34))]" />
+          </div>
           <h3 className={cn("mt-4 text-lg font-semibold", dark ? "text-white" : "text-[var(--ms-navy)]")}>
             {item.title}
           </h3>
@@ -933,22 +1357,22 @@ export function AuthCard({
 }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,0.6fr)_minmax(0,0.4fr)]">
-      <div className="rounded-[32px] border border-[var(--ms-border)] bg-white p-6 shadow-[0_22px_60px_rgba(13,27,42,0.08)]">
+      <div className="silk-panel rounded-[32px] p-6">
         <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">{eyebrow}</p>
-        <h1 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">{title}</h1>
+        <h1 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">{title}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ms-mauve)]">{description}</p>
         <div className="mt-6">{children}</div>
       </div>
-      <div className="rounded-[32px] bg-[linear-gradient(160deg,#0d1b2a_0%,#12263d_52%,rgba(217,70,239,0.4)_100%)] p-6 text-white shadow-[0_22px_60px_rgba(13,27,42,0.18)]">
+      <div className="rounded-[32px] bg-[linear-gradient(160deg,var(--ms-plum)_0%,#68235c_52%,rgba(232,62,140,0.52)_100%)] p-6 text-white shadow-[0_22px_60px_rgba(132,36,92,0.18)]">
         <p className="text-xs uppercase tracking-[0.24em] text-white/62">Why Mobile Salon</p>
-        <h2 className="mt-3 font-display text-4xl leading-tight">Clear pricing. Trusted Nairobi beauty.</h2>
+        <h2 className="mt-3 font-display text-4xl leading-tight">Saved choices. Softer booking.</h2>
         <p className="mt-4 text-sm leading-7 text-white/76">
-          Built to remove booking chaos for clients while giving salons and professionals a serious home for their business.
+          Your selected service stays ready while your account keeps bookings, reminders, and favourites together.
         </p>
         <div className="mt-6 space-y-3">
           <InfoBullet text="Visible prices, timings, and availability before confirmation" />
           <InfoBullet text="Professional onboarding, portfolio setup, and service management" />
-          <InfoBullet text="WhatsApp fallback for MVP support without breaking the main flow" />
+          <InfoBullet text="WhatsApp support without breaking the protected booking flow" />
         </div>
         {aside ? <div className="mt-6">{aside}</div> : null}
       </div>

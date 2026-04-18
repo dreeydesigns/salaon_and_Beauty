@@ -14,10 +14,92 @@ export type ServiceCategory =
   | "Nails"
   | "Make-Up"
   | "Lashes / Brows"
-  | "Men's Grooming"
+  | "Short Hair & Shave"
+  | "Self-Care / Beauty"
   | "Bridal & Events";
 
 export type ServiceMode = "In salon" | "Mobile" | "Both";
+
+export interface VisualAsset {
+  url: string;
+  alt: string;
+  credit: string;
+  creditUrl: string;
+  position?: string;
+}
+
+export const imageAssets = {
+  braidsPortrait: {
+    url: "https://images.pexels.com/photos/11515382/pexels-photo-11515382.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1500&fit=crop",
+    alt: "Black woman with golden braids against a warm yellow studio background",
+    credit: "Pexels / Kehinde Ogunsanya",
+    creditUrl: "https://www.pexels.com/photo/portrait-of-a-woman-with-braids-11515382/",
+    position: "center 28%",
+  },
+  salonBraiding: {
+    url: "https://images.pexels.com/photos/16192981/pexels-photo-16192981.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop",
+    alt: "Stylist braiding natural Black hair in a salon setting",
+    credit: "Pexels / Planetelevene",
+    creditUrl: "https://www.pexels.com/photo/african-hair-braiding-in-salon-setting-16192981/",
+    position: "center 45%",
+  },
+  naturalHair: {
+    url: "https://images.pexels.com/photos/3228847/pexels-photo-3228847.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1500&fit=crop",
+    alt: "Black woman with long braids and natural hair texture outdoors",
+    credit: "Pexels / fauxels",
+    creditUrl: "https://www.pexels.com/photo/woman-standing-near-green-leaf-3228847/",
+    position: "center 24%",
+  },
+  makeupArtist: {
+    url: "https://images.pexels.com/photos/11360229/pexels-photo-11360229.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop",
+    alt: "Makeup artist applying eyeshadow on a Black woman",
+    credit: "Pexels / Wayne Fotografias",
+    creditUrl: "https://www.pexels.com/photo/a-woman-getting-make-up-by-a-make-up-artist-11360229/",
+    position: "center 42%",
+  },
+  nails: {
+    url: "https://images.unsplash.com/photo-1633955726992-2b7c0d2d2a69?auto=format&fit=crop&w=1200&q=85",
+    alt: "Dark-skinned hands with white manicure on a burgundy background",
+    credit: "Unsplash / Alazar Kassahun",
+    creditUrl: "https://unsplash.com/photos/GV9_jUGReBo",
+    position: "center 42%",
+  },
+  barber: {
+    url: "https://images.pexels.com/photos/20718222/pexels-photo-20718222.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1500&fit=crop",
+    alt: "Black woman with short hair and soft beauty styling",
+    credit: "Pexels",
+    creditUrl: "https://www.pexels.com/photo/portrait-of-woman-with-short-black-hair-20718222/",
+    position: "center 35%",
+  },
+  beardCare: {
+    url: "https://images.pexels.com/photos/20718222/pexels-photo-20718222.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop",
+    alt: "Portrait of a Black woman with a short feminine cut",
+    credit: "Pexels",
+    creditUrl: "https://www.pexels.com/photo/portrait-of-woman-with-short-black-hair-20718222/",
+    position: "center 38%",
+  },
+  lashesTools: {
+    url: "https://images.pexels.com/photos/5128230/pexels-photo-5128230.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1500&fit=crop",
+    alt: "Lash extension tools held by a beauty professional",
+    credit: "Pexels / Nataliya Vaitkevich",
+    creditUrl: "https://www.pexels.com/photo/a-person-using-a-tweezer-on-eyelash-extensions-5128230/",
+    position: "center 44%",
+  },
+  skincareHands: {
+    url: "https://images.pexels.com/photos/7281296/pexels-photo-7281296.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1500&fit=crop",
+    alt: "Hands with black nails applying skincare product",
+    credit: "Pexels / Karolina Grabowska",
+    creditUrl: "https://www.pexels.com/photo/woman-with-black-nails-holding-bottle-above-palm-7281296/",
+    position: "center 42%",
+  },
+  spaCare: {
+    url: "https://images.pexels.com/photos/6620860/pexels-photo-6620860.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1500&fit=crop",
+    alt: "Woman receiving a calm spa facial treatment",
+    credit: "Pexels / Sora Shimazaki",
+    creditUrl: "https://www.pexels.com/photo/woman-in-white-tank-top-lying-on-bed-6620860/",
+    position: "center 42%",
+  },
+} satisfies Record<string, VisualAsset>;
 
 export interface Service {
   id: string;
@@ -30,6 +112,8 @@ export interface Service {
   durationMax: number;
   inclusions: string;
   popular?: boolean;
+  trending?: boolean;
+  image?: VisualAsset;
 }
 
 export interface PackageOffer {
@@ -39,6 +123,10 @@ export interface PackageOffer {
   price: number;
   serviceIds: string[];
   badge: string;
+  includedServices?: string[];
+  bestFor?: string;
+  ownerName?: string;
+  trending?: boolean;
 }
 
 export interface ReviewSnapshot {
@@ -55,6 +143,7 @@ export interface PortfolioItem {
   title: string;
   note: string;
   tint: string;
+  image?: VisualAsset;
 }
 
 export interface Salon {
@@ -72,6 +161,7 @@ export interface Salon {
   about: string;
   description: string;
   heroMood: string;
+  image?: VisualAsset;
   serviceIds: string[];
   topServiceIds: string[];
   packageOffers: PackageOffer[];
@@ -79,6 +169,11 @@ export interface Salon {
   faq: { question: string; answer: string }[];
   professionals: string[];
   nextAvailable: string;
+  responseSpeedMinutes: number;
+  completionRate: number;
+  repeatBookings: number;
+  savedCount: number;
+  trendingScore: number;
 }
 
 export interface Professional {
@@ -96,11 +191,18 @@ export interface Professional {
   bio: string;
   description: string;
   heroMood: string;
+  image?: VisualAsset;
   serviceIds: string[];
   packageOffers: PackageOffer[];
   gallery: PortfolioItem[];
   faq: { question: string; answer: string }[];
   nextAvailable: string;
+  responseSpeedMinutes: number;
+  completionRate: number;
+  repeatBookings: number;
+  savedCount: number;
+  trendingScore: number;
+  identityAttributes: string[];
 }
 
 export const marketAreas = [
@@ -121,52 +223,67 @@ export const serviceCategories = [
     name: "Braids",
     detail: "Protective styles from knotless to fulani.",
     color: "from-[var(--ms-magenta)]/30 to-[var(--ms-gold)]/25",
+    image: imageAssets.braidsPortrait,
   },
   {
     id: "natural-hair",
     name: "Natural Hair",
     detail: "Wash days, twists, silk press, and healthy care.",
     color: "from-[var(--ms-navy)]/80 to-[var(--ms-purple)]/30",
+    image: imageAssets.naturalHair,
   },
   {
     id: "weaves",
     name: "Weaves",
     detail: "Closures, frontal installs, and maintenance.",
     color: "from-[var(--ms-mauve)]/40 to-[var(--ms-magenta)]/20",
+    image: imageAssets.salonBraiding,
   },
   {
     id: "nails",
     name: "Nails",
     detail: "Gel, acrylic, detailed nail art, and spa finishes.",
     color: "from-[var(--ms-blush)] to-[var(--ms-gold)]/30",
+    image: imageAssets.nails,
   },
   {
     id: "make-up",
     name: "Make-Up",
     detail: "Soft glam, bridal, editorial, and event-ready beats.",
     color: "from-[var(--ms-navy)]/80 to-[var(--ms-magenta)]/25",
+    image: imageAssets.makeupArtist,
   },
   {
     id: "lashes",
     name: "Lashes",
     detail: "Classic, hybrid, brow sculpting, and threading.",
     color: "from-[var(--ms-purple)]/30 to-[var(--ms-blush)]",
+    image: imageAssets.lashesTools,
   },
   {
-    id: "mens-grooming",
-    name: "Men's Grooming",
-    detail: "Precision fades, beard sculpting, and facials.",
-    color: "from-[var(--ms-charcoal)]/90 to-[var(--ms-gold)]/25",
+    id: "short-hair-shave",
+    name: "Short Hair & Shave",
+    detail: "Low cuts, undercut art, soft fades, and glow facials.",
+    color: "from-[var(--ms-plum)]/90 to-[var(--ms-blush)]/35",
+    image: imageAssets.barber,
+  },
+  {
+    id: "self-care",
+    name: "Self-Care",
+    detail: "Waxing, massage, body polish, hand care, and foot care.",
+    color: "from-[var(--ms-champagne)] to-[var(--ms-rose)]/20",
+    image: imageAssets.spaCare,
   },
   {
     id: "bridal",
     name: "Bridal",
     detail: "Trials, group bookings, and all-day glam support.",
     color: "from-[var(--ms-blush)] to-[var(--ms-magenta)]/15",
+    image: imageAssets.makeupArtist,
   },
 ];
 
-export const services: Service[] = [
+const coreServices: Service[] = [
   {
     id: "knotless-braids",
     category: "Hair",
@@ -306,26 +423,26 @@ export const services: Service[] = [
   },
   {
     id: "mens-fade",
-    category: "Men's Grooming",
-    name: "Precision Fade",
-    description: "Detailed fade with line-up, texture clean-up, and style finish.",
+    category: "Short Hair & Shave",
+    name: "Soft Low Cut",
+    description: "Feminine low cut or soft fade with clean edges and polished finish.",
     minPrice: 1200,
     maxPrice: 2200,
     durationMin: 35,
     durationMax: 60,
-    inclusions: "Consultation, cut, line-up, and style finish.",
+    inclusions: "Consultation, cut, edge detail, and soft finish.",
     popular: true,
   },
   {
     id: "beard-sculpt",
-    category: "Men's Grooming",
-    name: "Beard Sculpt",
-    description: "Shape-up and grooming for neat, intentional beard lines.",
+    category: "Short Hair & Shave",
+    name: "Undercut Detail",
+    description: "Nape, side-shave, or undercut clean-up with neat line detail.",
     minPrice: 900,
     maxPrice: 1600,
     durationMin: 25,
     durationMax: 40,
-    inclusions: "Trim, line definition, hot towel, and finishing balm.",
+    inclusions: "Trim, line definition, soothing care, and finishing balm.",
   },
   {
     id: "wash-and-go",
@@ -362,6 +479,400 @@ export const services: Service[] = [
   },
 ];
 
+const expandedServices: Service[] = [
+  {
+    id: "boho-braids",
+    category: "Hair",
+    name: "Boho Braids",
+    description: "Soft protective braids with curly detail and a feminine, airy finish.",
+    minPrice: 4500,
+    maxPrice: 8500,
+    durationMin: 240,
+    durationMax: 420,
+    inclusions: "Consultation, sectioning, braid install, curl placement, dip, and finish.",
+    trending: true,
+  },
+  {
+    id: "cornrows",
+    category: "Hair",
+    name: "Cornrows",
+    description: "Clean cornrow styling for everyday wear, wig prep, or protective looks.",
+    minPrice: 1200,
+    maxPrice: 3500,
+    durationMin: 60,
+    durationMax: 180,
+    inclusions: "Parting, braid pattern, edge care, and finishing mousse.",
+  },
+  {
+    id: "natural-hair-styling",
+    category: "Hair",
+    name: "Natural Hair Styling",
+    description: "Twists, bantu knots, puff styling, or defined curls for textured hair.",
+    minPrice: 1800,
+    maxPrice: 4200,
+    durationMin: 75,
+    durationMax: 150,
+    inclusions: "Detangle check, styling product, shaping, and aftercare notes.",
+    popular: true,
+  },
+  {
+    id: "wash-blow-dry",
+    category: "Hair",
+    name: "Wash & Blow Dry",
+    description: "A clean wash day base before braids, wig installs, or styling.",
+    minPrice: 1200,
+    maxPrice: 2500,
+    durationMin: 45,
+    durationMax: 90,
+    inclusions: "Shampoo, condition, detangle, heat protectant, and blow dry.",
+  },
+  {
+    id: "wig-revamp",
+    category: "Hair",
+    name: "Wig Revamp",
+    description: "Refresh an existing wig so it feels clean, shaped, and wearable again.",
+    minPrice: 2500,
+    maxPrice: 5500,
+    durationMin: 90,
+    durationMax: 180,
+    inclusions: "Wash, conditioning, lace clean-up, styling, and fit check.",
+  },
+  {
+    id: "weave-install",
+    category: "Hair",
+    name: "Weave Install",
+    description: "Secure weave install with natural leave-out or closure support.",
+    minPrice: 3500,
+    maxPrice: 7500,
+    durationMin: 150,
+    durationMax: 270,
+    inclusions: "Braid down, install, blending, cutting if needed, and styling.",
+  },
+  {
+    id: "hair-treatment",
+    category: "Hair",
+    name: "Hair Treatment",
+    description: "Moisture, protein, or scalp-focused care for stressed textured hair.",
+    minPrice: 1800,
+    maxPrice: 4200,
+    durationMin: 60,
+    durationMax: 120,
+    inclusions: "Hair check, cleanse, treatment, steam or processing time, and finish.",
+  },
+  {
+    id: "loc-styling",
+    category: "Hair",
+    name: "Loc Styling",
+    description: "Loc barrels, curls, updos, or neat everyday styling after maintenance.",
+    minPrice: 1800,
+    maxPrice: 4200,
+    durationMin: 60,
+    durationMax: 150,
+    inclusions: "Style mapping, hold product, pinning if needed, and finish.",
+  },
+  {
+    id: "hair-colour",
+    category: "Hair",
+    name: "Hair Colour",
+    description: "Colour refresh or fashion shade consultation with hair health in mind.",
+    minPrice: 3500,
+    maxPrice: 9000,
+    durationMin: 120,
+    durationMax: 270,
+    inclusions: "Consultation, colour application, rinse, treatment, and finish.",
+  },
+  {
+    id: "classic-manicure",
+    category: "Nails",
+    name: "Classic Manicure",
+    description: "Neat natural nail grooming with polish or clean buff finish.",
+    minPrice: 900,
+    maxPrice: 1800,
+    durationMin: 35,
+    durationMax: 60,
+    inclusions: "Shape, cuticle care, hand care, polish, and finishing oil.",
+  },
+  {
+    id: "acrylic-full-set",
+    category: "Nails",
+    name: "Acrylic Full Set",
+    description: "Fresh acrylic extensions with shape, colour, and smooth finish.",
+    minPrice: 2800,
+    maxPrice: 6000,
+    durationMin: 90,
+    durationMax: 150,
+    inclusions: "Prep, extension, acrylic overlay, shaping, gel colour, and oil.",
+    trending: true,
+  },
+  {
+    id: "acrylic-refill",
+    category: "Nails",
+    name: "Acrylic Refill",
+    description: "Maintenance refill for grown-out acrylic sets.",
+    minPrice: 1800,
+    maxPrice: 3800,
+    durationMin: 60,
+    durationMax: 105,
+    inclusions: "Lift check, fill, reshaping, colour refresh, and finish.",
+  },
+  {
+    id: "gel-pedicure",
+    category: "Nails",
+    name: "Gel Pedicure",
+    description: "Pedicure grooming with long-wear gel polish.",
+    minPrice: 2200,
+    maxPrice: 3800,
+    durationMin: 60,
+    durationMax: 90,
+    inclusions: "Soak, scrub, cuticle care, gel polish, and foot cream.",
+  },
+  {
+    id: "french-tip",
+    category: "Nails",
+    name: "French Tip",
+    description: "Classic or coloured french detail for hands or toes.",
+    minPrice: 700,
+    maxPrice: 1600,
+    durationMin: 20,
+    durationMax: 45,
+    inclusions: "Tip design, clean line work, top coat, and finish.",
+  },
+  {
+    id: "toe-polish",
+    category: "Nails",
+    name: "Toe Polish",
+    description: "Quick toe polish refresh when you need a neat finish fast.",
+    minPrice: 500,
+    maxPrice: 1200,
+    durationMin: 20,
+    durationMax: 35,
+    inclusions: "Light prep, polish, top coat, and drying guidance.",
+  },
+  {
+    id: "full-glam",
+    category: "Make-Up",
+    name: "Full Glam",
+    description: "Full event glam with stronger eye detail, skin finish, and lashes.",
+    minPrice: 4500,
+    maxPrice: 8500,
+    durationMin: 90,
+    durationMax: 150,
+    inclusions: "Skin prep, complexion match, eye work, lashes, lip, and setting.",
+    trending: true,
+  },
+  {
+    id: "brow-shaping",
+    category: "Lashes / Brows",
+    name: "Brow Shaping",
+    description: "Balanced brow shaping that keeps your natural face structure in mind.",
+    minPrice: 700,
+    maxPrice: 1300,
+    durationMin: 20,
+    durationMax: 35,
+    inclusions: "Shape consultation, tidy, trim if needed, and soothing care.",
+  },
+  {
+    id: "brow-tint",
+    category: "Lashes / Brows",
+    name: "Brow Tint",
+    description: "Soft brow tint for fuller definition without a harsh finish.",
+    minPrice: 1200,
+    maxPrice: 2200,
+    durationMin: 25,
+    durationMax: 45,
+    inclusions: "Shade check, tint application, clean-up, and aftercare guidance.",
+  },
+  {
+    id: "lash-refill",
+    category: "Lashes / Brows",
+    name: "Lash Refill",
+    description: "Refill appointment to keep lash extensions neat and balanced.",
+    minPrice: 1800,
+    maxPrice: 3500,
+    durationMin: 45,
+    durationMax: 75,
+    inclusions: "Retention check, lash clean, refill, and aftercare reminder.",
+  },
+  {
+    id: "lash-lift",
+    category: "Lashes / Brows",
+    name: "Lash Lift",
+    description: "Natural lash lift for a soft open-eye effect without extensions.",
+    minPrice: 2500,
+    maxPrice: 4200,
+    durationMin: 45,
+    durationMax: 75,
+    inclusions: "Lift, optional tint, conditioning, and aftercare.",
+  },
+  {
+    id: "cleanup-facial",
+    category: "Care / Skin",
+    name: "Cleanup Facial",
+    description: "Simple glow facial for congestion, sweat, and city-week buildup.",
+    minPrice: 1500,
+    maxPrice: 3200,
+    durationMin: 45,
+    durationMax: 75,
+    inclusions: "Cleanse, steam, mask, moisturise, and SPF guidance.",
+  },
+  {
+    id: "waxing",
+    category: "Self-Care / Beauty",
+    name: "Waxing",
+    description: "Gentle waxing options for underarms, legs, arms, or bikini line.",
+    minPrice: 900,
+    maxPrice: 4500,
+    durationMin: 20,
+    durationMax: 90,
+    inclusions: "Area prep, waxing, soothing care, and aftercare instructions.",
+  },
+  {
+    id: "threading",
+    category: "Self-Care / Beauty",
+    name: "Threading",
+    description: "Precise facial threading for brows, upper lip, chin, or full face.",
+    minPrice: 500,
+    maxPrice: 1800,
+    durationMin: 15,
+    durationMax: 45,
+    inclusions: "Threading, soothing gel, and sensitive-skin care.",
+  },
+  {
+    id: "massage",
+    category: "Self-Care / Beauty",
+    name: "Massage",
+    description: "Relaxing massage for tired shoulders, back tension, or full reset.",
+    minPrice: 2500,
+    maxPrice: 6500,
+    durationMin: 45,
+    durationMax: 90,
+    inclusions: "Consultation, massage session, pressure check, and aftercare.",
+    trending: true,
+  },
+  {
+    id: "body-polish",
+    category: "Self-Care / Beauty",
+    name: "Body Polish",
+    description: "Smooth skin prep for travel, events, shoots, or self-care weekends.",
+    minPrice: 3000,
+    maxPrice: 7000,
+    durationMin: 60,
+    durationMax: 120,
+    inclusions: "Cleanse, exfoliation, rinse, moisturising finish, and care notes.",
+  },
+  {
+    id: "hand-care",
+    category: "Self-Care / Beauty",
+    name: "Hand Care",
+    description: "Soft hand treatment for dry hands, cuticles, and gentle polish prep.",
+    minPrice: 900,
+    maxPrice: 1800,
+    durationMin: 25,
+    durationMax: 45,
+    inclusions: "Soak, scrub, cuticle care, moisturise, and oil.",
+  },
+  {
+    id: "foot-care",
+    category: "Self-Care / Beauty",
+    name: "Foot Care",
+    description: "Focused foot care for tired feet, dry heels, and neat sandal days.",
+    minPrice: 1200,
+    maxPrice: 2600,
+    durationMin: 35,
+    durationMax: 60,
+    inclusions: "Soak, scrub, heel care, moisturise, and finish.",
+  },
+];
+
+export const services: Service[] = [...coreServices, ...expandedServices];
+
+export const marketplacePackages: PackageOffer[] = [
+  {
+    id: "baby-shower-ready",
+    name: "Baby Shower Ready",
+    description: "Soft glam, neat nails, and gentle hair styling for a calm celebration day.",
+    price: 9800,
+    serviceIds: ["makeup-soft-glam", "gel-manicure", "natural-hair-styling"],
+    badge: "Soft occasion",
+    includedServices: ["Soft glam", "Gel manicure", "Natural hair styling"],
+    bestFor: "Mums-to-be and intimate family events",
+    trending: true,
+  },
+  {
+    id: "honeymoon-ready",
+    name: "Honeymoon Ready",
+    description: "Fresh lashes, nails, waxing, and body polish so packing feels lighter.",
+    price: 14500,
+    serviceIds: ["lash-lift", "gel-pedicure", "waxing", "body-polish"],
+    badge: "Travel prep",
+    includedServices: ["Lash lift", "Gel pedicure", "Waxing", "Body polish"],
+    bestFor: "Travel, honeymoon, and beach-ready care",
+    trending: true,
+  },
+  {
+    id: "birthday-glow",
+    name: "Birthday Glow",
+    description: "Full glam, nail art, and styling for a birthday look that photographs beautifully.",
+    price: 12600,
+    serviceIds: ["full-glam", "nail-art-upgrade", "wig-install"],
+    badge: "Celebration",
+    includedServices: ["Full glam", "Nail art", "Wig install"],
+    bestFor: "Dinner, club night, or birthday shoot",
+  },
+  {
+    id: "bridal-morning",
+    name: "Bridal Morning",
+    description: "Bridal glam with timeline support so the morning feels organised, not rushed.",
+    price: 28000,
+    serviceIds: ["bridal-glam", "makeup-soft-glam", "gel-manicure"],
+    badge: "Wedding day",
+    includedServices: ["Bridal hair and make-up", "Touch-up support", "Gel manicure"],
+    bestFor: "Bride and close-prep morning",
+    trending: true,
+  },
+  {
+    id: "weekend-reset",
+    name: "Weekend Reset",
+    description: "A practical self-care bundle for hair, nails, and skin after a heavy week.",
+    price: 8200,
+    serviceIds: ["wash-and-go", "classic-manicure", "cleanup-facial"],
+    badge: "Self-care",
+    includedServices: ["Wash and go", "Classic manicure", "Cleanup facial"],
+    bestFor: "Saturday reset and Sunday confidence",
+  },
+  {
+    id: "vacation-prep",
+    name: "Vacation Prep",
+    description: "Protective style, toes, waxing, and lashes before you head out of Nairobi.",
+    price: 18500,
+    serviceIds: ["boho-braids", "gel-pedicure", "waxing", "lash-classic"],
+    badge: "Travel favourite",
+    includedServices: ["Boho braids", "Gel pedicure", "Waxing", "Classic lashes"],
+    bestFor: "Holiday prep and low-maintenance travel",
+    trending: true,
+  },
+  {
+    id: "corporate-event-ready",
+    name: "Corporate Event Ready",
+    description: "Polished hair, soft glam, and neat nails for professional rooms and cameras.",
+    price: 10500,
+    serviceIds: ["silk-press", "makeup-soft-glam", "gel-manicure"],
+    badge: "Work event",
+    includedServices: ["Silk press", "Soft glam", "Gel manicure"],
+    bestFor: "Conferences, panels, shoots, and work dinners",
+  },
+  {
+    id: "photoshoot-ready",
+    name: "Photoshoot Ready",
+    description: "Make-up, hair, and detail-ready nails for portraits, content, or campaigns.",
+    price: 13500,
+    serviceIds: ["full-glam", "wig-install", "nail-art-upgrade"],
+    badge: "Camera ready",
+    includedServices: ["Full glam", "Wig install", "Nail detail"],
+    bestFor: "Brand shoots, maternity shoots, and content days",
+  },
+];
+
 export const salons: Salon[] = [
   {
     slug: "kilimani-texture-house",
@@ -380,15 +891,22 @@ export const salons: Salon[] = [
     description:
       "Clients come here for braid installs that respect the hairline, wash days that feel restorative, and bridal prep that is organised from trial to finish.",
     heroMood: "from-[var(--ms-navy)] via-[#15253a] to-[var(--ms-magenta)]/40",
+    image: imageAssets.salonBraiding,
     serviceIds: [
       "knotless-braids",
+      "boho-braids",
+      "cornrows",
       "fulani-braids",
+      "natural-hair-styling",
       "wash-and-go",
+      "wash-blow-dry",
+      "hair-treatment",
       "silk-press",
       "loc-retwist",
+      "loc-styling",
       "bridal-glam",
     ],
-    topServiceIds: ["knotless-braids", "wash-and-go", "bridal-glam"],
+    topServiceIds: ["knotless-braids", "boho-braids", "wash-and-go"],
     packageOffers: [
       {
         id: "kilimani-wash-reset",
@@ -425,6 +943,11 @@ export const salons: Salon[] = [
     ],
     professionals: ["njeri-kamau", "faith-odhiambo"],
     nextAvailable: "Today, 4:30 PM",
+    responseSpeedMinutes: 9,
+    completionRate: 98,
+    repeatBookings: 186,
+    savedCount: 420,
+    trendingScore: 92,
   },
   {
     slug: "westlands-polish-room",
@@ -443,14 +966,23 @@ export const salons: Salon[] = [
     description:
       "Ideal for clients who need quick, reliable beauty maintenance with visible pricing and neat finishing.",
     heroMood: "from-[var(--ms-blush)] via-white to-[var(--ms-gold)]/30",
+    image: imageAssets.nails,
     serviceIds: [
       "gel-manicure",
+      "classic-manicure",
+      "acrylic-full-set",
+      "gel-pedicure",
       "pedicure-spa",
       "nail-art-upgrade",
+      "french-tip",
       "lash-classic",
+      "lash-refill",
+      "lash-lift",
       "brow-threading",
+      "brow-shaping",
+      "brow-tint",
     ],
-    topServiceIds: ["gel-manicure", "lash-classic", "pedicure-spa"],
+    topServiceIds: ["gel-manicure", "acrylic-full-set", "lash-classic"],
     packageOffers: [
       {
         id: "westlands-late-afternoon",
@@ -479,41 +1011,47 @@ export const salons: Salon[] = [
     ],
     professionals: ["amina-mwangi"],
     nextAvailable: "Tomorrow, 10:00 AM",
+    responseSpeedMinutes: 12,
+    completionRate: 97,
+    repeatBookings: 142,
+    savedCount: 318,
+    trendingScore: 86,
   },
   {
     slug: "south-b-groom-lab",
-    name: "South B Groom Lab",
-    tagline: "Clean men's cuts, beard sculpting, and quick facial refresh services.",
+    name: "South B Shear Studio",
+    tagline: "Feminine low cuts, undercut detail, and quick glow facials.",
     location: "South B, Nairobi",
     areasServed: ["South B", "South C", "Mombasa Road", "Industrial Area"],
     rating: 4.7,
     reviewCount: 124,
     startingPrice: 900,
-    categoryTags: ["Men's Grooming", "Facials", "Mobile"],
+    categoryTags: ["Short Hair & Shave", "Facials", "Mobile"],
     verified: true,
     mobileService: true,
     about:
-      "Built for consistent grooming routines with disciplined booking windows and clear service timing.",
+      "Built for women who love low cuts, side shaves, undercut art, and polished weekly refreshes.",
     description:
-      "Ideal for professionals who want precise cuts, dependable start times, and optional home or office call-outs.",
-    heroMood: "from-[var(--ms-charcoal)] via-[#101820] to-[var(--ms-gold)]/30",
-    serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment"],
+      "Ideal for crisp feminine cuts, dependable start times, and optional home or office call-outs.",
+    heroMood: "from-[var(--ms-plum)] via-[#5a2453] to-[var(--ms-gold)]/30",
+    image: imageAssets.barber,
+    serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment", "cleanup-facial", "massage"],
     topServiceIds: ["mens-fade", "beard-sculpt", "facial-treatment"],
     packageOffers: [
       {
         id: "southb-boardroom",
-        name: "Boardroom Ready",
-        description: "Fade, beard sculpt, and express facial before a big meeting or event.",
+        name: "Clean Cut Glow",
+        description: "Low cut refresh, undercut detail, and express facial before a meeting or event.",
         price: 4200,
         serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment"],
         badge: "Most booked",
       },
     ],
     gallery: [
-      { id: "g9", title: "Low fade finish", note: "Sharp line-up with natural crown blend.", tint: "from-[#111827] to-[#374151]" },
-      { id: "g10", title: "Defined beard line", note: "Hot towel finish with soft balm.", tint: "from-[#1f1f1f] to-[#8b5cf6]" },
+      { id: "g9", title: "Low cut finish", note: "Soft line detail with natural crown blend.", tint: "from-[#3a183a] to-[#f9d0e8]" },
+      { id: "g10", title: "Undercut detail", note: "Clean nape shape with soothing finish.", tint: "from-[#1f1f1f] to-[#8b5cf6]" },
       { id: "g11", title: "Express facial prep", note: "Clean station and skin-safe product line.", tint: "from-[#0d1b2a] to-[#d9a441]" },
-      { id: "g12", title: "Mobile grooming kit", note: "Office-ready or at-home set-up.", tint: "from-[#334155] to-[#1f1f1f]" },
+      { id: "g12", title: "Mobile shear kit", note: "Office-ready or at-home set-up.", tint: "from-[#334155] to-[#1f1f1f]" },
     ],
     faq: [
       {
@@ -527,6 +1065,11 @@ export const salons: Salon[] = [
     ],
     professionals: ["kevin-ochieng"],
     nextAvailable: "Today, 6:15 PM",
+    responseSpeedMinutes: 7,
+    completionRate: 95,
+    repeatBookings: 88,
+    savedCount: 206,
+    trendingScore: 79,
   },
 ];
 
@@ -548,7 +1091,8 @@ export const professionals: Professional[] = [
     description:
       "Known for explaining what each service includes, how long it will take, and what aftercare actually matters.",
     heroMood: "from-[var(--ms-purple)]/35 via-[var(--ms-navy)] to-[var(--ms-magenta)]/30",
-    serviceIds: ["knotless-braids", "fulani-braids", "wash-and-go", "silk-press"],
+    image: imageAssets.braidsPortrait,
+    serviceIds: ["knotless-braids", "boho-braids", "fulani-braids", "natural-hair-styling", "wash-and-go", "wash-blow-dry", "silk-press"],
     packageOffers: [
       {
         id: "njeri-refresh",
@@ -576,6 +1120,12 @@ export const professionals: Professional[] = [
       },
     ],
     nextAvailable: "Today, 3:00 PM",
+    responseSpeedMinutes: 6,
+    completionRate: 99,
+    repeatBookings: 112,
+    savedCount: 354,
+    trendingScore: 94,
+    identityAttributes: ["Woman-led", "Texture specialist", "Mobile-friendly"],
   },
   {
     slug: "faith-odhiambo",
@@ -594,7 +1144,8 @@ export const professionals: Professional[] = [
     description:
       "Faith is booked for her calm prep timelines, shade matching for melanin-rich skin, and clear pre-event communication.",
     heroMood: "from-[var(--ms-blush)] via-white to-[var(--ms-magenta)]/25",
-    serviceIds: ["makeup-soft-glam", "bridal-glam"],
+    image: imageAssets.makeupArtist,
+    serviceIds: ["makeup-soft-glam", "full-glam", "bridal-glam"],
     packageOffers: [
       {
         id: "faith-bride",
@@ -622,6 +1173,12 @@ export const professionals: Professional[] = [
       },
     ],
     nextAvailable: "Tomorrow, 8:30 AM",
+    responseSpeedMinutes: 8,
+    completionRate: 98,
+    repeatBookings: 74,
+    savedCount: 287,
+    trendingScore: 91,
+    identityAttributes: ["Woman-led", "Bridal specialist", "Mobile artist"],
   },
   {
     slug: "amina-mwangi",
@@ -640,7 +1197,8 @@ export const professionals: Professional[] = [
     description:
       "Amina is the go-to for clean finishes, strong retention, and subtle nail art that works from office to weekend.",
     heroMood: "from-[var(--ms-ivory)] via-[var(--ms-blush)] to-[var(--ms-gold)]/20",
-    serviceIds: ["gel-manicure", "pedicure-spa", "nail-art-upgrade", "lash-classic", "brow-threading"],
+    image: imageAssets.nails,
+    serviceIds: ["gel-manicure", "classic-manicure", "acrylic-full-set", "acrylic-refill", "pedicure-spa", "gel-pedicure", "nail-art-upgrade", "lash-classic", "lash-refill", "lash-lift", "brow-threading", "brow-shaping", "brow-tint"],
     packageOffers: [
       {
         id: "amina-clean-week",
@@ -668,39 +1226,46 @@ export const professionals: Professional[] = [
       },
     ],
     nextAvailable: "Tomorrow, 11:15 AM",
+    responseSpeedMinutes: 10,
+    completionRate: 96,
+    repeatBookings: 95,
+    savedCount: 269,
+    trendingScore: 84,
+    identityAttributes: ["Woman-led", "Detail-focused", "Studio based"],
   },
   {
     slug: "kevin-ochieng",
-    name: "Kevin Ochieng",
-    specialty: "Precision fades, beard sculpting, and mobile grooming",
+    name: "Wanjiku Ochieng",
+    specialty: "Feminine low cuts, undercut detail, and mobile shave care",
     location: "South B",
     serviceMode: "Both",
-    salonAffiliation: "South B Groom Lab",
+    salonAffiliation: "South B Shear Studio",
     areasServed: ["South B", "South C", "Mombasa Road", "CBD"],
     rating: 4.7,
     reviewCount: 73,
     startingPrice: 1200,
     verified: true,
     bio:
-      "Reliable for sharp cuts before interviews, events, and weekly maintenance bookings.",
+      "Reliable for women who keep low cuts, side shaves, and polished weekly maintenance bookings.",
     description:
-      "Kevin focuses on consistent execution, strong timing discipline, and grooming plans that fit busy schedules.",
-    heroMood: "from-[#101820] via-[var(--ms-charcoal)] to-[var(--ms-gold)]/35",
-    serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment"],
+      "Wanjiku focuses on soft precision, strong timing discipline, and shave-care routines that fit busy schedules.",
+    heroMood: "from-[#3a183a] via-[var(--ms-plum)] to-[var(--ms-gold)]/35",
+    image: imageAssets.beardCare,
+    serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment", "cleanup-facial", "massage"],
     packageOffers: [
       {
         id: "kevin-reset",
-        name: "Cut + Beard Reset",
-        description: "Fade and beard sculpt pairing with optional express facial add-on.",
+        name: "Low Cut Reset",
+        description: "Soft low cut and undercut detail with optional express facial add-on.",
         price: 2600,
         serviceIds: ["mens-fade", "beard-sculpt"],
         badge: "Fast favourite",
       },
     ],
     gallery: [
-      { id: "p13", title: "Temple fade", note: "Clean silhouette with soft crown blend.", tint: "from-[#111827] to-[#1d4ed8]" },
-      { id: "p14", title: "Beard tidy", note: "Structured line without harsh finish.", tint: "from-[#1f1f1f] to-[#d97706]" },
-      { id: "p15", title: "Mobile set-up", note: "Compact tools for office grooming calls.", tint: "from-[#334155] to-[#64748b]" },
+      { id: "p13", title: "Temple fade", note: "Clean silhouette with soft crown blend.", tint: "from-[#3a183a] to-[#e83e8c]" },
+      { id: "p14", title: "Nape detail", note: "Structured line without harsh finish.", tint: "from-[#1f1f1f] to-[#d97706]" },
+      { id: "p15", title: "Mobile set-up", note: "Compact tools for office or home calls.", tint: "from-[#334155] to-[#64748b]" },
       { id: "p16", title: "Express skin refresh", note: "Short facial for weekday recovery.", tint: "from-[#0d1b2a] to-[#0f766e]" },
     ],
     faq: [
@@ -714,6 +1279,12 @@ export const professionals: Professional[] = [
       },
     ],
     nextAvailable: "Today, 5:45 PM",
+    responseSpeedMinutes: 5,
+    completionRate: 95,
+    repeatBookings: 61,
+    savedCount: 144,
+    trendingScore: 76,
+    identityAttributes: ["Woman-led", "Short hair care", "Mobile-friendly"],
   },
 ];
 
@@ -728,11 +1299,11 @@ export const testimonials: ReviewSnapshot[] = [
   },
   {
     id: "r2",
-    name: "Brian M.",
+    name: "Nimo M.",
     title: "Client, South C",
     rating: 5,
-    body: "The fade looked sharp, the timing was accurate, and booking through the site was far easier than chasing WhatsApp replies.",
-    serviceLabel: "Precision fade",
+    body: "My low cut refresh was neat, the timing was accurate, and booking through the site was far easier than chasing WhatsApp replies.",
+    serviceLabel: "Soft low cut",
   },
   {
     id: "r3",
@@ -747,25 +1318,40 @@ export const testimonials: ReviewSnapshot[] = [
 export const trustPoints = [
   "Verified profiles and visible prices before booking",
   "Nairobi coverage across Westlands, Kilimani, Karen, South B, Ruaka, and more",
-  "Easy rescheduling and WhatsApp fallback for support",
+  "Easy rescheduling and WhatsApp support when needed",
   "Clear duration windows, availability, and service inclusions",
 ];
 
 export const howItWorks = [
   {
     step: "01",
-    title: "Compare trusted options",
-    description: "See salons and professionals with prices, specialties, ratings, and location relevance in one place.",
+    title: "Choose how you want help",
+    description: "Pick a salon, an individual professional, or a package if you want the fastest path.",
   },
   {
     step: "02",
-    title: "Select the exact service",
-    description: "Choose hair, nails, skin, bridal, or grooming services with honest duration and inclusion details.",
+    title: "Select one clear service",
+    description: "See the price, timing, and what is included before you move forward.",
   },
   {
     step: "03",
-    title: "Confirm in minutes",
-    description: "Pick a time, leave a note if needed, choose your notifications, and lock in the booking.",
+    title: "Pick date and time",
+    description: "Choose a slot that works for you, including rush-friendly options when available.",
+  },
+  {
+    step: "04",
+    title: "Sign in once",
+    description: "Your choices are saved so you do not lose your booking while creating an account.",
+  },
+  {
+    step: "05",
+    title: "Pay to secure",
+    description: "Payment confirms seriousness and protects both client and professional.",
+  },
+  {
+    step: "06",
+    title: "Confirm completion",
+    description: "Payout is released after both sides confirm the beauty service was completed.",
   },
 ];
 
@@ -774,6 +1360,7 @@ export const profileCompletionTasks = [
   "Set service prices and durations",
   "Upload portfolio highlights",
   "Define coverage areas and service mode",
+  "Connect payout and dispute contact details",
 ];
 
 export const activityItems = [
@@ -809,16 +1396,16 @@ export const supportFaq = [
   },
   {
     question: "What if I still prefer WhatsApp?",
-    answer: "Every detail page includes a WhatsApp fallback so the MVP can support clients who want direct confirmation.",
+    answer: "Every detail page includes WhatsApp support for clients who need direct confirmation without leaving the protected booking flow.",
   },
 ];
 
 export const bookingDates = [
-  { label: "Thu", date: "16 Apr" },
-  { label: "Fri", date: "17 Apr" },
   { label: "Sat", date: "18 Apr" },
   { label: "Sun", date: "19 Apr" },
   { label: "Mon", date: "20 Apr" },
+  { label: "Tue", date: "21 Apr" },
+  { label: "Wed", date: "22 Apr" },
 ];
 
 export const bookingTimes = [

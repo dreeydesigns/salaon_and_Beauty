@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 
@@ -15,18 +15,22 @@ import {
 import { useBookingStore } from "@/lib/booking-store";
 import {
   BookingStepper,
+  BreadcrumbTrail,
   CTAButton,
   DateChip,
   NotificationToggle,
   PriceSummary,
   SectionReveal,
   TimePill,
+  TrustFlowCard,
   WhatsAppButton,
 } from "@/components/marketplace-ui";
 import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
 
 export function BookingExperience() {
   const searchParams = useSearchParams();
+  const isRushBooking = searchParams.get("rush") === "true";
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const {
     step,
     targetType,
@@ -40,6 +44,8 @@ export function BookingExperience() {
     nextStep,
     previousStep,
     reset,
+    restoreBookingDraft,
+    saveBookingDraft,
     setContact,
     setDate,
     setSelectedServices,
@@ -50,6 +56,20 @@ export function BookingExperience() {
     toggleNotification,
     toggleService,
   } = useBookingStore();
+
+  useEffect(() => {
+    if (searchParams.get("resume") !== "booking") {
+      return;
+    }
+
+    const restored = restoreBookingDraft();
+
+    if (restored) {
+      startTransition(() => {
+        setStep(3);
+      });
+    }
+  }, [restoreBookingDraft, searchParams, setStep]);
 
   useEffect(() => {
     const queryTargetType = searchParams.get("targetType");
@@ -108,6 +128,16 @@ export function BookingExperience() {
     setStatus("processing");
   }
 
+  function handleNextStep() {
+    if (step === 2 && selectedServiceIds.length > 0) {
+      saveBookingDraft();
+      setAuthPromptOpen(true);
+      return;
+    }
+
+    nextStep();
+  }
+
   if (status === "done") {
     return (
       <SectionReveal className="mx-auto max-w-4xl rounded-[36px] bg-white p-6 shadow-[0_22px_60px_rgba(13,27,42,0.1)] lg:p-8">
@@ -116,10 +146,9 @@ export function BookingExperience() {
             <CheckCircle2 className="h-10 w-10 text-[var(--ms-gold)]" />
           </div>
           <p className="mt-6 text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Done</p>
-          <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Your booking is confirmed.</h1>
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Your paid request is confirmed.</h1>
           <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-            {targetEntity ? `${"name" in targetEntity ? targetEntity.name : "Selected provider"} has your request.` : "Your request has been sent."} You will receive
-            updates through your selected channels.
+            {targetEntity ? `${"name" in targetEntity ? targetEntity.name : "Selected provider"} has your request.` : "Your request has been sent."} The payment is marked as held until service completion is confirmed.
           </p>
           <div className="mt-8 grid gap-4 rounded-[28px] bg-[var(--ms-soft-bg)] p-5 text-left sm:grid-cols-2">
             <div>
@@ -137,6 +166,10 @@ export function BookingExperience() {
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Estimated total</p>
               <p className="mt-2 text-sm text-[var(--ms-charcoal)]">{formatPriceRange(totalMin, totalMax)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Payment status</p>
+              <p className="mt-2 text-sm text-[var(--ms-charcoal)]">Funded · pending service completion</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Notifications</p>
@@ -170,13 +203,32 @@ export function BookingExperience() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,0.66fr)_minmax(320px,0.34fr)]">
-      <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_22px_60px_rgba(13,27,42,0.1)] lg:p-8">
-        <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Booking flow</p>
-        <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Beauty booked in under three minutes.</h1>
-        <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-          Clear steps, visible pricing, and a single next action on every screen.
+    <div
+      className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,0.66fr)_minmax(320px,0.34fr)]"
+      style={{ maxWidth: "min(100%, calc(100vw - 2rem))" }}
+    >
+      <SectionReveal
+        className="w-full overflow-hidden rounded-[36px] bg-white p-5 shadow-[0_22px_60px_rgba(13,27,42,0.1)] sm:p-6 lg:p-8"
+        style={{ maxWidth: "min(100%, calc(100vw - 2rem))" }}
+      >
+        <BreadcrumbTrail
+          items={[
+            { label: "Home", href: "/" },
+            { label: targetType === "salons" ? "Salons" : "Professionals", href: targetType === "salons" ? "/salons" : "/professionals" },
+            ...(targetEntity ? [{ label: targetEntity.name, href: `/${targetType}/${targetEntity.slug}` }] : []),
+            { label: "Booking" },
+          ]}
+        />
+        <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Booking</p>
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Choose your beauty moment.</h1>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--ms-mauve)]">
+          One calm step at a time. Sign in and payment are required before a provider receives the request.
         </p>
+        {isRushBooking ? (
+          <div className="mt-5 rounded-[28px] border border-[var(--ms-rose)]/25 bg-[var(--ms-petal)]/80 p-4">
+            <p className="text-sm font-semibold text-[var(--ms-plum)]">Rush mode is on. Pick the closest good option and keep moving.</p>
+          </div>
+        ) : null}
         <div className="mt-6">
           <BookingStepper step={step} />
         </div>
@@ -227,14 +279,14 @@ export function BookingExperience() {
                   {targetEntity ? `Services available with ${targetEntity.name}` : "Choose what you want done"}
                 </h2>
               </div>
-              <div className="grid gap-3">
+              <div className="grid min-w-0 gap-3">
                 {targetServices.map((service) => {
                   const active = selectedServiceIds.includes(service.id);
 
                   return (
                     <button
                       className={cn(
-                        "rounded-[24px] border p-4 text-left transition",
+                        "w-full min-w-0 rounded-[24px] border p-4 text-left transition hover:border-[var(--ms-rose)]/35 hover:shadow-[0_14px_34px_rgba(132,36,92,0.09)] active:scale-[0.99]",
                         active
                           ? "border-[var(--ms-magenta)] bg-[var(--ms-magenta)] text-white"
                           : "border-[var(--ms-border)] bg-white text-[var(--ms-charcoal)]",
@@ -243,14 +295,14 @@ export function BookingExperience() {
                       onClick={() => toggleService(service.id)}
                       type="button"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
+                      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
                           <p className="text-lg font-semibold">{service.name}</p>
-                          <p className={cn("mt-2 text-sm leading-6", active ? "text-white/82" : "text-[var(--ms-mauve)]")}>
+                          <p className={cn("mt-2 break-words text-sm leading-6", active ? "text-white/82" : "text-[var(--ms-mauve)]")}>
                             {service.description}
                           </p>
                         </div>
-                        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", active ? "bg-white/18" : "bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)]")}>
+                        <span className={cn("w-fit rounded-full px-3 py-1 text-xs font-semibold", active ? "bg-white/18" : "bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)]")}>
                           {formatPriceRange(service.minPrice, service.maxPrice)}
                         </span>
                       </div>
@@ -319,7 +371,7 @@ export function BookingExperience() {
                 />
                 <NotificationToggle
                   checked={notifications.whatsapp}
-                  hint="Best for quick schedule updates during MVP support."
+                  hint="Best for quick schedule updates and urgent coordination."
                   label="WhatsApp updates"
                   onToggle={() => toggleNotification("whatsapp")}
                 />
@@ -337,14 +389,18 @@ export function BookingExperience() {
             <div className="space-y-4">
               <div className="rounded-[28px] bg-[var(--ms-soft-bg)] p-5">
                 <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Review</p>
-                <h2 className="mt-3 text-2xl font-semibold text-[var(--ms-navy)]">Everything visible before you confirm.</h2>
+                <h2 className="mt-3 text-2xl font-semibold text-[var(--ms-navy)]">Everything visible before you pay.</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">
+                  The next production step opens protected checkout before the provider receives the job.
+                </p>
               </div>
               <div className="grid gap-4 rounded-[28px] border border-[var(--ms-border)] bg-white p-5 md:grid-cols-2">
-                <SummaryItem label="Target" value={targetEntity?.name ?? (targetType === "salons" ? "Salon" : "Professional")} />
-                <SummaryItem label="Services" value={selectedServices.map((service) => service.name).join(", ")} />
-                <SummaryItem label="Date" value={selectedDate} />
-                <SummaryItem label="Time" value={selectedTime} />
-                <SummaryItem label="Contact" value={`${contact.fullName} · ${contact.phone}`} />
+                <SummaryItem editStep={1} label="Target" onEdit={setStep} value={targetEntity?.name ?? (targetType === "salons" ? "Salon" : "Professional")} />
+                <SummaryItem editStep={2} label="Services" onEdit={setStep} value={selectedServices.map((service) => service.name).join(", ")} />
+                <SummaryItem editStep={3} label="Date" onEdit={setStep} value={selectedDate} />
+                <SummaryItem editStep={3} label="Time" onEdit={setStep} value={selectedTime} />
+                <SummaryItem editStep={4} label="Contact" onEdit={setStep} value={`${contact.fullName} · ${contact.phone}`} />
+                <SummaryItem label="Payment rule" value="Pay now · funds held until completion" />
                 <SummaryItem label="Notifications" value={[
                   notifications.email ? "Email" : null,
                   notifications.whatsapp ? "WhatsApp" : null,
@@ -369,14 +425,14 @@ export function BookingExperience() {
             <CTAButton
               className="ml-auto min-w-[160px]"
               disabled={!canContinue}
-              onClick={nextStep}
+              onClick={handleNextStep}
             >
               Next step
               <ChevronRight className="h-4 w-4" />
             </CTAButton>
           ) : (
             <CTAButton className="ml-auto min-w-[180px]" onClick={handleConfirm}>
-              Confirm booking
+              Pay and confirm
             </CTAButton>
           )}
         </div>
@@ -392,6 +448,7 @@ export function BookingExperience() {
           priceTotal={selectedServices.length ? formatPriceRange(totalMin, totalMax) : "Select services"}
           serviceCount={selectedServices.length}
         />
+        <TrustFlowCard />
         <SectionReveal className="rounded-[32px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_12px_40px_rgba(13,27,42,0.08)]">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Selected target</p>
           <h2 className="mt-3 text-2xl font-semibold text-[var(--ms-navy)]">
@@ -403,7 +460,7 @@ export function BookingExperience() {
           </p>
           <div className="mt-4 space-y-2 text-sm text-[var(--ms-charcoal)]">
             <p>Target type: {targetType === "salons" ? "Salon booking" : "Professional booking"}</p>
-            <p>Best next action: choose the exact services you want completed.</p>
+            <p>Best next action: choose the exact services you want completed, then sign in and pay to secure the request.</p>
           </div>
           <div className="mt-5 flex flex-col gap-3">
             <CTAButton href={targetType === "salons" ? "/salons" : "/professionals"} variant="outline">
@@ -419,10 +476,50 @@ export function BookingExperience() {
           <div className="w-full max-w-md rounded-[36px] bg-[linear-gradient(160deg,#0d1b2a_0%,#1f2942_55%,rgba(217,70,239,0.4)_100%)] p-8 text-center text-white shadow-[0_24px_70px_rgba(13,27,42,0.35)]">
             <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-[var(--ms-gold)]" />
             <p className="mt-6 text-xs uppercase tracking-[0.24em] text-white/60">Booking</p>
-            <h2 className="mt-3 text-3xl font-semibold">Sending your request...</h2>
+            <h2 className="mt-3 text-3xl font-semibold">Securing your paid request...</h2>
             <p className="mt-3 text-sm leading-7 text-white/72">
-              The professional side sees the service list, time slot, and your notes clearly before confirming.
+              The professional side sees the service list, time slot, notes, and funded status clearly before accepting.
             </p>
+          </div>
+        </div>
+      ) : null}
+
+      {authPromptOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(58,24,58,0.5)] px-4 pb-4 backdrop-blur-sm sm:items-center sm:pb-0">
+          <div className="relative w-full max-w-md overflow-hidden rounded-[34px] border border-white/70 bg-white p-5 shadow-[0_28px_90px_rgba(132,36,92,0.28)]">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--ms-blush)]/80 blur-2xl" />
+            <div className="absolute -bottom-12 -left-10 h-36 w-36 rounded-full bg-[var(--ms-lilac)]/80 blur-2xl" />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Saved for you</p>
+              <h2 className="mt-3 font-display text-3xl leading-tight text-[var(--ms-plum)]">
+                Your services are tucked safely away.
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
+                Sign in or create an account to finish the request without losing your choice.
+              </p>
+              <div className="mt-5 rounded-[24px] bg-[var(--ms-soft-bg)] p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Selected</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--ms-navy)]">
+                  {selectedServices.map((service) => service.name).join(", ")}
+                </p>
+                <p className="mt-1 text-sm text-[var(--ms-mauve)]">{formatPriceRange(totalMin, totalMax)}</p>
+              </div>
+              <div className="mt-5 grid gap-3">
+                <CTAButton href={`/auth/sign-up?returnTo=${encodeURIComponent("/book?resume=booking")}`}>
+                  Create account and continue
+                </CTAButton>
+                <CTAButton href={`/auth/sign-in?returnTo=${encodeURIComponent("/book?resume=booking")}`} variant="outline">
+                  Sign in
+                </CTAButton>
+                <button
+                  className="rounded-full px-4 py-3 text-sm font-semibold text-[var(--ms-mauve)] transition hover:text-[var(--ms-plum)]"
+                  onClick={() => setAuthPromptOpen(false)}
+                  type="button"
+                >
+                  Review my services again
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
@@ -455,13 +552,28 @@ function InputField({
 function SummaryItem({
   label,
   value,
+  editStep,
+  onEdit,
 }: {
   label: string;
   value: string;
+  editStep?: number;
+  onEdit?: (step: number) => void;
 }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">{label}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">{label}</p>
+        {editStep && onEdit ? (
+          <button
+            className="rounded-full bg-[var(--ms-soft-bg)] px-3 py-1 text-xs font-semibold text-[var(--ms-plum)] transition hover:bg-[var(--ms-petal)]"
+            onClick={() => onEdit(editStep)}
+            type="button"
+          >
+            Edit
+          </button>
+        ) : null}
+      </div>
       <p className="mt-2 text-sm leading-6 text-[var(--ms-charcoal)]">{value}</p>
     </div>
   );

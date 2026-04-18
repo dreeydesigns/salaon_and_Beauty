@@ -1,15 +1,20 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 
 import { AppShell } from "@/components/app-shell";
 import {
   AvailabilityChips,
+  BreadcrumbTrail,
   CTAButton,
   PackageCard,
   PortfolioGrid,
   ProfessionalCard,
   ReviewCard,
   SectionReveal,
+  ScrollSection,
   ServiceCard,
+  SecureContactCard,
+  TrustFlowCard,
   VerifiedBadge,
   WhatsAppButton,
 } from "@/components/marketplace-ui";
@@ -47,8 +52,27 @@ export default async function DetailPage({
   return (
     <AppShell currentNav={collection} roleMode={collection}>
       <div className="section-grid">
-        <SectionReveal className={`rounded-[40px] bg-gradient-to-br ${item.heroMood} p-6 text-white shadow-[0_22px_60px_rgba(13,27,42,0.24)] lg:p-8`}>
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.66fr)_minmax(320px,0.34fr)]">
+        <BreadcrumbTrail
+          items={[
+            { label: "Home", href: "/" },
+            { label: collection === "salons" ? "Salons" : "Professionals", href: `/${collection}` },
+            { label: item.name },
+          ]}
+        />
+        <SectionReveal className={`relative overflow-hidden rounded-[40px] bg-gradient-to-br ${item.heroMood} p-6 text-white shadow-[0_22px_60px_rgba(13,27,42,0.24)] lg:p-8`}>
+          {item.image ? (
+            <Image
+              alt={item.image.alt}
+              className="object-cover"
+              fill
+              priority
+              sizes="100vw"
+              src={item.image.url}
+              style={{ objectPosition: item.image.position ?? "center" }}
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(13,27,42,0.94)_0%,rgba(13,27,42,0.78)_48%,rgba(13,27,42,0.42)_100%)]" />
+          <div className="relative z-10 grid gap-6 xl:grid-cols-[minmax(0,0.66fr)_minmax(320px,0.34fr)]">
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 {item.verified ? <VerifiedBadge /> : null}
@@ -87,6 +111,13 @@ export default async function DetailPage({
                       ? "Independent professional with mobile support."
                       : `Also works from ${item.salonAffiliation}.`}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {item.identityAttributes.map((attribute) => (
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/76" key={attribute}>
+                        {attribute}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="mt-4 rounded-[24px] bg-white/8 p-4">
@@ -109,46 +140,44 @@ export default async function DetailPage({
               </p>
             </section>
 
-            <section className="section-grid rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Services</p>
-                  <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Prices and inclusions stay visible</h2>
-                </div>
-              </div>
-              <div className="grid gap-4">
+            <ScrollSection
+              className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]"
+              eyebrow="Services"
+              href={bookingHref}
+              hrefLabel="Book services"
+              title="Prices and inclusions stay visible"
+            >
                 {services.map((service) => (
                   <ServiceCard compact key={service.id} service={service} />
                 ))}
-              </div>
-            </section>
+            </ScrollSection>
 
             {item.packageOffers.length ? (
-              <section className="section-grid rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Packages</p>
-                  <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Bundles that make sense in real life</h2>
-                </div>
-                <div className="grid gap-4 lg:grid-cols-2">
+              <ScrollSection
+                className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]"
+                eyebrow="Packages"
+                href={bookingHref}
+                hrefLabel="Book package"
+                title="Bundles that make sense in real life"
+              >
                   {item.packageOffers.map((offer) => (
                     <PackageCard key={offer.id} offer={offer} />
                   ))}
-                </div>
-              </section>
+              </ScrollSection>
             ) : null}
 
             {"specialty" in item ? null : relatedProfessionals.length ? (
-              <section className="section-grid rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Available professionals</p>
-                  <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">The team behind this salon</h2>
-                </div>
-                <div className="grid gap-4 lg:grid-cols-2">
+              <ScrollSection
+                className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]"
+                eyebrow="Available professionals"
+                href="/professionals"
+                hrefLabel="See all professionals"
+                title="The team behind this salon"
+              >
                   {relatedProfessionals.map((professional) => (
                     <ProfessionalCard key={professional.slug} professional={professional} />
                   ))}
-                </div>
-              </section>
+              </ScrollSection>
             ) : null}
 
             <section className="section-grid dark-atmosphere rounded-[32px] p-6 text-white shadow-[0_18px_48px_rgba(13,27,42,0.22)]">
@@ -159,17 +188,17 @@ export default async function DetailPage({
               <PortfolioGrid dark items={item.gallery} />
             </section>
 
-            <section className="section-grid rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Reviews</p>
-                <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Structured feedback with specifics</h2>
-              </div>
-              <div className="grid gap-4 lg:grid-cols-3">
+            <ScrollSection
+              className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]"
+              eyebrow="Reviews"
+              href="/help"
+              hrefLabel="Read policy"
+              title="Structured feedback with specifics"
+            >
                 {testimonials.map((review) => (
                   <ReviewCard key={review.id} review={review} />
                 ))}
-              </div>
-            </section>
+            </ScrollSection>
 
             <section className="section-grid rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
               <div>
@@ -188,11 +217,13 @@ export default async function DetailPage({
           </div>
 
           <div className="section-grid">
+            <TrustFlowCard />
+            <SecureContactCard bookingHref={bookingHref} name={item.name} />
             <aside className="sticky top-44 rounded-[32px] bg-white p-5 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Ready to book</p>
-              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Keep the next action obvious.</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Pay to secure the request.</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-                Confirm the target, choose services, and lock the slot with visible pricing before the request is sent.
+                Confirm the target, choose services, sign in, and complete payment before the provider receives the request.
               </p>
               <div className="mt-5 flex flex-col gap-3">
                 <CTAButton href={bookingHref}>

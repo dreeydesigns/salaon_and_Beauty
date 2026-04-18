@@ -5,6 +5,8 @@ import {
   ProfessionalCard,
   SalonCard,
   SectionReveal,
+  ScrollSection,
+  TrustFlowCard,
 } from "@/components/marketplace-ui";
 import { professionals, salons, serviceCategories } from "@/lib/site-data";
 
@@ -45,7 +47,7 @@ export default function ExplorePage() {
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Browse professionals</p>
               <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Best when the person matters as much as the place</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-                Go straight to specialists in bridal glam, textured hair care, nails, and mobile grooming.
+                Go straight to specialists in bridal glam, textured hair care, nails, and feminine short-hair care.
               </p>
               <div className="mt-5">
                 <ProfessionalCard professional={professionals[1]} />
@@ -54,17 +56,31 @@ export default function ExplorePage() {
           </div>
         </section>
 
-        <section className="section-grid rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Start by service</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Move from what you need to who should do it</h2>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.5fr)_minmax(0,0.5fr)]">
+          <TrustFlowCard />
+          <SectionReveal className="beauty-card rounded-[34px] p-6">
+            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Rush hour mode</p>
+            <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">For last-minute beauty emergencies.</h2>
+            <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
+              Search the service, pick the closest trusted option, sign in, pay, and track the request without chasing replies.
+            </p>
+            <div className="mt-5">
+              <CTAButton href="/book?rush=true">Book in rush mode</CTAButton>
+            </div>
+          </SectionReveal>
+        </div>
+
+        <ScrollSection eyebrow="Start by service" href="/services" hrefLabel="See all services" title="Move from what you need to who should do it">
             {serviceCategories.map((category) => (
-              <CategoryCircle color={category.color} detail={category.detail} key={category.id} name={category.name} />
+              <CategoryCircle
+                color={category.color}
+                detail={category.detail}
+                image={category.image}
+                key={category.id}
+                name={category.name}
+              />
             ))}
-          </div>
-        </section>
+        </ScrollSection>
       </div>
     </AppShell>
   );

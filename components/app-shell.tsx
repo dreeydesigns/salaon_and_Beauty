@@ -18,9 +18,9 @@ export function AppShell({
   showFooter?: boolean;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--ms-soft-bg)]">
+    <div className="feminine-shell min-h-screen">
       <SplitBrandHeader currentNav={currentNav} roleMode={roleMode} />
-      <main className="mx-auto min-h-[calc(100vh-180px)] max-w-7xl px-4 pb-28 pt-6 lg:px-6 lg:pb-12">
+      <main className="mx-auto min-h-[calc(100vh-180px)] w-full max-w-7xl overflow-hidden px-4 pb-28 pt-6 lg:px-6 lg:pb-12">
         {children}
       </main>
       {showFooter ? (
@@ -31,6 +31,9 @@ export function AppShell({
               <p className="mt-1">Beauty in your fingertips. Clear, trusted booking across Nairobi.</p>
             </div>
             <div className="flex flex-wrap gap-4">
+              <Link href="/guide" className="hover:text-[var(--ms-navy)]">
+                Guide
+              </Link>
               <Link href="/help" className="hover:text-[var(--ms-navy)]">
                 Help & policy
               </Link>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 
 import { professionals, salons } from "@/lib/site-data";
@@ -14,6 +15,7 @@ import {
   SectionReveal,
   type FilterSection,
 } from "@/components/marketplace-ui";
+import { rankProfessionals, rankSalons } from "@/lib/discovery-ranking";
 import { cn } from "@/lib/utils";
 
 export function MarketplaceDiscovery({
@@ -32,19 +34,19 @@ export function MarketplaceDiscovery({
     collection === "salons"
       ? [
           { label: "Location", options: ["Kilimani", "Westlands", "South B", "Lavington", "Karen"] },
-          { label: "What you need", options: ["Natural Hair", "Braids", "Nails", "Men's Grooming", "Bridal"] },
+          { label: "What you need", options: ["Natural Hair", "Braids", "Nails", "Self-Care", "Short Hair & Shave", "Bridal"] },
           { label: "Access", options: ["Mobile service", "Verified"] },
         ]
       : [
           { label: "Location", options: ["Kilimani", "Karen", "Westlands", "South B"] },
           { label: "Service mode", options: ["In salon", "Mobile", "Both", "Verified"] },
-          { label: "Specialty", options: ["Bridal", "Natural Hair", "Nails", "Men's Grooming"] },
+          { label: "Specialty", options: ["Bridal", "Natural Hair", "Nails", "Self-Care", "Short Hair & Shave"] },
         ];
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const salonResults = [...salons]
-    .filter((item) => {
-      const searchable = `${item.name} ${item.location} ${item.tagline} ${item.categoryTags.join(" ")}`;
+  const salonResults = rankSalons(
+    salons.filter((item) => {
+      const searchable = `${item.name} ${item.location} ${item.tagline} ${item.categoryTags.join(" ")} ${item.areasServed.join(" ")}`;
       const queryMatch = normalizedQuery ? searchable.toLowerCase().includes(normalizedQuery) : true;
       const filterMatch =
         selected.length === 0 ||
@@ -52,31 +54,19 @@ export function MarketplaceDiscovery({
           (value) =>
             item.location.includes(value) ||
             item.categoryTags.includes(value) ||
+            item.serviceIds.some((serviceId) => serviceId.includes(value.toLowerCase().replace(/\s+/g, "-"))) ||
             (value === "Mobile service" && item.mobileService) ||
             (value === "Verified" && item.verified),
         );
 
       return queryMatch && filterMatch;
-    })
-    .sort((left, right) => {
-      if (sortBy === "price-low") {
-        return left.startingPrice - right.startingPrice;
-      }
+    }),
+    sortBy as "top-rated" | "nearest" | "price-low" | "earliest",
+  );
 
-      if (sortBy === "earliest") {
-        return left.nextAvailable.localeCompare(right.nextAvailable);
-      }
-
-      if (sortBy === "nearest") {
-        return left.location.localeCompare(right.location);
-      }
-
-      return right.rating - left.rating;
-    });
-
-  const professionalResults = [...professionals]
-    .filter((item) => {
-      const searchable = `${item.name} ${item.location} ${item.specialty} ${item.areasServed.join(" ")}`;
+  const professionalResults = rankProfessionals(
+    professionals.filter((item) => {
+      const searchable = `${item.name} ${item.location} ${item.specialty} ${item.areasServed.join(" ")} ${item.identityAttributes.join(" ")}`;
       const queryMatch = normalizedQuery ? searchable.toLowerCase().includes(normalizedQuery) : true;
       const filterMatch =
         selected.length === 0 ||
@@ -85,26 +75,14 @@ export function MarketplaceDiscovery({
             item.location.includes(value) ||
             item.serviceMode === value ||
             item.specialty.includes(value) ||
+            item.identityAttributes.includes(value) ||
             (value === "Verified" && item.verified),
         );
 
       return queryMatch && filterMatch;
-    })
-    .sort((left, right) => {
-      if (sortBy === "price-low") {
-        return left.startingPrice - right.startingPrice;
-      }
-
-      if (sortBy === "earliest") {
-        return left.nextAvailable.localeCompare(right.nextAvailable);
-      }
-
-      if (sortBy === "nearest") {
-        return left.location.localeCompare(right.location);
-      }
-
-      return right.rating - left.rating;
-    });
+    }),
+    sortBy as "top-rated" | "nearest" | "price-low" | "earliest",
+  );
 
   const results = collection === "salons" ? salonResults : professionalResults;
 
@@ -116,35 +94,26 @@ export function MarketplaceDiscovery({
 
   return (
     <div className="space-y-6">
-      <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_20px_60px_rgba(13,27,42,0.08)]">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)]">
+      <SectionReveal className="silk-panel rounded-[32px] p-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)] xl:items-end">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">
-              {collection === "salons" ? "Salon discovery" : "Professional discovery"}
+              {collection === "salons" ? "Salons" : "Professionals"}
             </p>
-            <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">
+            <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-plum)]">
               {collection === "salons"
-                ? "Compare trusted Nairobi salons without the usual booking chaos."
-                : "Find individual beauty pros with the right specialty, timing, and service mode."}
+                ? "Find a place that feels right."
+                : "Find the person for your glow."}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ms-mauve)]">
-              Prices stay visible, specialties stay specific, and the next action stays obvious.
-            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">Search, compare, book.</p>
           </div>
-          <div className="rounded-[28px] bg-[var(--ms-soft-bg)] p-5">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">What matters here</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {[
-                "Visible pricing",
-                "Real availability",
-                "Nairobi location fit",
-                "Portfolio-first trust",
-              ].map((item) => (
-                <span className="rounded-full bg-white px-3 py-2 text-sm text-[var(--ms-navy)]" key={item}>
-                  {item}
-                </span>
-              ))}
-            </div>
+          <div className="flex flex-col gap-3 sm:flex-row xl:justify-end">
+            <Link className="rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-[var(--ms-plum)] shadow-[0_12px_28px_rgba(132,36,92,0.08)]" href="/guide">
+              Guide
+            </Link>
+            <Link className="rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] px-5 py-3 text-center text-sm font-semibold text-white shadow-[0_14px_32px_rgba(232,62,140,0.24)]" href="/book?rush=true">
+              Book today
+            </Link>
           </div>
         </div>
       </SectionReveal>
@@ -182,7 +151,7 @@ export function MarketplaceDiscovery({
         </DesktopSidebar>
 
         <div className="space-y-5">
-          <div className="flex flex-col gap-3 rounded-[28px] bg-white p-4 shadow-[0_12px_40px_rgba(13,27,42,0.08)] md:flex-row md:items-center">
+          <div className="beauty-card flex flex-col gap-3 rounded-[28px] p-4 md:flex-row md:items-center">
             <div className="flex-1">
               <SearchBar
                 onChange={setQuery}

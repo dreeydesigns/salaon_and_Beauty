@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
 import { AuthCard, CTAButton, ProfileCompletionCard, SectionReveal } from "@/components/marketplace-ui";
@@ -6,10 +7,14 @@ import { profileCompletionTasks } from "@/lib/site-data";
 
 export default async function AuthPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ mode: string }>;
+  searchParams: Promise<{ returnTo?: string }>;
 }) {
   const { mode } = await params;
+  const { returnTo } = await searchParams;
+  const safeReturnTo = returnTo?.startsWith("/") ? returnTo : "/profile";
 
   if (!["sign-in", "sign-up", "forgot-password"].includes(mode)) {
     notFound();
@@ -29,23 +34,43 @@ export default async function AuthPage({
           }
           description={
             isSignIn
-              ? "Welcome back. Pick up your next booking, saved salon, or professional request without any friction."
+              ? "Welcome back. Continue your saved beauty request without choosing everything again."
               : isSignUp
-                ? "Create an account in a clean, mobile-first flow. Clients can stay simple. Professionals can continue into onboarding."
-                : "Enter the email linked to your account and we will send a secure reset link with a WhatsApp fallback note."
+                ? "Create your account so bookings, favourites, and reminders stay beautifully organised."
+                : "Enter your email and we will send a secure reset link."
           }
           eyebrow="Account"
           title={
             isSignIn ? "Sign in" : isSignUp ? "Create your account" : "Reset your password"
           }
         >
-          <form className="space-y-4">
+          <div className="space-y-4">
             {isSignUp ? (
               <div className="grid gap-3 md:grid-cols-2">
-                <RoleChoice title="Client" description="Book salons and professionals with saved preferences." />
                 <RoleChoice
-                  title="Professional / Salon"
+                  description="Book salons and professionals with saved preferences."
+                  href={safeReturnTo}
+                  title="Sign up as Client"
+                />
+                <RoleChoice
                   description="Set up services, pricing, portfolio, and availability."
+                  href="/onboarding/professional"
+                  title="Sign up as Professional / Salon"
+                />
+              </div>
+            ) : null}
+
+            {isSignIn ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                <RoleChoice
+                  description="Continue your saved booking, favourites, and reminders."
+                  href={safeReturnTo}
+                  title="Sign in as Client"
+                />
+                <RoleChoice
+                  description="Open requests, update portfolio, services, and payout readiness."
+                  href="/dashboard"
+                  title="Sign in as Professional"
                 />
               </div>
             ) : null}
@@ -64,8 +89,11 @@ export default async function AuthPage({
             ) : null}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <CTAButton className="sm:flex-1" type="submit">
-                {isSignIn ? "Sign in" : isSignUp ? "Create account" : "Send reset link"}
+              <CTAButton
+                className="sm:flex-1"
+                href={mode === "forgot-password" ? "/auth/sign-in" : safeReturnTo}
+              >
+                {isSignIn ? "Sign in and continue" : isSignUp ? "Create account and continue" : "Send reset link"}
               </CTAButton>
               {isSignUp ? (
                 <CTAButton className="sm:flex-1" href="/onboarding/professional" variant="outline">
@@ -73,7 +101,7 @@ export default async function AuthPage({
                 </CTAButton>
               ) : null}
             </div>
-          </form>
+          </div>
         </AuthCard>
       </SectionReveal>
     </AppShell>
@@ -102,17 +130,19 @@ function FormField({
 function RoleChoice({
   title,
   description,
+  href,
 }: {
   title: string;
   description: string;
+  href: string;
 }) {
   return (
-    <button
-      className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4 text-left transition hover:border-[var(--ms-magenta)]"
-      type="button"
+    <Link
+      className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-[var(--ms-magenta)] hover:bg-[var(--ms-petal)]/70"
+      href={href}
     >
       <p className="text-lg font-semibold text-[var(--ms-navy)]">{title}</p>
       <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">{description}</p>
-    </button>
+    </Link>
   );
 }
