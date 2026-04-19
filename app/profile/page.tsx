@@ -3,11 +3,12 @@ import { CalendarDays, Heart, LockKeyhole, UserRound } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { LanguagePreferenceCard } from "@/components/language-preference-card";
 import { CTAButton, DecorativeStat, SectionReveal, WhatsAppButton } from "@/components/marketplace-ui";
+import { MyWorldCard } from "@/components/my-world-card";
 import { payoutStates } from "@/lib/business-model";
 
 export default function ProfilePage() {
   return (
-    <AppShell currentNav="profile" roleMode="salons">
+    <AppShell currentNav="profile" roleMode="salons" requireSession>
       <div className="section-grid">
         <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Profile & account</p>
@@ -56,6 +57,8 @@ export default function ProfilePage() {
         </div>
 
         <LanguagePreferenceCard />
+
+        <MyWorldCard />
 
         <SectionReveal className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Request status</p>

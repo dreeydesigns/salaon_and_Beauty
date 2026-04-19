@@ -69,7 +69,7 @@ const navItems: Array<{
   href: string;
   icon: typeof Home;
 }> = [
-  { key: "home", label: "Home", href: "/", icon: Home },
+  { key: "home", label: "Home", href: "/home", icon: Home },
   { key: "explore", label: "Explore", href: "/explore", icon: LayoutGrid },
   { key: "book", label: "Book", href: "/book", icon: CalendarDays },
   { key: "activity", label: "Activity", href: "/activity", icon: Bell },
@@ -355,7 +355,7 @@ export function SplitBrandHeader({
       <header className="sticky top-0 z-40 border-b border-[var(--ms-border)] bg-white/95 backdrop-blur-2xl">
         <div className="mx-auto max-w-7xl px-4 py-3 lg:px-6">
           <div className="flex items-center gap-3 rounded-[28px] border border-white/80 bg-white/90 px-3 py-3 shadow-[0_18px_55px_rgba(132,36,92,0.11)]">
-            <Link className="flex shrink-0 items-center gap-3" href="/">
+            <Link className="flex shrink-0 items-center gap-3" href="/home">
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] bg-[linear-gradient(145deg,var(--ms-plum),var(--ms-rose))] text-white shadow-[0_16px_36px_rgba(132,36,92,0.2)]">
                 <BrandMark />
               </span>
@@ -370,7 +370,7 @@ export function SplitBrandHeader({
             </Link>
 
             <nav className="ml-auto hidden items-center gap-1 xl:flex">
-              <DesktopNavLink href="/" current={currentNav === "home"}>
+              <DesktopNavLink href="/home" current={currentNav === "home"}>
                 Home
               </DesktopNavLink>
               <DesktopNavLink href="/explore" current={currentNav === "explore"}>
@@ -423,7 +423,7 @@ export function SplitBrandHeader({
       <MobileSheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu">
         <nav id="mobile-menu" className="grid gap-2">
           {[
-            ["Home", "/"],
+            ["Home", "/home"],
             ["Guide", "/guide"],
             ["Explore", "/explore"],
             ["Salons", "/salons"],

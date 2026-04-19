@@ -15,7 +15,7 @@ export default async function CollectionPage({
   }
 
   return (
-    <AppShell currentNav={collection} roleMode={collection}>
+    <AppShell currentNav={collection} roleMode={collection} requireSession>
       <MarketplaceDiscovery collection={collection} />
     </AppShell>
   );

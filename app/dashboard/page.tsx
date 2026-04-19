@@ -37,7 +37,7 @@ const activeServices = activeProfessional ? getServicesByIds(activeProfessional.
 
 export default function DashboardPage() {
   return (
-    <AppShell currentNav="profile" roleMode="professionals">
+    <AppShell currentNav="profile" roleMode="professionals" requireSession>
       <div className="section-grid">
         <SectionReveal className="relative overflow-hidden rounded-[40px] bg-[linear-gradient(135deg,var(--ms-plum),#6f255f_55%,var(--ms-rose))] p-6 text-white shadow-[0_28px_90px_rgba(132,36,92,0.22)] lg:p-8">
           <div className="absolute -right-10 top-8 h-44 w-44 rounded-full bg-[var(--ms-blush)]/20 blur-3xl" />

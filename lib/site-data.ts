@@ -1,3 +1,5 @@
+import type { ThemeKey } from "@/lib/personalization";
+
 export type RoleMode = "salons" | "professionals";
 export type NavKey =
   | "home"
@@ -113,6 +115,7 @@ export interface Service {
   inclusions: string;
   popular?: boolean;
   trending?: boolean;
+  themeTag?: ThemeKey;
   image?: VisualAsset;
 }
 
@@ -127,6 +130,7 @@ export interface PackageOffer {
   bestFor?: string;
   ownerName?: string;
   trending?: boolean;
+  themeTag?: ThemeKey;
 }
 
 export interface ReviewSnapshot {
@@ -143,6 +147,7 @@ export interface PortfolioItem {
   title: string;
   note: string;
   tint: string;
+  themeTag?: ThemeKey;
   image?: VisualAsset;
 }
 
@@ -174,6 +179,8 @@ export interface Salon {
   repeatBookings: number;
   savedCount: number;
   trendingScore: number;
+  themeAffinity?: ThemeKey[];
+  tribeBadges?: ThemeKey[];
 }
 
 export interface Professional {
@@ -203,6 +210,8 @@ export interface Professional {
   savedCount: number;
   trendingScore: number;
   identityAttributes: string[];
+  themeAffinity?: ThemeKey[];
+  tribeBadges?: ThemeKey[];
 }
 
 export const marketAreas = [
@@ -784,7 +793,36 @@ const expandedServices: Service[] = [
   },
 ];
 
-export const services: Service[] = [...coreServices, ...expandedServices];
+function inferServiceTheme(service: Service): ThemeKey {
+  if (service.category === "Hair" && /braid|loc|cornrow/i.test(service.name)) {
+    return "cultural";
+  }
+
+  if (service.category === "Hair" || service.category === "Care / Skin") {
+    return "natural";
+  }
+
+  if (service.category === "Nails" || service.category === "Lashes / Brows") {
+    return service.name.toLowerCase().includes("nude") || service.name.toLowerCase().includes("classic")
+      ? "african_nude"
+      : "feminine";
+  }
+
+  if (service.category === "Self-Care / Beauty") {
+    return "spiritual";
+  }
+
+  if (service.category === "Bridal & Events") {
+    return "cultural";
+  }
+
+  return "feminine";
+}
+
+export const services: Service[] = [...coreServices, ...expandedServices].map((service) => ({
+  ...service,
+  themeTag: service.themeTag ?? inferServiceTheme(service),
+}));
 
 export const marketplacePackages: PackageOffer[] = [
   {
@@ -797,6 +835,7 @@ export const marketplacePackages: PackageOffer[] = [
     includedServices: ["Soft glam", "Gel manicure", "Natural hair styling"],
     bestFor: "Mums-to-be and intimate family events",
     trending: true,
+    themeTag: "feminine",
   },
   {
     id: "honeymoon-ready",
@@ -808,6 +847,7 @@ export const marketplacePackages: PackageOffer[] = [
     includedServices: ["Lash lift", "Gel pedicure", "Waxing", "Body polish"],
     bestFor: "Travel, honeymoon, and beach-ready care",
     trending: true,
+    themeTag: "spiritual",
   },
   {
     id: "birthday-glow",
@@ -818,6 +858,7 @@ export const marketplacePackages: PackageOffer[] = [
     badge: "Celebration",
     includedServices: ["Full glam", "Nail art", "Wig install"],
     bestFor: "Dinner, club night, or birthday shoot",
+    themeTag: "feminine",
   },
   {
     id: "bridal-morning",
@@ -829,6 +870,7 @@ export const marketplacePackages: PackageOffer[] = [
     includedServices: ["Bridal hair and make-up", "Touch-up support", "Gel manicure"],
     bestFor: "Bride and close-prep morning",
     trending: true,
+    themeTag: "cultural",
   },
   {
     id: "weekend-reset",
@@ -839,6 +881,7 @@ export const marketplacePackages: PackageOffer[] = [
     badge: "Self-care",
     includedServices: ["Wash and go", "Classic manicure", "Cleanup facial"],
     bestFor: "Saturday reset and Sunday confidence",
+    themeTag: "natural",
   },
   {
     id: "vacation-prep",
@@ -850,6 +893,7 @@ export const marketplacePackages: PackageOffer[] = [
     includedServices: ["Boho braids", "Gel pedicure", "Waxing", "Classic lashes"],
     bestFor: "Holiday prep and low-maintenance travel",
     trending: true,
+    themeTag: "cultural",
   },
   {
     id: "corporate-event-ready",
@@ -860,6 +904,7 @@ export const marketplacePackages: PackageOffer[] = [
     badge: "Work event",
     includedServices: ["Silk press", "Soft glam", "Gel manicure"],
     bestFor: "Conferences, panels, shoots, and work dinners",
+    themeTag: "african_nude",
   },
   {
     id: "photoshoot-ready",
@@ -870,6 +915,7 @@ export const marketplacePackages: PackageOffer[] = [
     badge: "Camera ready",
     includedServices: ["Full glam", "Wig install", "Nail detail"],
     bestFor: "Brand shoots, maternity shoots, and content days",
+    themeTag: "feminine",
   },
 ];
 
@@ -892,6 +938,8 @@ export const salons: Salon[] = [
       "Clients come here for braid installs that respect the hairline, wash days that feel restorative, and bridal prep that is organised from trial to finish.",
     heroMood: "from-[var(--ms-navy)] via-[#15253a] to-[var(--ms-magenta)]/40",
     image: imageAssets.salonBraiding,
+    themeAffinity: ["natural", "cultural", "feminine"],
+    tribeBadges: ["natural", "cultural"],
     serviceIds: [
       "knotless-braids",
       "boho-braids",
@@ -915,6 +963,7 @@ export const salons: Salon[] = [
         price: 4200,
         serviceIds: ["wash-and-go"],
         badge: "Popular package",
+        themeTag: "natural",
       },
       {
         id: "kilimani-bridal",
@@ -923,13 +972,14 @@ export const salons: Salon[] = [
         price: 17500,
         serviceIds: ["bridal-glam"],
         badge: "Bridal favourite",
+        themeTag: "cultural",
       },
     ],
     gallery: [
-      { id: "g1", title: "Soft knotless finish", note: "Mid-back, light tension, side part.", tint: "from-[#251134] to-[#7b2cbf]" },
-      { id: "g2", title: "Defined twist-out", note: "Healthy sheen and shape retention after wash day.", tint: "from-[#0d1b2a] to-[#3a506b]" },
-      { id: "g3", title: "Bride trial look", note: "Modern bun with soft glam finish.", tint: "from-[#f2d7ee] to-[#c9a84c]" },
-      { id: "g4", title: "Loc barrel detail", note: "Weekend-ready finish with scalp polish.", tint: "from-[#1f1f1f] to-[#8c7280]" },
+      { id: "g1", title: "Soft knotless finish", note: "Mid-back, light tension, side part.", tint: "from-[#251134] to-[#7b2cbf]", themeTag: "cultural" },
+      { id: "g2", title: "Defined twist-out", note: "Healthy sheen and shape retention after wash day.", tint: "from-[#0d1b2a] to-[#3a506b]", themeTag: "natural" },
+      { id: "g3", title: "Bride trial look", note: "Modern bun with soft glam finish.", tint: "from-[#f2d7ee] to-[#c9a84c]", themeTag: "feminine" },
+      { id: "g4", title: "Loc barrel detail", note: "Weekend-ready finish with scalp polish.", tint: "from-[#1f1f1f] to-[#8c7280]", themeTag: "cultural" },
     ],
     faq: [
       {
@@ -967,6 +1017,8 @@ export const salons: Salon[] = [
       "Ideal for clients who need quick, reliable beauty maintenance with visible pricing and neat finishing.",
     heroMood: "from-[var(--ms-blush)] via-white to-[var(--ms-gold)]/30",
     image: imageAssets.nails,
+    themeAffinity: ["african_nude", "feminine", "spiritual"],
+    tribeBadges: ["african_nude", "feminine"],
     serviceIds: [
       "gel-manicure",
       "classic-manicure",
@@ -991,13 +1043,14 @@ export const salons: Salon[] = [
         price: 3200,
         serviceIds: ["gel-manicure", "brow-threading"],
         badge: "Fast turnaround",
+        themeTag: "african_nude",
       },
     ],
     gallery: [
-      { id: "g5", title: "Chocolate chrome set", note: "Short square with mirror finish.", tint: "from-[#543864] to-[#ff6f91]" },
-      { id: "g6", title: "Minimal french detail", note: "Warm nude base with thin gold line.", tint: "from-[#f9d0e8] to-[#faf6f1]" },
-      { id: "g7", title: "Classic lash map", note: "Soft volume for everyday wear.", tint: "from-[#1f1f1f] to-[#d9a441]" },
-      { id: "g8", title: "Spa pedicure set-up", note: "Sanitised tools and calm finish zone.", tint: "from-[#f0ebe3] to-[#c9a84c]" },
+      { id: "g5", title: "Chocolate chrome set", note: "Short square with mirror finish.", tint: "from-[#543864] to-[#ff6f91]", themeTag: "feminine" },
+      { id: "g6", title: "Minimal french detail", note: "Warm nude base with thin gold line.", tint: "from-[#f9d0e8] to-[#faf6f1]", themeTag: "african_nude" },
+      { id: "g7", title: "Classic lash map", note: "Soft volume for everyday wear.", tint: "from-[#1f1f1f] to-[#d9a441]", themeTag: "feminine" },
+      { id: "g8", title: "Spa pedicure set-up", note: "Sanitised tools and calm finish zone.", tint: "from-[#f0ebe3] to-[#c9a84c]", themeTag: "spiritual" },
     ],
     faq: [
       {
@@ -1035,6 +1088,8 @@ export const salons: Salon[] = [
       "Ideal for crisp feminine cuts, dependable start times, and optional home or office call-outs.",
     heroMood: "from-[var(--ms-plum)] via-[#5a2453] to-[var(--ms-gold)]/30",
     image: imageAssets.barber,
+    themeAffinity: ["african_nude", "spiritual", "natural"],
+    tribeBadges: ["african_nude", "spiritual"],
     serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment", "cleanup-facial", "massage"],
     topServiceIds: ["mens-fade", "beard-sculpt", "facial-treatment"],
     packageOffers: [
@@ -1045,6 +1100,7 @@ export const salons: Salon[] = [
         price: 4200,
         serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment"],
         badge: "Most booked",
+        themeTag: "african_nude",
       },
     ],
     gallery: [
@@ -1092,6 +1148,8 @@ export const professionals: Professional[] = [
       "Known for explaining what each service includes, how long it will take, and what aftercare actually matters.",
     heroMood: "from-[var(--ms-purple)]/35 via-[var(--ms-navy)] to-[var(--ms-magenta)]/30",
     image: imageAssets.braidsPortrait,
+    themeAffinity: ["natural", "cultural", "feminine"],
+    tribeBadges: ["natural", "cultural"],
     serviceIds: ["knotless-braids", "boho-braids", "fulani-braids", "natural-hair-styling", "wash-and-go", "wash-blow-dry", "silk-press"],
     packageOffers: [
       {
@@ -1101,13 +1159,14 @@ export const professionals: Professional[] = [
         price: 5600,
         serviceIds: ["wash-and-go", "silk-press"],
         badge: "Haircare favourite",
+        themeTag: "natural",
       },
     ],
     gallery: [
-      { id: "p1", title: "Shoulder-length knotless", note: "Smart office-ready finish.", tint: "from-[#221c35] to-[#7c3aed]" },
-      { id: "p2", title: "Defined wash and go", note: "Hydrated curl pattern and soft hold.", tint: "from-[#0d1b2a] to-[#1d4ed8]" },
-      { id: "p3", title: "Silk press finish", note: "Movement retained without flatness.", tint: "from-[#fdf2f8] to-[#c9a84c]" },
-      { id: "p4", title: "Fulani detail", note: "Crisp centre part with subtle beads.", tint: "from-[#4c1d95] to-[#ec4899]" },
+      { id: "p1", title: "Shoulder-length knotless", note: "Smart office-ready finish.", tint: "from-[#221c35] to-[#7c3aed]", themeTag: "cultural" },
+      { id: "p2", title: "Defined wash and go", note: "Hydrated curl pattern and soft hold.", tint: "from-[#0d1b2a] to-[#1d4ed8]", themeTag: "natural" },
+      { id: "p3", title: "Silk press finish", note: "Movement retained without flatness.", tint: "from-[#fdf2f8] to-[#c9a84c]", themeTag: "african_nude" },
+      { id: "p4", title: "Fulani detail", note: "Crisp centre part with subtle beads.", tint: "from-[#4c1d95] to-[#ec4899]", themeTag: "cultural" },
     ],
     faq: [
       {
@@ -1145,6 +1204,8 @@ export const professionals: Professional[] = [
       "Faith is booked for her calm prep timelines, shade matching for melanin-rich skin, and clear pre-event communication.",
     heroMood: "from-[var(--ms-blush)] via-white to-[var(--ms-magenta)]/25",
     image: imageAssets.makeupArtist,
+    themeAffinity: ["feminine", "cultural", "spiritual"],
+    tribeBadges: ["feminine", "cultural"],
     serviceIds: ["makeup-soft-glam", "full-glam", "bridal-glam"],
     packageOffers: [
       {
@@ -1154,13 +1215,14 @@ export const professionals: Professional[] = [
         price: 23500,
         serviceIds: ["bridal-glam", "makeup-soft-glam"],
         badge: "Wedding day",
+        themeTag: "feminine",
       },
     ],
     gallery: [
-      { id: "p5", title: "Soft glam finish", note: "Neutral eye, defined skin, fluffy lash.", tint: "from-[#fff1f2] to-[#f9d0e8]" },
-      { id: "p6", title: "Bride trial board", note: "Skin match and hairstyle notes locked early.", tint: "from-[#fce7f3] to-[#c9a84c]" },
-      { id: "p7", title: "Civil look detail", note: "Elegant bun and understated lip finish.", tint: "from-[#8b5cf6] to-[#f472b6]" },
-      { id: "p8", title: "Bridesmaid stack", note: "Timelined four-person morning prep.", tint: "from-[#1f1f1f] to-[#8c7280]" },
+      { id: "p5", title: "Soft glam finish", note: "Neutral eye, defined skin, fluffy lash.", tint: "from-[#fff1f2] to-[#f9d0e8]", themeTag: "feminine" },
+      { id: "p6", title: "Bride trial board", note: "Skin match and hairstyle notes locked early.", tint: "from-[#fce7f3] to-[#c9a84c]", themeTag: "cultural" },
+      { id: "p7", title: "Civil look detail", note: "Elegant bun and understated lip finish.", tint: "from-[#8b5cf6] to-[#f472b6]", themeTag: "feminine" },
+      { id: "p8", title: "Bridesmaid stack", note: "Timelined four-person morning prep.", tint: "from-[#1f1f1f] to-[#8c7280]", themeTag: "cultural" },
     ],
     faq: [
       {
@@ -1198,6 +1260,8 @@ export const professionals: Professional[] = [
       "Amina is the go-to for clean finishes, strong retention, and subtle nail art that works from office to weekend.",
     heroMood: "from-[var(--ms-ivory)] via-[var(--ms-blush)] to-[var(--ms-gold)]/20",
     image: imageAssets.nails,
+    themeAffinity: ["african_nude", "feminine", "spiritual"],
+    tribeBadges: ["african_nude", "feminine"],
     serviceIds: ["gel-manicure", "classic-manicure", "acrylic-full-set", "acrylic-refill", "pedicure-spa", "gel-pedicure", "nail-art-upgrade", "lash-classic", "lash-refill", "lash-lift", "brow-threading", "brow-shaping", "brow-tint"],
     packageOffers: [
       {
@@ -1207,13 +1271,14 @@ export const professionals: Professional[] = [
         price: 6200,
         serviceIds: ["gel-manicure", "lash-classic"],
         badge: "Best value",
+        themeTag: "african_nude",
       },
     ],
     gallery: [
-      { id: "p9", title: "Short nude gel", note: "Office-safe shine with clean cuticles.", tint: "from-[#fdf2f8] to-[#f59e0b]" },
-      { id: "p10", title: "Glossy chrome", note: "Mirror detail with almond shape.", tint: "from-[#ec4899] to-[#8b5cf6]" },
-      { id: "p11", title: "Classic lash map", note: "Balanced fullness and soft taper.", tint: "from-[#1f2937] to-[#6b7280]" },
-      { id: "p12", title: "Delicate line art", note: "Minimalist detailing for everyday wear.", tint: "from-[#f3e8ff] to-[#fbcfe8]" },
+      { id: "p9", title: "Short nude gel", note: "Office-safe shine with clean cuticles.", tint: "from-[#fdf2f8] to-[#f59e0b]", themeTag: "african_nude" },
+      { id: "p10", title: "Glossy chrome", note: "Mirror detail with almond shape.", tint: "from-[#ec4899] to-[#8b5cf6]", themeTag: "feminine" },
+      { id: "p11", title: "Classic lash map", note: "Balanced fullness and soft taper.", tint: "from-[#1f2937] to-[#6b7280]", themeTag: "african_nude" },
+      { id: "p12", title: "Delicate line art", note: "Minimalist detailing for everyday wear.", tint: "from-[#f3e8ff] to-[#fbcfe8]", themeTag: "feminine" },
     ],
     faq: [
       {
@@ -1251,6 +1316,8 @@ export const professionals: Professional[] = [
       "Wanjiku focuses on soft precision, strong timing discipline, and shave-care routines that fit busy schedules.",
     heroMood: "from-[#3a183a] via-[var(--ms-plum)] to-[var(--ms-gold)]/35",
     image: imageAssets.beardCare,
+    themeAffinity: ["african_nude", "spiritual", "natural"],
+    tribeBadges: ["african_nude", "spiritual"],
     serviceIds: ["mens-fade", "beard-sculpt", "facial-treatment", "cleanup-facial", "massage"],
     packageOffers: [
       {
@@ -1260,6 +1327,7 @@ export const professionals: Professional[] = [
         price: 2600,
         serviceIds: ["mens-fade", "beard-sculpt"],
         badge: "Fast favourite",
+        themeTag: "african_nude",
       },
     ],
     gallery: [

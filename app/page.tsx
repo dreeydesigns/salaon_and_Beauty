@@ -1,344 +1,350 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
-import { CalendarHeart, Clock3, Flower2, Gem, MapPin, Search, ShieldCheck, Sparkles } from "lucide-react";
-
-import { AppShell } from "@/components/app-shell";
 import {
-  CTAButton,
-  CategoryCircle,
-  DecorativeStat,
-  PackageCard,
-  ProfessionalCard,
-  ReviewCard,
-  SalonCard,
-  SectionReveal,
-  ScrollSection,
-  TrustFlowCard,
-} from "@/components/marketplace-ui";
-import { RoleChoiceModal } from "@/components/role-choice-modal";
-import {
-  howItWorks,
-  imageAssets,
-  marketplacePackages,
-  professionals,
-  salons,
-  serviceCategories,
-  testimonials,
-  trustPoints,
-} from "@/lib/site-data";
+  ArrowRight,
+  BadgeCheck,
+  Building2,
+  CheckCircle2,
+  Crown,
+  Gem,
+  LineChart,
+  LockKeyhole,
+  Sparkles,
+  Star,
+} from "lucide-react";
 
-export default function Home() {
-  const featuredPackages = marketplacePackages.filter((offer) => offer.trending).slice(0, 6);
-  const spotlightProfessional = professionals[0];
+export const metadata: Metadata = {
+  title: "Mobile Salon | Kenya's Beauty Marketplace",
+  description:
+    "Mobile Salon connects Kenyan clients, salons, and independent beauty professionals through trusted discovery, protected booking, and clear beauty care.",
+  openGraph: {
+    title: "Mobile Salon | Beauty in your fingertips",
+    description:
+      "A three-sided Kenyan beauty marketplace for clients, salons, and independent professionals.",
+    type: "website",
+  },
+};
 
+const proofStats = [
+  ["4.9", "client rating target"],
+  ["1,200+", "verified pro goal"],
+  ["3", "launch cities"],
+  ["5 taps", "average booking path"],
+];
+
+const roleSections = [
+  {
+    label: "For clients",
+    accent: "#C8284A",
+    icon: Sparkles,
+    title: "Beauty, sorted in five taps.",
+    copy:
+      "Search by service, location, and budget. See verified professionals, real portfolios, visible prices, and available times before you commit.",
+    benefits: [
+      "Book beauty help from anywhere in Nairobi.",
+      "Find mobile pros who can come to you.",
+      "Your details stay private until booking is confirmed.",
+      "Verified professionals rank by real trust signals.",
+      "Packages for bridal, birthday, self-care, and rush moments.",
+    ],
+    cta: "Find my beauty pro",
+    href: "/theme-quiz",
+  },
+  {
+    label: "For salons and spas",
+    accent: "#BF8C2E",
+    icon: Building2,
+    title: "Turn your quality into your reputation.",
+    copy:
+      "Give your salon a full digital presence: service catalogue, team showcase, portfolio, verified status, and booking flow without building your own system.",
+    benefits: [
+      "Get discovered by clients searching your exact services.",
+      "Manage bookings and availability in one clean workspace.",
+      "Showcase your team, work, and full service menu.",
+      "Use packages and featured placement to grow demand.",
+      "Reduce admin while keeping your brand premium.",
+    ],
+    cta: "List my salon",
+    href: "/onboarding/professional?role=salon",
+  },
+  {
+    label: "For professionals",
+    accent: "#1A7A6B",
+    icon: Crown,
+    title: "Your skill opens every door.",
+    copy:
+      "Independent beauty professionals can build income without owning salon space. Your profile becomes your bookable beauty business.",
+    benefits: [
+      "Operate mobile, in a salon setting, or both.",
+      "Your rating becomes your business card.",
+      "Access clients without rent or heavy starting capital.",
+      "Verification unlocks stronger visibility.",
+      "Set your pricing, schedule, and service area.",
+    ],
+    cta: "Start as professional",
+    href: "/onboarding/professional?role=professional",
+  },
+];
+
+const trustSignals = [
+  { icon: BadgeCheck, title: "Verified first", copy: "Verified providers naturally rank above unverified accounts." },
+  { icon: Star, title: "Quality engine", copy: "Ratings, reviews, completion rate, repeat bookings, and response speed shape discovery." },
+  { icon: LockKeyhole, title: "Privacy protected", copy: "Phone details stay private before a confirmed booking or transaction." },
+  { icon: LineChart, title: "Business built in", copy: "Commission, listing plans, verification, featured placement, and package upsell are designed into the platform." },
+];
+
+const steps = [
+  "Choose salon or independent professional",
+  "Pick your service or package",
+  "Choose time with no back-and-forth calls",
+  "Review price, service, and location",
+  "Confirm and let Mobile Salon protect the request",
+];
+
+export default function PublicLandingPage() {
   return (
-    <AppShell currentNav="home" roleMode="salons" showFooter>
-      <RoleChoiceModal />
-      <div className="section-grid min-w-0 overflow-hidden">
-        <SectionReveal className="relative w-full max-w-full overflow-hidden rounded-[34px] bg-[var(--ms-navy)] text-white shadow-[0_30px_90px_rgba(13,27,42,0.24)] lg:rounded-[46px]">
-          <Image
-            alt={imageAssets.braidsPortrait.alt}
-            className="object-cover"
-            fill
-            priority
-            sizes="100vw"
-            src={imageAssets.braidsPortrait.url}
-            style={{ objectPosition: imageAssets.braidsPortrait.position }}
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(58,24,58,0.96)_0%,rgba(58,24,58,0.78)_44%,rgba(232,62,140,0.18)_100%)]" />
-          <div className="relative z-10 grid min-h-[470px] min-w-0 gap-8 p-6 sm:min-h-[620px] sm:p-8 lg:grid-cols-[minmax(0,0.58fr)_minmax(320px,0.42fr)] lg:p-10">
-            <div className="flex min-w-0 max-w-[19.5rem] flex-col justify-center sm:max-w-3xl">
-              <p className="w-fit max-w-full rounded-full border border-white/18 bg-white/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/78 sm:text-xs sm:tracking-[0.24em]">
-                Nairobi beauty, softly booked
-              </p>
-              <p className="mt-5 font-script text-5xl leading-none text-[var(--ms-blush)] sm:text-6xl">
-                Your glow, handled
-              </p>
-              <h1 className="mt-5 max-w-3xl break-words text-[2.25rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white sm:text-6xl sm:leading-[0.98] lg:text-7xl">
-                Beauty care, calmly booked.
-              </h1>
-              <p className="mt-5 max-w-[18rem] break-words text-[15px] leading-7 text-white/78 sm:max-w-xl sm:text-base sm:leading-8">
-                Choose what feels right, see the price clearly, and secure trusted beauty help without the back-and-forth.
-              </p>
-              <div className="mt-6 flex max-w-[18rem] flex-col gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3">
-                <CTAButton className="min-h-14 px-7 text-base" href="/book?rush=true">
-                  Book my beauty moment
-                </CTAButton>
-                <CTAButton className="hidden min-h-12 border-white/24 bg-white/12 px-7 text-base text-white hover:text-white sm:inline-flex sm:min-h-14" href="/guide" variant="outline">
-                  Show me how
-                </CTAButton>
-              </div>
-              <div className="mt-8 hidden max-w-[18rem] gap-3 sm:grid sm:max-w-none sm:grid-cols-2">
-                {[
-                  ["Braids", "Kilimani", "/book?targetType=salons&serviceIds=knotless-braids&rush=true"],
-                  ["Nails", "Westlands", "/book?targetType=salons&serviceIds=gel-manicure&rush=true"],
-                  ["Soft glam", "Saturday", "/book?targetType=professionals&targetId=faith-odhiambo&serviceIds=makeup-soft-glam"],
-                  ["Low cut refresh", "South B", "/book?targetType=professionals&targetId=kevin-ochieng&serviceIds=mens-fade&rush=true"],
-                ].map(([service, location, href]) => (
-                  <Link
-                    className="group rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/16"
-                    href={href}
-                    key={service}
+    <main className="min-h-screen overflow-hidden bg-[#0F0A0D] text-[#FDF7F2]">
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#0F0A0D]/78 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 lg:px-6">
+          <Link className="font-display text-2xl font-semibold text-[#FDF7F2]" href="/">
+            <span className="text-[#C8284A]">Mobile</span> Salon
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="hidden rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-white/82 transition hover:border-white/28 hover:text-white sm:inline-flex"
+              href="/auth/sign-in?returnTo=/home"
+            >
+              Sign in
+            </Link>
+            <Link
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#C8284A] px-5 text-sm font-semibold text-white shadow-[0_18px_44px_rgba(200,40,74,0.28)] transition hover:bg-[#E03460]"
+              href="/theme-quiz"
+            >
+              Get started
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <section className="relative mx-auto grid min-h-[calc(100vh-76px)] max-w-7xl items-center gap-10 px-4 py-16 lg:grid-cols-[minmax(0,0.55fr)_minmax(360px,0.45fr)] lg:px-6">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C8284A]/70 to-transparent" />
+        <div className="max-w-3xl">
+          <p className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#BF8C2E]">
+            Kenya&apos;s three-sided beauty marketplace
+          </p>
+          <h1 className="mt-8 font-display text-6xl font-bold leading-[0.95] tracking-[-0.04em] text-white sm:text-7xl lg:text-8xl">
+            One platform.
+            <span className="block italic text-[#C8284A]">Three ways to win.</span>
+          </h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-white/70">
+            Whether you need beauty services, run a salon, or offer beauty skills, Mobile Salon was built to make your next move simpler than a phone call.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-[#C8284A] px-7 text-sm font-semibold text-white shadow-[0_20px_54px_rgba(200,40,74,0.32)] transition hover:bg-[#E03460]"
+              href="/theme-quiz"
+            >
+              Create my account
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              className="inline-flex min-h-13 items-center justify-center rounded-full border border-white/12 px-7 text-sm font-semibold text-white/86 transition hover:border-white/30 hover:bg-white/6"
+              href="/auth/sign-in?returnTo=/home"
+            >
+              I already have an account
+            </Link>
+          </div>
+        </div>
+
+        <div className="hidden gap-4 lg:grid">
+          {roleSections.map((role) => {
+            const Icon = role.icon;
+
+            return (
+              <Link
+                className="group rounded-[34px] border border-white/10 bg-white/[0.055] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/22 hover:bg-white/[0.08]"
+                href={role.href}
+                key={role.label}
+              >
+                <div className="flex items-start gap-4">
+                  <span
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white"
+                    style={{ backgroundColor: role.accent }}
                   >
-                    <span className="block text-sm font-semibold text-white">{service}</span>
-                    <span className="mt-1 block text-xs text-white/62">{location} · book fast</span>
-                  </Link>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/45">{role.label}</p>
+                    <h2 className="mt-2 font-display text-2xl font-semibold text-white">{role.title}</h2>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/62">{role.copy}</p>
+                    <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: role.accent }}>
+                      {role.cta}
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="border-y border-white/8 bg-white/[0.035]">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-6 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
+          {proofStats.map(([value, label]) => (
+            <div className="rounded-[24px] border border-white/8 bg-[#1A0F14] px-5 py-5" key={label}>
+              <p className="font-display text-4xl font-semibold text-white">{value}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/45">{label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-20 lg:px-6">
+        {roleSections.map((role, index) => {
+          const Icon = role.icon;
+
+          return (
+            <article
+              className="grid overflow-hidden rounded-[42px] border border-white/8 bg-[#1A0F14] lg:grid-cols-2"
+              key={role.label}
+            >
+              <div className={`p-6 sm:p-8 lg:p-10 ${index % 2 === 1 ? "lg:order-2" : ""}`}>
+                <span
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white"
+                  style={{ backgroundColor: role.accent }}
+                >
+                  <Icon className="h-4 w-4" />
+                  {role.label}
+                </span>
+                <h2 className="mt-6 font-display text-4xl font-semibold leading-tight text-white sm:text-5xl">
+                  {role.title}
+                </h2>
+                <p className="mt-5 text-sm leading-7 text-white/66">{role.copy}</p>
+                <Link
+                  className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition hover:brightness-110"
+                  href={role.href}
+                  style={{ backgroundColor: role.accent }}
+                >
+                  {role.cta}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+              <div className="grid content-center gap-3 border-t border-white/8 bg-white/[0.035] p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
+                {role.benefits.map((benefit) => (
+                  <div className="flex items-start gap-3 rounded-[24px] border border-white/8 bg-[#0F0A0D]/70 p-4" key={benefit}>
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: role.accent }} />
+                    <p className="text-sm leading-6 text-white/72">{benefit}</p>
+                  </div>
                 ))}
               </div>
-            </div>
+            </article>
+          );
+        })}
+      </section>
 
-            <div className="hidden min-w-0 items-end lg:flex lg:items-center">
-              <div className="w-full rounded-[36px] border border-white/18 bg-white/12 p-5 shadow-[0_25px_70px_rgba(0,0,0,0.24)] backdrop-blur-xl">
-                <div className="rounded-[28px] bg-white p-5 text-[var(--ms-navy)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Quick request</p>
-                      <h2 className="mt-2 font-display text-3xl">Five taps to done</h2>
-                    </div>
-                    <span className="rounded-full bg-[var(--ms-gold)] px-3 py-1 text-xs font-semibold text-[var(--ms-navy)]">
-                      Today
-                    </span>
-                  </div>
-                  <div className="mt-5 space-y-3">
-                    {[
-                      "Pick salon or pro",
-                      "Choose one service",
-                      "Tap time",
-                      "Add phone",
-                      "Confirm",
-                    ].map((item, index) => (
-                      <div className="flex items-center gap-3 rounded-[20px] bg-[var(--ms-soft-bg)] px-4 py-3" key={item}>
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ms-navy)] text-xs font-semibold text-white">
-                          {index + 1}
-                        </span>
-                        <p className="text-sm font-semibold text-[var(--ms-charcoal)]">{item}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <CTAButton className="mt-5 w-full" href="/book?rush=true">
-                    Start now
-                  </CTAButton>
-                </div>
-                <p className="mt-4 text-center text-xs text-white/62">
-                  Real prices · real portfolios · Nairobi coverage
-                </p>
-              </div>
-            </div>
+      <section className="mx-auto max-w-7xl px-4 pb-20 lg:px-6">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)]">
+          <div className="rounded-[38px] border border-white/8 bg-[#1A0F14] p-6 sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#BF8C2E]">Trust and algorithm proof</p>
+            <h2 className="mt-4 font-display text-4xl font-semibold leading-tight text-white">
+              Mobile Salon rewards trust, not noise.
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-white/64">
+              Discovery is designed around verification, response speed, completion rate, repeat bookings, trending services, package engagement, location relevance, and recent activity.
+            </p>
           </div>
-        </SectionReveal>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {trustSignals.map((signal) => {
+              const Icon = signal.icon;
 
-        <QuickGuidedSearch />
-
-        <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_54px_rgba(132,36,92,0.1)] lg:p-8">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.36fr)_minmax(0,0.64fr)] xl:items-center">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">How it works</p>
-              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">One calm path from need to confirmed booking.</h2>
-              <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-                This is the gentle guide: choose, review, sign in, pay, and let the platform protect the request.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {howItWorks.map((step) => (
-                <div className="rounded-[26px] bg-[var(--ms-soft-bg)] p-4" key={step.step}>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-semibold text-[var(--ms-rose)] shadow-[0_10px_22px_rgba(132,36,92,0.08)]">
-                    {step.step}
+              return (
+                <div className="rounded-[30px] border border-white/8 bg-white/[0.045] p-5" key={signal.title}>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#C8284A]/16 text-[#C8284A]">
+                    <Icon className="h-5 w-5" />
                   </span>
-                  <h3 className="mt-4 text-lg font-semibold text-[var(--ms-navy)]">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">{step.description}</p>
+                  <h3 className="mt-4 text-xl font-semibold text-white">{signal.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/62">{signal.copy}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-20 lg:px-6">
+        <div className="rounded-[42px] border border-white/8 bg-[#FDF7F2] p-6 text-[#0F0A0D] sm:p-8 lg:p-10">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.35fr)_minmax(0,0.65fr)] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8B6070]">How it works</p>
+              <h2 className="mt-4 font-display text-4xl font-semibold leading-tight">
+                A calm path from need to confirmed request.
+              </h2>
+            </div>
+            <div className="grid gap-3 md:grid-cols-5">
+              {steps.map((step, index) => (
+                <div
+                  className="rounded-[24px] border border-[#0F0A0D]/10 bg-white p-4 shadow-[0_14px_34px_rgba(15,10,13,0.06)]"
+                  key={step}
+                >
+                  <span
+                    className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
+                      index === steps.length - 1 ? "bg-[#C8284A] text-white" : "border border-[#C8284A]/40 text-[#C8284A]"
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <p className="mt-4 text-sm font-semibold leading-6">{step}</p>
                 </div>
               ))}
             </div>
           </div>
-        </SectionReveal>
-
-        <SectionReveal className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {trustPoints.map((point) => (
-            <div className="rounded-[28px] bg-white p-5 shadow-[0_12px_40px_rgba(13,27,42,0.06)]" key={point}>
-              <p className="text-sm leading-7 text-[var(--ms-charcoal)]">{point}</p>
-            </div>
-          ))}
-        </SectionReveal>
-
-        <SectionReveal className="grid gap-5 xl:grid-cols-[minmax(0,0.48fr)_minmax(0,0.52fr)]">
-          <TrustFlowCard />
-          <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
-            <DecorativeStat icon={<ShieldCheck className="h-5 w-5" />} label="Request safety" value="Paid first" />
-            <DecorativeStat icon={<Clock3 className="h-5 w-5" />} label="Rush friendly" value="< 3 min" />
-            <DecorativeStat icon={<Gem className="h-5 w-5" />} label="Platform role" value="Bridge" />
-          </div>
-        </SectionReveal>
-
-        <ScrollSection eyebrow="Featured salons" href="/salons" hrefLabel="See all salons" title="Trusted salons with clear prices">
-          {salons.map((salon) => (
-            <SalonCard key={salon.slug} salon={salon} />
-          ))}
-        </ScrollSection>
-
-        <ScrollSection eyebrow="Featured professionals" href="/professionals" hrefLabel="See all professionals" title="Trusted hands with real portfolios">
-          {professionals.map((professional) => (
-            <ProfessionalCard key={professional.slug} professional={professional} />
-          ))}
-        </ScrollSection>
-
-        <ScrollSection eyebrow="Popular categories" href="/services" hrefLabel="See all services" title="Choose what feels right today">
-          {serviceCategories.map((category) => (
-            <CategoryCircle
-              color={category.color}
-              detail={category.detail}
-              image={category.image}
-              key={category.id}
-              name={category.name}
-            />
-          ))}
-        </ScrollSection>
-
-        <ScrollSection eyebrow="Trending packages" href="/services" hrefLabel="See all packages" title="Packages for real beauty moments">
-          {featuredPackages.map((offer) => (
-            <PackageCard key={offer.id} offer={offer} />
-          ))}
-        </ScrollSection>
-
-        {spotlightProfessional ? (
-          <SectionReveal className="overflow-hidden rounded-[40px] border border-[var(--ms-border)] bg-white p-6 shadow-[0_22px_70px_rgba(13,27,42,0.08)] lg:p-8">
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] xl:items-center">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Verified professional spotlight</p>
-                <h2 className="mt-3 text-4xl font-semibold text-[var(--ms-plum)]">{spotlightProfessional.name}</h2>
-                <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">{spotlightProfessional.description}</p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {spotlightProfessional.identityAttributes.map((attribute) => (
-                    <span className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-[var(--ms-plum)] shadow-[0_10px_24px_rgba(132,36,92,0.08)]" key={attribute}>
-                      {attribute}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <CTAButton href={`/professionals/${spotlightProfessional.slug}`}>View profile</CTAButton>
-                  <CTAButton href="/professionals" variant="outline">
-                    Compare professionals
-                  </CTAButton>
-                </div>
-              </div>
-              <ProfessionalCard professional={spotlightProfessional} />
-            </div>
-          </SectionReveal>
-        ) : null}
-
-        <ScrollSection eyebrow="Review snapshots" href="/help" hrefLabel="Read policy" title="Trust comes from evidence, not hype">
-          {testimonials.map((review) => (
-            <ReviewCard key={review.id} review={review} />
-          ))}
-        </ScrollSection>
-
-        <SectionReveal className="rounded-[36px] bg-[var(--ms-navy)] p-6 text-white shadow-[0_22px_60px_rgba(13,27,42,0.22)] lg:p-8">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,0.66fr)_minmax(0,0.34fr)]">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-white/60">PWA ready</p>
-              <h2 className="mt-3 text-4xl font-semibold">Use it like an app in the browser.</h2>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/74">
-                Sticky actions, quick switching, and thumb-first booking keep the mobile experience feeling native without losing the reach of the web.
-              </p>
-              <div className="mt-5 flex w-fit items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-white/76">
-                <CalendarHeart className="h-4 w-4 text-[var(--ms-blush)]" />
-                Built for last-minute beauty emergencies.
-              </div>
-            </div>
-            <div className="rounded-[32px] bg-white/8 p-5">
-              <p className="text-sm leading-7 text-white/78">
-                Save the site to your home screen for faster return visits, booking reminders, and instant access to upcoming appointments.
-              </p>
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <CTAButton href="/book">Open booking</CTAButton>
-                <CTAButton href="/help" variant="ghost">
-                  Learn more
-                </CTAButton>
-              </div>
-            </div>
-          </div>
-        </SectionReveal>
-
-        <SectionReveal className="relative overflow-hidden rounded-[40px] border border-[var(--ms-border)] bg-white p-6 shadow-[0_22px_70px_rgba(13,27,42,0.08)] lg:p-8">
-          <div className="relative grid gap-5 xl:grid-cols-[minmax(0,0.62fr)_minmax(300px,0.38fr)] xl:items-center">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">For professionals</p>
-              <h2 className="mt-3 text-4xl font-semibold text-[var(--ms-plum)]">Your skill can become a trusted beauty business page.</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">
-                You do not need to own a salon to be visible. Strong portfolio, clear pricing, reliable response, and verified completion help you earn more trust.
-              </p>
-            </div>
-            <div className="rounded-[32px] bg-[var(--ms-soft-bg)] p-5">
-              <div className="flex items-start gap-3">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[var(--ms-rose)]">
-                  <Flower2 className="h-5 w-5" />
-                </span>
-                <div>
-                  <h3 className="text-2xl font-semibold text-[var(--ms-navy)]">Build calmly. Earn clearly.</h3>
-                  <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">
-                    Update services, portfolio, packages, availability, and payout readiness from the dashboard.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-5 flex flex-col gap-3">
-                <CTAButton href="/onboarding/professional">Join as a Professional</CTAButton>
-                <CTAButton href="/dashboard" variant="outline">
-                  Preview dashboard
-                </CTAButton>
-              </div>
-            </div>
-          </div>
-        </SectionReveal>
-      </div>
-    </AppShell>
-  );
-}
-
-function QuickGuidedSearch() {
-  const suggestions = [
-    { label: "Braids", href: "/book?targetType=salons&serviceIds=knotless-braids&rush=true" },
-    { label: "Nails", href: "/book?targetType=salons&serviceIds=gel-manicure&rush=true" },
-    { label: "Lashes", href: "/book?targetType=professionals&serviceIds=lash-classic&rush=true" },
-    { label: "Birthday glow", href: "/book?targetType=professionals&serviceIds=full-glam,nail-art-upgrade&rush=true" },
-  ];
-
-  return (
-    <SectionReveal className="rounded-[36px] bg-white p-5 shadow-[0_18px_54px_rgba(132,36,92,0.1)] lg:p-6">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.26fr)_minmax(0,0.74fr)] xl:items-center">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Quick guided search</p>
-          <h2 className="mt-3 text-2xl font-semibold text-[var(--ms-plum)]">Tell us the simple things first.</h2>
         </div>
-        <div className="grid gap-3 md:grid-cols-4">
-          {[
-            ["Service", "What do you need?", <Search className="h-4 w-4" key="service" />],
-            ["Location", "Near Kilimani, Westlands...", <MapPin className="h-4 w-4" key="location" />],
-            ["Date", "Today or this week", <CalendarHeart className="h-4 w-4" key="date" />],
-            ["Package", "Event or reset", <Sparkles className="h-4 w-4" key="package" />],
-          ].map(([label, hint, icon]) => (
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 pb-20 text-center lg:px-6">
+        <div className="rounded-[44px] border border-white/10 bg-[linear-gradient(135deg,#1A0F14,#2A121D_52%,#0F0A0D)] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.32)] sm:p-12">
+          <Gem className="mx-auto h-9 w-9 text-[#BF8C2E]" />
+          <h2 className="mt-5 font-display text-5xl font-semibold leading-tight text-white">
+            Ready to be part of it?
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/66">
+            Whether you are booking your next look, growing your salon, or building a career, your place on Mobile Salon is ready.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
-              className="group rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4 transition hover:-translate-y-0.5 hover:border-[var(--ms-rose)]/35 hover:bg-[var(--ms-petal)]/70"
-              href="/explore"
-              key={label as string}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#C8284A] px-7 text-sm font-semibold text-white transition hover:bg-[#E03460]"
+              href="/theme-quiz"
             >
-              <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ms-mauve)]">
-                {icon}
-                {label as string}
-              </span>
-              <span className="mt-2 block text-sm font-semibold text-[var(--ms-navy)]">{hint as string}</span>
+              Create your account
+              <ArrowRight className="h-4 w-4" />
             </Link>
-          ))}
+            <Link
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/14 px-7 text-sm font-semibold text-white/82 transition hover:border-white/32 hover:text-white"
+              href="/auth/sign-in?returnTo=/home"
+            >
+              Sign in
+            </Link>
+          </div>
+          <p className="mt-5 text-xs text-white/44">No commitment until your first booking.</p>
         </div>
-      </div>
-      <div className="mt-5 flex gap-2 overflow-x-auto pb-3">
-        {suggestions.map((suggestion) => (
-          <CTAButton className="shrink-0" href={suggestion.href} key={suggestion.label} variant="outline">
-            {suggestion.label}
-          </CTAButton>
-        ))}
-        <CTAButton className="shrink-0" href="/book?rush=true">
-          Book calmly now
-        </CTAButton>
-      </div>
-    </SectionReveal>
+      </section>
+
+      <footer className="border-t border-white/8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-white/52 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+          <p className="font-display text-xl text-white">
+            <span className="text-[#C8284A]">Mobile</span> Salon
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Link className="hover:text-white" href="/help">Privacy</Link>
+            <Link className="hover:text-white" href="/help">Terms</Link>
+            <Link className="hover:text-white" href="/help">Contact</Link>
+            <Link className="hover:text-white" href="/help">Help</Link>
+          </div>
+          <p>Copyright 2026 Mobile Salon. Beauty in your fingertips.</p>
+        </div>
+      </footer>
+    </main>
   );
 }

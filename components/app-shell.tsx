@@ -2,18 +2,21 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import type { NavKey, RoleMode } from "@/lib/site-data";
+import { ClientSessionGate } from "@/components/client-session-gate";
 import { BottomMobileNav, SplitBrandHeader } from "@/components/marketplace-ui";
 
 export function AppShell({
   children,
   currentNav,
   roleMode,
+  requireSession = false,
   showBottomNav = true,
   showFooter = false,
 }: {
   children: ReactNode;
   currentNav: NavKey;
   roleMode: RoleMode;
+  requireSession?: boolean;
   showBottomNav?: boolean;
   showFooter?: boolean;
 }) {
@@ -21,7 +24,7 @@ export function AppShell({
     <div className="feminine-shell min-h-screen">
       <SplitBrandHeader currentNav={currentNav} roleMode={roleMode} />
       <main className="mx-auto min-h-[calc(100vh-180px)] w-full max-w-7xl overflow-hidden px-4 pb-28 pt-6 lg:px-6 lg:pb-12">
-        {children}
+        {requireSession ? <ClientSessionGate>{children}</ClientSessionGate> : children}
       </main>
       {showFooter ? (
         <footer className="border-t border-[var(--ms-border)] bg-white/90">

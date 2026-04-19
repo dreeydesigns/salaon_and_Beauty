@@ -1,4 +1,5 @@
 import type { Professional, Salon } from "@/lib/site-data";
+import { normalizeThemeKey, type ThemeKey } from "@/lib/personalization";
 
 type DiscoverySort = "top-rated" | "nearest" | "price-low" | "earliest";
 
@@ -18,6 +19,16 @@ function availabilityScore(label: string) {
 
 function responseScore(minutes: number) {
   return Math.max(0, 100 - minutes * 4);
+}
+
+function themeAffinityScore(affinity: ThemeKey[] | undefined, theme?: ThemeKey) {
+  const normalizedTheme = normalizeThemeKey(theme);
+
+  if (normalizedTheme === "not_set" || !affinity?.length) {
+    return 0;
+  }
+
+  return affinity.includes(normalizedTheme) ? 14 : 0;
 }
 
 function sharedMarketplaceScore(item: {
@@ -44,20 +55,20 @@ function sharedMarketplaceScore(item: {
   return verification + rating + reviews + response + completion + repeats + saves + trending + availability;
 }
 
-export function scoreSalon(salon: Salon) {
+export function scoreSalon(salon: Salon, theme?: ThemeKey) {
   const mobileBoost = salon.mobileService ? 8 : 0;
 
-  return sharedMarketplaceScore(salon) + mobileBoost;
+  return sharedMarketplaceScore(salon) + mobileBoost + themeAffinityScore(salon.themeAffinity, theme);
 }
 
-export function scoreProfessional(professional: Professional) {
+export function scoreProfessional(professional: Professional, theme?: ThemeKey) {
   const modeBoost = professional.serviceMode === "Both" ? 8 : professional.serviceMode === "Mobile" ? 6 : 3;
   const profileDepthBoost = Math.min(professional.gallery.length, 8) * 2;
 
-  return sharedMarketplaceScore(professional) + modeBoost + profileDepthBoost;
+  return sharedMarketplaceScore(professional) + modeBoost + profileDepthBoost + themeAffinityScore(professional.themeAffinity, theme);
 }
 
-export function rankSalons(items: Salon[], sortBy: DiscoverySort) {
+export function rankSalons(items: Salon[], sortBy: DiscoverySort, theme?: ThemeKey) {
   return [...items].sort((left, right) => {
     if (sortBy === "price-low") {
       return left.startingPrice - right.startingPrice;
@@ -71,11 +82,11 @@ export function rankSalons(items: Salon[], sortBy: DiscoverySort) {
       return left.location.localeCompare(right.location);
     }
 
-    return scoreSalon(right) - scoreSalon(left);
+    return scoreSalon(right, theme) - scoreSalon(left, theme);
   });
 }
 
-export function rankProfessionals(items: Professional[], sortBy: DiscoverySort) {
+export function rankProfessionals(items: Professional[], sortBy: DiscoverySort, theme?: ThemeKey) {
   return [...items].sort((left, right) => {
     if (sortBy === "price-low") {
       return left.startingPrice - right.startingPrice;
@@ -89,6 +100,6 @@ export function rankProfessionals(items: Professional[], sortBy: DiscoverySort) 
       return left.location.localeCompare(right.location);
     }
 
-    return scoreProfessional(right) - scoreProfessional(left);
+    return scoreProfessional(right, theme) - scoreProfessional(left, theme);
   });
 }

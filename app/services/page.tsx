@@ -10,7 +10,7 @@ export default function ServicesPage() {
   const categories = [...new Set(services.map((service) => service.category))];
 
   return (
-    <AppShell currentNav="book" roleMode="salons">
+    <AppShell currentNav="book" roleMode="salons" requireSession>
       <div className="section-grid">
         <SectionReveal className="silk-panel decorative-orbit overflow-hidden rounded-[36px] p-6 lg:p-8">
           <div className="grid gap-6 xl:grid-cols-[minmax(0,0.66fr)_minmax(320px,0.34fr)] xl:items-end">

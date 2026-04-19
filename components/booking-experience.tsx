@@ -212,7 +212,7 @@ export function BookingExperience() {
       >
         <BreadcrumbTrail
           items={[
-            { label: "Home", href: "/" },
+            { label: "Home", href: "/home" },
             { label: targetType === "salons" ? "Salons" : "Professionals", href: targetType === "salons" ? "/salons" : "/professionals" },
             ...(targetEntity ? [{ label: targetEntity.name, href: `/${targetType}/${targetEntity.slug}` }] : []),
             { label: "Booking" },
@@ -503,7 +503,7 @@ export function BookingExperience() {
                 <p className="mt-1 text-sm text-[var(--ms-mauve)]">{formatPriceRange(totalMin, totalMax)}</p>
               </div>
               <div className="mt-5 grid gap-3">
-                <CTAButton href={`/auth/sign-up?returnTo=${encodeURIComponent("/book?resume=booking")}`}>
+                <CTAButton href={`/signup/client?returnTo=${encodeURIComponent("/book?resume=booking")}`}>
                   Create account and continue
                 </CTAButton>
                 <CTAButton href={`/auth/sign-in?returnTo=${encodeURIComponent("/book?resume=booking")}`} variant="outline">

@@ -14,7 +14,7 @@ export default async function AuthPage({
 }) {
   const { mode } = await params;
   const { returnTo } = await searchParams;
-  const safeReturnTo = returnTo?.startsWith("/") ? returnTo : "/profile";
+  const safeReturnTo = returnTo?.startsWith("/") ? returnTo : "/home";
 
   if (!["sign-in", "sign-up", "forgot-password"].includes(mode)) {
     notFound();
@@ -49,7 +49,7 @@ export default async function AuthPage({
               <div className="grid gap-3 md:grid-cols-2">
                 <RoleChoice
                   description="Book salons and professionals with saved preferences."
-                  href={safeReturnTo}
+                  href="/theme-quiz"
                   title="Sign up as Client"
                 />
                 <RoleChoice
@@ -91,7 +91,7 @@ export default async function AuthPage({
             <div className="flex flex-col gap-3 sm:flex-row">
               <CTAButton
                 className="sm:flex-1"
-                href={mode === "forgot-password" ? "/auth/sign-in" : safeReturnTo}
+                href={isSignUp ? "/theme-quiz" : mode === "forgot-password" ? "/auth/sign-in" : safeReturnTo}
               >
                 {isSignIn ? "Sign in and continue" : isSignUp ? "Create account and continue" : "Send reset link"}
               </CTAButton>
