@@ -34,38 +34,48 @@ export default async function AuthPage({
           }
           description={
             isSignIn
-              ? "Welcome back. Continue your saved beauty request without choosing everything again."
+              ? "Welcome back. Pick up where you left off."
               : isSignUp
-                ? "Create your account so bookings, favourites, and reminders stay beautifully organised."
+                ? "Choose the account path that fits you best."
                 : "Enter your email and we will send a secure reset link."
           }
           eyebrow="Account"
           title={
-            isSignIn ? "Sign in" : isSignUp ? "Create your account" : "Reset your password"
+            isSignIn ? "Sign in" : isSignUp ? "Choose your account" : "Reset your password"
           }
         >
           <div className="space-y-4">
             {isSignUp ? (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 lg:grid-cols-3">
                 <RoleChoice
-                  description="Book salons and professionals with saved preferences."
+                  description="Book beauty help with saved preferences and reminders."
                   href="/theme-quiz"
                   title="Sign up as Client"
                 />
                 <RoleChoice
-                  description="Set up services, pricing, portfolio, and availability."
-                  href="/onboarding/professional"
-                  title="Sign up as Professional / Salon"
+                  description="Set up your salon page, team, services, and listing plan."
+                  href="/onboarding/salon"
+                  title="Sign up as Salon"
+                />
+                <RoleChoice
+                  description="Set up your services, pricing, portfolio, and availability."
+                  href="/onboarding/professional?role=professional"
+                  title="Sign up as Professional"
                 />
               </div>
             ) : null}
 
             {isSignIn ? (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 lg:grid-cols-3">
                 <RoleChoice
-                  description="Continue your saved booking, favourites, and reminders."
+                  description="Open saved bookings, favourites, and reminders."
                   href={safeReturnTo}
                   title="Sign in as Client"
+                />
+                <RoleChoice
+                  description="Open salon bookings, team updates, and business tools."
+                  href="/dashboard"
+                  title="Sign in as Salon"
                 />
                 <RoleChoice
                   description="Open requests, update portfolio, services, and payout readiness."
@@ -75,32 +85,31 @@ export default async function AuthPage({
               </div>
             ) : null}
 
-            {isSignUp ? <FormField label="Full name" /> : null}
-            {isSignUp ? <FormField label="Phone" /> : null}
-            <FormField label="Email" type="email" />
-            {mode !== "forgot-password" ? <FormField label="Password" type="password" /> : null}
-            {isSignUp ? <FormField label="Confirm password" type="password" /> : null}
+            {!isSignUp ? <FormField label="Email" type="email" /> : null}
+            {mode !== "forgot-password" && !isSignUp ? <FormField label="Password" type="password" /> : null}
 
-            {isSignUp ? (
-              <label className="flex items-start gap-3 rounded-[20px] bg-[var(--ms-soft-bg)] px-4 py-4 text-sm text-[var(--ms-mauve)]">
-                <input className="mt-1 h-4 w-4 accent-[var(--ms-magenta)]" type="checkbox" />
-                I agree to the terms, privacy expectations, and clear cancellation policy.
-              </label>
-            ) : null}
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <CTAButton
-                className="sm:flex-1"
-                href={isSignUp ? "/theme-quiz" : mode === "forgot-password" ? "/auth/sign-in" : safeReturnTo}
-              >
-                {isSignIn ? "Sign in and continue" : isSignUp ? "Create account and continue" : "Send reset link"}
-              </CTAButton>
-              {isSignUp ? (
-                <CTAButton className="sm:flex-1" href="/onboarding/professional" variant="outline">
-                  Continue to professional onboarding
+            {isSignIn || mode === "forgot-password" ? (
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <CTAButton
+                  className="sm:flex-1"
+                  href={mode === "forgot-password" ? "/auth/sign-in" : safeReturnTo}
+                >
+                  {isSignIn ? "Continue to my account" : "Send reset link"}
                 </CTAButton>
-              ) : null}
-            </div>
+                {isSignIn ? (
+                  <CTAButton className="sm:flex-1" href="/dashboard" variant="outline">
+                    Open dashboard
+                  </CTAButton>
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-4 text-sm leading-6 text-[var(--ms-mauve)]">
+                Already joined?{" "}
+                <Link className="font-semibold text-[var(--ms-plum)]" href="/auth/sign-in?returnTo=/home">
+                  Sign in here.
+                </Link>
+              </div>
+            )}
           </div>
         </AuthCard>
       </SectionReveal>

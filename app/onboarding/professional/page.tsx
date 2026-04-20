@@ -20,7 +20,7 @@ export default function ProfessionalOnboardingPage() {
           <div className="mt-8 section-grid">
             <div className="grid gap-4 md:grid-cols-2">
               <FormField label="Display name" />
-              <FormField label="Business type" placeholder="Independent pro, salon team, salon owner" />
+              <FormField label="Specialty" placeholder="Braider, makeup artist, nail tech..." />
               <FormField label="Location" />
               <FormField label="Phone" />
             </div>

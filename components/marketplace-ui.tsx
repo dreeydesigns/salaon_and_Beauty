@@ -173,10 +173,10 @@ export function DecorativeStat({
 
 export function TrustFlowCard() {
   const steps = [
-    { icon: <UserRound className="h-5 w-5" />, title: "Sign in", copy: "Real account before request." },
-    { icon: <CreditCard className="h-5 w-5" />, title: "Pay", copy: "Checkout required to secure the slot." },
-    { icon: <LockKeyhole className="h-5 w-5" />, title: "Hold", copy: "Funds wait until completion." },
-    { icon: <CheckCircle2 className="h-5 w-5" />, title: "Release", copy: "Both sides confirm, then payout." },
+    { icon: <UserRound className="h-5 w-5" />, title: "Sign in", copy: "Use a real account." },
+    { icon: <CreditCard className="h-5 w-5" />, title: "Pay", copy: "Secure the slot first." },
+    { icon: <LockKeyhole className="h-5 w-5" />, title: "Hold", copy: "Funds stay protected." },
+    { icon: <CheckCircle2 className="h-5 w-5" />, title: "Release", copy: "Payout follows confirmation." },
   ];
 
   return (
@@ -186,7 +186,7 @@ export function TrustFlowCard() {
         Pay first. Release after beauty is delivered.
       </h2>
       <p className="mt-3 max-w-full break-words text-sm leading-7 text-white/72">
-        Mobile Salon acts as the trusted bridge. Providers do not receive payout until the service is completed and confirmed.
+        Mobile Salon holds the money first, then releases payout after service completion is confirmed.
       </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {steps.map((step) => (
