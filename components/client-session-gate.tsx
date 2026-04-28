@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { LockKeyhole, Sparkles } from "lucide-react";
 
-import { readClientSession } from "@/lib/client-session";
+import { APP_SESSION_EVENT, readAppSession } from "@/lib/client-session";
 
 export function ClientSessionGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -12,17 +12,17 @@ export function ClientSessionGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     function syncSession() {
-      setHasSession(Boolean(readClientSession()));
+      setHasSession(Boolean(readAppSession()));
       setReady(true);
     }
 
     syncSession();
     window.addEventListener("storage", syncSession);
-    window.addEventListener("mobile-salon.client-session-change", syncSession);
+    window.addEventListener(APP_SESSION_EVENT, syncSession);
 
     return () => {
       window.removeEventListener("storage", syncSession);
-      window.removeEventListener("mobile-salon.client-session-change", syncSession);
+      window.removeEventListener(APP_SESSION_EVENT, syncSession);
     };
   }, []);
 
@@ -48,18 +48,18 @@ export function ClientSessionGate({ children }: { children: ReactNode }) {
         Protected app area
       </p>
       <h1 className="mt-3 font-display text-4xl leading-tight text-[var(--ms-plum)]">
-        Create your world first.
+        Choose your account first.
       </h1>
       <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--ms-mauve)]">
-        Mobile Salon keeps bookings, preferences, and private contact details behind an account so your beauty requests stay calm and protected.
+        Mobile Salon keeps bookings, page controls, preferences, and private contact details behind an account so each workspace stays protected.
       </p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Link
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] px-5 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(232,62,140,0.24)]"
-          href="/theme-quiz"
+          href="/auth/sign-up"
         >
           <Sparkles className="h-4 w-4" />
-          Create client account
+          Create account
         </Link>
         <Link
           className="inline-flex min-h-12 items-center justify-center rounded-full border border-[var(--ms-border)] bg-white px-5 text-sm font-semibold text-[var(--ms-plum)]"

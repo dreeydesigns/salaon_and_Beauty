@@ -40,11 +40,8 @@ export function AppShell({
               <Link href="/help" className="hover:text-[var(--ms-navy)]">
                 Help & policy
               </Link>
-              <Link href="/salons" className="hover:text-[var(--ms-navy)]">
-                Salons
-              </Link>
-              <Link href="/professionals" className="hover:text-[var(--ms-navy)]">
-                Professionals
+              <Link href="/explore" className="hover:text-[var(--ms-navy)]">
+                Product Marketplace
               </Link>
               <Link href="/book" className="hover:text-[var(--ms-navy)]">
                 Book

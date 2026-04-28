@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
 import { AuthCard, CTAButton, ProfileCompletionCard, SectionReveal } from "@/components/marketplace-ui";
+import { SessionLaunchButton } from "@/components/session-launch-button";
 import { profileCompletionTasks } from "@/lib/site-data";
 
 export default async function AuthPage({
@@ -34,7 +35,7 @@ export default async function AuthPage({
           }
           description={
             isSignIn
-              ? "Welcome back. Pick up where you left off."
+              ? "Choose the workspace you want to open."
               : isSignUp
                 ? "Choose the account path that fits you best."
                 : "Enter your email and we will send a secure reset link."
@@ -53,7 +54,7 @@ export default async function AuthPage({
                   title="Sign up as Client"
                 />
                 <RoleChoice
-                  description="Set up your salon page, team, services, and listing plan."
+                  description="Set up a paid monthly salon subscription with services, team, and listing controls."
                   href="/onboarding/salon"
                   title="Sign up as Salon"
                 />
@@ -67,40 +68,41 @@ export default async function AuthPage({
 
             {isSignIn ? (
               <div className="grid gap-3 lg:grid-cols-3">
-                <RoleChoice
-                  description="Open saved bookings, favourites, and reminders."
-                  href={safeReturnTo}
+                <SessionRoleCard
+                  description="Open saved bookings, favourites, and personal settings."
+                  destination={safeReturnTo}
+                  role="client"
                   title="Sign in as Client"
                 />
-                <RoleChoice
-                  description="Open salon bookings, team updates, and business tools."
-                  href="/dashboard"
+                <SessionRoleCard
+                  description="Open salon customization, subscription, and page controls."
+                  destination="/profile"
+                  role="salon"
                   title="Sign in as Salon"
                 />
-                <RoleChoice
-                  description="Open requests, update portfolio, services, and payout readiness."
-                  href="/dashboard"
+                <SessionRoleCard
+                  description="Open profile cards, publish controls, and public page settings."
+                  destination="/profile"
+                  role="professional"
                   title="Sign in as Professional"
                 />
               </div>
             ) : null}
 
-            {!isSignUp ? <FormField label="Email" type="email" /> : null}
-            {mode !== "forgot-password" && !isSignUp ? <FormField label="Password" type="password" /> : null}
+            {mode === "forgot-password" ? <FormField label="Email" type="email" /> : null}
 
-            {isSignIn || mode === "forgot-password" ? (
+            {mode === "forgot-password" ? (
               <div className="flex flex-col gap-3 sm:flex-row">
                 <CTAButton
                   className="sm:flex-1"
-                  href={mode === "forgot-password" ? "/auth/sign-in" : safeReturnTo}
+                  href="/auth/sign-in"
                 >
-                  {isSignIn ? "Continue to my account" : "Send reset link"}
+                  Send reset link
                 </CTAButton>
-                {isSignIn ? (
-                  <CTAButton className="sm:flex-1" href="/dashboard" variant="outline">
-                    Open dashboard
-                  </CTAButton>
-                ) : null}
+              </div>
+            ) : isSignIn ? (
+              <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-4 text-sm leading-6 text-[var(--ms-mauve)]">
+                Pick the role you want to open. Client accounts go to saved bookings and personal settings. Salon and professional accounts go straight to profile customization.
               </div>
             ) : (
               <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-4 text-sm leading-6 text-[var(--ms-mauve)]">
@@ -153,5 +155,27 @@ function RoleChoice({
       <p className="text-lg font-semibold text-[var(--ms-navy)]">{title}</p>
       <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">{description}</p>
     </Link>
+  );
+}
+
+function SessionRoleCard({
+  title,
+  description,
+  role,
+  destination,
+}: {
+  title: string;
+  description: string;
+  role: "client" | "salon" | "professional";
+  destination: string;
+}) {
+  return (
+    <div className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4">
+      <p className="text-lg font-semibold text-[var(--ms-navy)]">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">{description}</p>
+      <SessionLaunchButton className="mt-4 w-full" destination={destination} role={role}>
+        Continue
+      </SessionLaunchButton>
+    </div>
   );
 }

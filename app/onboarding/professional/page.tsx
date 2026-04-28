@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { CTAButton, ProfileCompletionCard, SectionReveal } from "@/components/marketplace-ui";
+import { SessionLaunchButton } from "@/components/session-launch-button";
 import { professionalQualityStandards } from "@/lib/business-model";
 import { profileCompletionTasks, serviceCategories } from "@/lib/site-data";
 
@@ -94,9 +95,11 @@ export default function ProfessionalOnboardingPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <CTAButton href="/dashboard">Save onboarding draft</CTAButton>
-              <CTAButton href="/dashboard" variant="outline">
-                View dashboard skeleton
+              <SessionLaunchButton destination="/profile" role="professional">
+                Save onboarding draft
+              </SessionLaunchButton>
+              <CTAButton href="/profile" variant="outline">
+                Open professional profile
               </CTAButton>
             </div>
           </div>

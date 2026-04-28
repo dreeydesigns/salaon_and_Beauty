@@ -35,8 +35,9 @@ import {
   Hand,
   Eye,
 } from "lucide-react";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
+import { APP_SESSION_EVENT, readAppSession } from "@/lib/client-session";
 import type {
   NavKey,
   PackageOffer,
@@ -349,6 +350,34 @@ export function SplitBrandHeader({
   roleMode: RoleMode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sessionRoleMode, setSessionRoleMode] = useState<RoleMode>(roleMode);
+
+  useEffect(() => {
+    function syncRoleMode() {
+      const session = readAppSession();
+
+      if (session?.role === "professional") {
+        setSessionRoleMode("professionals");
+        return;
+      }
+
+      if (session?.role === "salon") {
+        setSessionRoleMode("salons");
+        return;
+      }
+
+      setSessionRoleMode(roleMode);
+    }
+
+    syncRoleMode();
+    window.addEventListener("storage", syncRoleMode);
+    window.addEventListener(APP_SESSION_EVENT, syncRoleMode);
+
+    return () => {
+      window.removeEventListener("storage", syncRoleMode);
+      window.removeEventListener(APP_SESSION_EVENT, syncRoleMode);
+    };
+  }, [roleMode]);
 
   return (
     <>
@@ -373,17 +402,11 @@ export function SplitBrandHeader({
               <DesktopNavLink href="/home" current={currentNav === "home"}>
                 Home
               </DesktopNavLink>
-              <DesktopNavLink href="/explore" current={currentNav === "explore"}>
-                Explore
-              </DesktopNavLink>
               <DesktopNavLink href="/guide">
                 Guide
               </DesktopNavLink>
-              <DesktopNavLink href="/salons" current={currentNav === "salons"}>
-                Salons
-              </DesktopNavLink>
-              <DesktopNavLink href="/professionals" current={currentNav === "professionals"}>
-                Pros
+              <DesktopNavLink href="/explore" current={currentNav === "explore" || currentNav === "salons" || currentNav === "professionals"}>
+                Product Marketplace
               </DesktopNavLink>
               <DesktopNavLink href="/services" current={currentNav === "book"}>
                 Services
@@ -416,7 +439,7 @@ export function SplitBrandHeader({
             </div>
           </div>
           <div className="mx-auto mt-3 w-full max-w-80 sm:max-w-md">
-            <RoleSwitchTabs roleMode={roleMode} />
+            <RoleSwitchTabs roleMode={sessionRoleMode} />
           </div>
         </div>
       </header>
@@ -425,15 +448,13 @@ export function SplitBrandHeader({
           {[
             ["Home", "/home"],
             ["Guide", "/guide"],
-            ["Explore", "/explore"],
-            ["Salons", "/salons"],
-            ["Professionals", "/professionals"],
+            ["Product Marketplace", "/explore"],
             ["Services", "/services"],
             ["Book now", "/book?rush=true"],
             ["Activity", "/activity"],
             ["Profile", "/profile"],
             ["Sign in", "/auth/sign-in"],
-            ["Join as a pro", "/onboarding/professional"],
+            ["Create account", "/auth/sign-up"],
             ["Help", "/help"],
           ].map(([label, href]) => (
             <Link

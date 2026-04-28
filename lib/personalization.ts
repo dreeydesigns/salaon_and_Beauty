@@ -65,6 +65,8 @@ export interface ClientUserProfile {
   role: "client";
   firstName: string;
   phone: string;
+  email?: string;
+  profilePhoto?: string;
   theme: ThemeKey;
   tribeBadge: string;
   quizCompleted: boolean;

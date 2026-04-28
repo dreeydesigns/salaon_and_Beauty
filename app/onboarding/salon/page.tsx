@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { CTAButton, SectionReveal } from "@/components/marketplace-ui";
+import { SessionLaunchButton } from "@/components/session-launch-button";
 import { platformRevenueRules, professionalQualityStandards } from "@/lib/business-model";
 import { serviceCategories } from "@/lib/site-data";
 
@@ -174,9 +175,11 @@ export default function SalonOnboardingPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <CTAButton href="/dashboard">Save salon draft</CTAButton>
-              <CTAButton href="/dashboard" variant="outline">
-                Preview salon dashboard
+              <SessionLaunchButton destination="/profile" role="salon">
+                Save salon draft
+              </SessionLaunchButton>
+              <CTAButton href="/profile" variant="outline">
+                Open salon profile
               </CTAButton>
             </div>
           </div>
