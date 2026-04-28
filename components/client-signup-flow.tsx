@@ -50,8 +50,8 @@ export function ClientSignupFlow() {
   const returnTo = searchParams.get("returnTo");
   const safeReturnTo = returnTo?.startsWith("/") ? returnTo : "/home";
 
-  const [step, setStep] = useState(1);
-  const [theme, setTheme] = useState<ThemeKey>("feminine");
+  const [step, setStep] = useState(2);
+  const [theme, setTheme] = useState<ThemeKey>("not_set");
   const [firstName, setFirstName] = useState("");
   const [phoneDigits, setPhoneDigits] = useState("");
   const [password, setPassword] = useState("");
@@ -85,9 +85,8 @@ export function ClientSignupFlow() {
   useEffect(() => {
     const draft = readSignupDraft();
     const storedTheme = normalizeThemeKey(draft?.theme ?? readQuizTheme());
-    const chosenTheme = storedTheme === "not_set" ? "feminine" : storedTheme;
 
-    setTheme(chosenTheme);
+    setTheme(storedTheme);
     setFirstName(draft?.firstName ?? "");
     setPhoneDigits(draft?.phone?.replace("+254", "").slice(0, 9) ?? "");
     setPassword(draft?.password ?? "");
@@ -223,7 +222,7 @@ export function ClientSignupFlow() {
         theme,
         tribeBadge: themeConfig.tribeBadge,
         quizCompleted: theme !== "not_set",
-        themeSetBy: "quiz",
+        themeSetBy: theme === "not_set" ? "fallback" : "quiz",
         themeUpdatedAt: new Date().toISOString(),
         location,
         subscription: { tier: "none", status: "teaser" },
@@ -322,7 +321,7 @@ export function ClientSignupFlow() {
                   className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white"
                   style={{ backgroundColor: themeConfig.accentColor }}
                 >
-                  {themeConfig.displayName} world
+                  {theme === "not_set" ? "Client signup" : `${themeConfig.displayName} saved`}
                 </span>
                 <span className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ms-mauve)] sm:inline">
                   Client signup
@@ -378,9 +377,9 @@ export function ClientSignupFlow() {
 
           {step === 2 ? (
             <ScreenShell>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Step 2 of 5 - Your details</p>
-              <h1 className="mt-3 font-display text-5xl leading-tight text-[var(--ms-plum)]">Tell us your first name.</h1>
-              <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">Just three things. That&apos;s all we need right now.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Step 1 of 4 - Create account</p>
+              <h1 className="mt-3 font-display text-5xl leading-tight text-[var(--ms-plum)]">Create your account.</h1>
+              <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">Name, phone, password. That&apos;s it.</p>
               <div className="mt-6 grid gap-4">
                 <label className="block rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4">
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ms-mauve)]">First name</span>
@@ -448,7 +447,7 @@ export function ClientSignupFlow() {
                 style={{ backgroundColor: themeConfig.accentColor }}
                 type="button"
               >
-                Send verification code
+                Continue
                 <ArrowRight className="h-4 w-4" />
               </button>
               <p className="mt-4 rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm leading-6 text-[var(--ms-mauve)]">
@@ -459,7 +458,7 @@ export function ClientSignupFlow() {
 
           {step === 3 ? (
             <ScreenShell>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Step 3 of 5 - Verify your number</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Step 2 of 4 - Verify your number</p>
               <h1 className="mt-3 font-display text-5xl leading-tight text-[var(--ms-plum)]">Check your messages.</h1>
               <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">
                 We sent a 6-digit code to {fullPhone}. It expires in 5 minutes.
@@ -517,7 +516,7 @@ export function ClientSignupFlow() {
 
           {step === 4 ? (
             <ScreenShell>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Step 4 of 5 - Where you are</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Step 3 of 4 - Your area</p>
               <h1 className="mt-3 font-display text-5xl leading-tight text-[var(--ms-plum)]">Where should we look for you?</h1>
               <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">
                 This helps us show nearby salons and professionals first. You can skip and add it later.
@@ -580,15 +579,26 @@ export function ClientSignupFlow() {
                   className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white"
                   style={{ backgroundColor: themeConfig.accentColor }}
                 >
-                  ✦ {themeConfig.tribeBadge}
+                  ✦ {theme === "not_set" ? "Account ready" : themeConfig.tribeBadge}
                 </span>
                 <h1 className="mt-6 font-display text-[34px] font-light leading-tight text-[var(--ms-plum)]">
-                  Welcome, {profile.firstName}.<br />
-                  Your {themeConfig.displayName} world<br />
-                  is ready.
+                  {theme === "not_set" ? (
+                    <>
+                      Welcome, {profile.firstName}.<br />
+                      Your account is ready.
+                    </>
+                  ) : (
+                    <>
+                      Welcome, {profile.firstName}.<br />
+                      Your {themeConfig.displayName} world<br />
+                      is ready.
+                    </>
+                  )}
                 </h1>
                 <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">
-                  We saved your theme, protected your phone number, and prepared a first feed of verified beauty professionals matched to the world you chose.
+                  {theme === "not_set"
+                    ? "Your phone is protected, your account is live, and you can personalise later if you want."
+                    : "We saved your theme, protected your phone number, and prepared a first feed of verified beauty professionals matched to the world you chose."}
                 </p>
                 <button
                   className="mt-7 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition hover:brightness-110"
@@ -596,7 +606,7 @@ export function ClientSignupFlow() {
                   style={{ backgroundColor: themeConfig.accentColor }}
                   type="button"
                 >
-                  Enter my world
+                  Open home
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 {!photoNudgeHidden ? (

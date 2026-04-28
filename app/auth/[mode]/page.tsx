@@ -37,7 +37,7 @@ export default async function AuthPage({
             isSignIn
               ? "Choose the workspace you want to open."
               : isSignUp
-                ? "Choose the account path that fits you best."
+                ? "Choose the account path that fits you."
                 : "Enter your email and we will send a secure reset link."
           }
           eyebrow="Account"
@@ -49,17 +49,17 @@ export default async function AuthPage({
             {isSignUp ? (
               <div className="grid gap-3 lg:grid-cols-3">
                 <RoleChoice
-                  description="Book beauty help with saved preferences and reminders."
-                  href="/theme-quiz"
+                  description="Fast client signup for booking."
+                  href="/signup/client"
                   title="Sign up as Client"
                 />
                 <RoleChoice
-                  description="Set up a paid monthly salon subscription with services, team, and listing controls."
+                  description="Paid salon listing and page control."
                   href="/onboarding/salon"
                   title="Sign up as Salon"
                 />
                 <RoleChoice
-                  description="Set up your services, pricing, portfolio, and availability."
+                  description="Offer services with a public profile."
                   href="/onboarding/professional?role=professional"
                   title="Sign up as Professional"
                 />
@@ -102,7 +102,7 @@ export default async function AuthPage({
               </div>
             ) : isSignIn ? (
               <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-4 text-sm leading-6 text-[var(--ms-mauve)]">
-                Pick the role you want to open. Client accounts go to saved bookings and personal settings. Salon and professional accounts go straight to profile customization.
+                Pick your role and continue.
               </div>
             ) : (
               <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-4 text-sm leading-6 text-[var(--ms-mauve)]">

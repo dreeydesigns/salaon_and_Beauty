@@ -1,10 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, ChevronLeft, Sparkles } from "lucide-react";
 
-import { writeQuizTheme, writeSignupDraft } from "@/lib/client-session";
+import {
+  applyThemeQuizResult,
+  readClientSession,
+  writeQuizTheme,
+  writeSignupDraft,
+} from "@/lib/client-session";
 import {
   getThemeConfig,
   scoreThemeQuiz,
@@ -15,10 +21,13 @@ import { cn } from "@/lib/utils";
 
 export function ThemeQuizFlow() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<ThemeKey[]>([]);
   const question = themeQuizQuestions[step];
   const progress = ((step + 1) / themeQuizQuestions.length) * 100;
+  const returnTo = searchParams.get("returnTo");
+  const safeReturnTo = returnTo?.startsWith("/") ? returnTo : "/signup/client";
 
   function selectAnswer(theme: ThemeKey) {
     const nextAnswers = [...answers];
@@ -33,12 +42,19 @@ export function ThemeQuizFlow() {
     const result = scoreThemeQuiz(nextAnswers);
     const themeConfig = getThemeConfig(result.theme);
     writeQuizTheme(result.theme);
+
+    if (readClientSession()) {
+      applyThemeQuizResult(result);
+      router.push(returnTo?.startsWith("/") ? returnTo : "/home");
+      return;
+    }
+
     writeSignupDraft({
       theme: result.theme,
       tribeBadge: themeConfig.tribeBadge,
       quiz: result,
     });
-    router.push("/signup/client");
+    router.push(safeReturnTo);
   }
 
   return (
@@ -50,15 +66,23 @@ export function ThemeQuizFlow() {
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/12 text-[var(--ms-blush)]">
                 <Sparkles className="h-5 w-5" />
               </span>
-              <button
-                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-semibold text-white disabled:opacity-40"
-                disabled={step === 0}
-                onClick={() => setStep((current) => Math.max(0, current - 1))}
-                type="button"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  className="inline-flex min-h-10 items-center rounded-full bg-white/10 px-4 text-sm font-semibold text-white"
+                  href={safeReturnTo}
+                >
+                  Skip for now
+                </Link>
+                <button
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-semibold text-white disabled:opacity-40"
+                  disabled={step === 0}
+                  onClick={() => setStep((current) => Math.max(0, current - 1))}
+                  type="button"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back
+                </button>
+              </div>
             </div>
             <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/12">
               <div
@@ -68,9 +92,7 @@ export function ThemeQuizFlow() {
             </div>
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-white/58">{question.eyebrow}</p>
             <h1 className="mt-3 font-display text-4xl leading-tight">{question.question}</h1>
-            <p className="mt-3 text-sm leading-7 text-white/68">
-              Choose what feels most like you. Your answer is saved only to shape your Mobile Salon world.
-            </p>
+            <p className="mt-3 text-sm leading-7 text-white/68">Optional. Ten quick taps to shape your feed.</p>
           </div>
 
           <div className="grid gap-3 p-4 sm:p-5">

@@ -5,7 +5,7 @@ import { ClientSignupFlow } from "@/components/client-signup-flow";
 
 export const metadata: Metadata = {
   title: "Client Signup",
-  description: "Create your Mobile Salon client account with theme, phone verification, and privacy-first setup.",
+  description: "Create your Mobile Salon client account with a fast, privacy-first signup flow.",
 };
 
 export default function ClientSignupPage() {

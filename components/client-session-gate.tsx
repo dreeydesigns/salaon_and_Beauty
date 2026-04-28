@@ -51,7 +51,7 @@ export function ClientSessionGate({ children }: { children: ReactNode }) {
         Choose your account first.
       </h1>
       <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--ms-mauve)]">
-        Mobile Salon keeps bookings, page controls, preferences, and private contact details behind an account so each workspace stays protected.
+        Bookings, preferences, and private contact stay protected behind an account.
       </p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Link

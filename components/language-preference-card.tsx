@@ -33,7 +33,7 @@ export function LanguagePreferenceCard() {
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Language & wording</p>
           <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Default voice: Kenyan English</h2>
           <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-            Mobile Salon speaks in Kenyan English first because that is the clearest default for this market. Users can still choose the language style that feels easiest for them.
+            Kenyan English stays the default. Users can switch later.
           </p>
           <label className="mt-5 block" htmlFor="language-preference">
             <span className="text-sm font-semibold text-[var(--ms-navy)]">Preferred language</span>
@@ -51,7 +51,7 @@ export function LanguagePreferenceCard() {
             </select>
           </label>
           <p className="mt-3 rounded-[20px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm leading-6 text-[var(--ms-charcoal)]">
-            Current setting: <span className="font-semibold text-[var(--ms-navy)]">{selectedLanguage.label}</span>. {selectedLanguage.note}
+            Current: <span className="font-semibold text-[var(--ms-navy)]">{selectedLanguage.label}</span>. {selectedLanguage.note}
           </p>
         </div>
       </div>

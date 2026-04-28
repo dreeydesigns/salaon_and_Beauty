@@ -1,4 +1,5 @@
 import {
+  type ThemeQuizResult,
   CLIENT_SESSION_STORAGE_KEY,
   CLIENT_SIGNUP_STORAGE_KEY,
   PHOTO_NUDGE_STORAGE_KEY,
@@ -60,6 +61,10 @@ export interface ProfessionalUserProfile {
 export type AppUserSession = ClientUserProfile | SalonUserProfile | ProfessionalUserProfile;
 
 export const APP_SESSION_EVENT = "mobile-salon.client-session-change";
+export const APP_VISIT_EVENT = "mobile-salon.app-visit-change";
+
+const APP_VISIT_COUNT_STORAGE_KEY = "mobile-salon.app-visits.v1";
+const QUIZ_PROMPT_DISMISSED_STORAGE_KEY = "mobile-salon.theme-quiz-dismissed.v1";
 
 function canUseStorage() {
   return typeof window !== "undefined" && "localStorage" in window && "sessionStorage" in window;
@@ -91,6 +96,43 @@ export function writeQuizTheme(theme: ThemeKey) {
   }
 
   window.sessionStorage.setItem(QUIZ_THEME_STORAGE_KEY, normalizeThemeKey(theme));
+}
+
+export function readAppVisitCount() {
+  if (!canUseStorage()) {
+    return 0;
+  }
+
+  const stored = Number(window.localStorage.getItem(APP_VISIT_COUNT_STORAGE_KEY));
+  return Number.isFinite(stored) && stored > 0 ? stored : 0;
+}
+
+export function recordAppVisit() {
+  if (!canUseStorage()) {
+    return 0;
+  }
+
+  const nextCount = readAppVisitCount() + 1;
+  window.localStorage.setItem(APP_VISIT_COUNT_STORAGE_KEY, String(nextCount));
+  window.dispatchEvent(new Event(APP_VISIT_EVENT));
+  return nextCount;
+}
+
+export function isThemeQuizPromptDismissed() {
+  if (!canUseStorage()) {
+    return false;
+  }
+
+  return window.localStorage.getItem(QUIZ_PROMPT_DISMISSED_STORAGE_KEY) === "true";
+}
+
+export function dismissThemeQuizPrompt() {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.localStorage.setItem(QUIZ_PROMPT_DISMISSED_STORAGE_KEY, "true");
+  window.dispatchEvent(new Event(APP_VISIT_EVENT));
 }
 
 export function readSignupDraft(): ClientSignupDraft | null {
@@ -172,6 +214,7 @@ export function updateClientTheme(theme: ThemeKey) {
     ...profile,
     theme: normalizedTheme,
     tribeBadge: config.tribeBadge,
+    quizCompleted: normalizedTheme !== "not_set",
     themeSetBy: "settings",
     themeUpdatedAt: new Date().toISOString(),
     tribes: Array.from(new Set([...profile.tribes, normalizedTheme])).filter(
@@ -183,10 +226,35 @@ export function updateClientTheme(theme: ThemeKey) {
   return next;
 }
 
+export function applyThemeQuizResult(result: ThemeQuizResult) {
+  const profile = readClientSession();
+
+  if (!profile) {
+    return null;
+  }
+
+  const theme = normalizeThemeKey(result.theme);
+  const config = getThemeConfig(theme);
+  const next: ClientUserProfile = {
+    ...profile,
+    theme,
+    tribeBadge: config.tribeBadge,
+    quizCompleted: true,
+    quizMetadata: result,
+    themeSetBy: "quiz",
+    themeUpdatedAt: new Date().toISOString(),
+    tribes: Array.from(new Set([...profile.tribes, theme])).filter(
+      (item): item is ThemeKey => item !== "not_set",
+    ),
+  };
+
+  writeClientSession(next);
+  return next;
+}
+
 export function createPreviewClientSession(overrides?: Partial<ClientUserProfile>): ClientUserProfile {
   const existing = readClientSession();
-  const fallbackTheme = normalizeThemeKey(overrides?.theme ?? existing?.theme ?? readQuizTheme());
-  const theme = fallbackTheme === "not_set" ? "feminine" : fallbackTheme;
+  const theme = normalizeThemeKey(overrides?.theme ?? existing?.theme ?? readQuizTheme());
   const config = getThemeConfig(theme);
 
   return {
@@ -198,13 +266,13 @@ export function createPreviewClientSession(overrides?: Partial<ClientUserProfile
     profilePhoto: overrides?.profilePhoto ?? existing?.profilePhoto,
     theme,
     tribeBadge: overrides?.tribeBadge ?? existing?.tribeBadge ?? config.tribeBadge,
-    quizCompleted: overrides?.quizCompleted ?? existing?.quizCompleted ?? true,
+    quizCompleted: overrides?.quizCompleted ?? existing?.quizCompleted ?? false,
     quizMetadata: overrides?.quizMetadata ?? existing?.quizMetadata,
-    themeSetBy: overrides?.themeSetBy ?? existing?.themeSetBy ?? "quiz",
+    themeSetBy: overrides?.themeSetBy ?? existing?.themeSetBy ?? "fallback",
     themeUpdatedAt: overrides?.themeUpdatedAt ?? existing?.themeUpdatedAt ?? new Date().toISOString(),
     location: overrides?.location ?? existing?.location,
     subscription: overrides?.subscription ?? existing?.subscription ?? { tier: "none", status: "teaser" },
-    tribes: overrides?.tribes ?? existing?.tribes ?? [theme],
+    tribes: overrides?.tribes ?? existing?.tribes ?? (theme === "not_set" ? [] : [theme]),
     createdAt: overrides?.createdAt ?? existing?.createdAt ?? new Date().toISOString(),
   };
 }

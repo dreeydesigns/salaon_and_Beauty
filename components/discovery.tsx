@@ -105,14 +105,14 @@ export function MarketplaceDiscovery({
                 ? "Find a place that feels right."
                 : "Find the person for your glow."}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">Search, compare, book.</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">Search. Compare. Book.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row xl:justify-end">
             <Link className="rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-[var(--ms-plum)] shadow-[0_12px_28px_rgba(132,36,92,0.08)]" href="/guide">
               Guide
             </Link>
             <Link className="rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] px-5 py-3 text-center text-sm font-semibold text-white shadow-[0_14px_32px_rgba(232,62,140,0.24)]" href="/book?rush=true">
-              Book today
+              Book now
             </Link>
           </div>
         </div>
@@ -202,9 +202,7 @@ export function MarketplaceDiscovery({
             </div>
           </div>
 
-          <p className="text-sm text-[var(--ms-mauve)]">
-            {results.length} {collection === "salons" ? "salons" : "professionals"} match your current view.
-          </p>
+          <p className="text-sm text-[var(--ms-mauve)]">{results.length} results</p>
 
           {results.length ? (
             <div className={cn("grid min-w-0 gap-5", layout === "grid" ? "xl:grid-cols-2" : "grid-cols-1")}>

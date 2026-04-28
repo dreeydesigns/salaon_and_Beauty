@@ -40,10 +40,10 @@ const roleSections = [
     accent: "#C8284A",
     icon: Sparkles,
     title: "Beauty care, clearly arranged.",
-    copy: "See the work, the price, and the time before you tap book.",
+    copy: "See the look, the price, and the slot before you book.",
     highlights: ["Verified first", "Visible prices", "Mobile options"],
     cta: "Find my beauty pro",
-    href: "/theme-quiz",
+    href: "/signup/client",
     image: imageAssets.makeupArtist,
   },
   {
@@ -102,7 +102,7 @@ export default function PublicLandingPage() {
             </Link>
             <Link
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#C8284A] px-5 text-sm font-semibold text-white shadow-[0_18px_44px_rgba(200,40,74,0.28)] transition hover:bg-[#E03460]"
-              href="/theme-quiz"
+              href="/auth/sign-up"
             >
               Get started
               <ArrowRight className="h-4 w-4" />
@@ -122,12 +122,12 @@ export default function PublicLandingPage() {
             <span className="block italic text-[#C8284A]">beautifully.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-white/68 sm:text-lg">
-            For clients, salons, and professionals who want beauty discovery to feel calm, clear, and trusted.
+            For clients, salons, and professionals who want beauty booking to feel clear and trusted.
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Link
               className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#C8284A] px-7 text-sm font-semibold text-white shadow-[0_20px_54px_rgba(200,40,74,0.32)] transition hover:bg-[#E03460]"
-              href="/theme-quiz"
+              href="/auth/sign-up"
             >
               Create my account
               <ArrowRight className="h-4 w-4" />
@@ -246,10 +246,10 @@ export default function PublicLandingPage() {
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.38fr)_minmax(0,0.62fr)]">
           <div className="rounded-[38px] border border-white/8 bg-[#1A0F14] p-6 sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#BF8C2E]">Built on trust</p>
-            <h2 className="mt-4 font-display text-4xl font-semibold leading-tight text-white">
-              Show the beauty.
-              <span className="block text-[#C8284A]">Let the system handle the proof.</span>
-            </h2>
+              <h2 className="mt-4 font-display text-4xl font-semibold leading-tight text-white">
+                Show the beauty.
+                <span className="block text-[#C8284A]">Let the platform carry the proof.</span>
+              </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {trustSignals.map((signal) => {
@@ -306,13 +306,11 @@ export default function PublicLandingPage() {
           <h2 className="mt-5 font-display text-5xl font-semibold leading-tight text-white">
             Ready to step in?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-white/66">
-            Book, list, or grow from one beautiful starting point.
-          </p>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-white/66">Book, list, or grow from one clear starting point.</p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#C8284A] px-7 text-sm font-semibold text-white transition hover:bg-[#E03460]"
-              href="/theme-quiz"
+              href="/auth/sign-up"
             >
               Create your account
               <ArrowRight className="h-4 w-4" />

@@ -578,7 +578,7 @@ export function MobileSheet({
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 rounded-t-[32px] bg-white p-5 shadow-[0_-24px_60px_rgba(13,27,42,0.24)] xl:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-t-[32px] bg-white p-5 shadow-[0_-24px_60px_rgba(13,27,42,0.24)] xl:hidden"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -595,7 +595,7 @@ export function MobileSheet({
                 Close
               </button>
             </div>
-            {children}
+            <div className="min-h-0 overflow-y-auto pr-1">{children}</div>
           </motion.div>
         </>
       ) : null}
@@ -995,23 +995,23 @@ export function SalonCard({ salon }: { salon: Salon }) {
 export function ProfessionalCard({ professional }: { professional: Professional }) {
   return (
     <motion.article
-      className="beauty-card rounded-[32px] p-5"
+      className="beauty-card min-w-0 max-w-full rounded-[32px] p-4 sm:p-5"
       whileHover={{ y: -4 }}
       transition={{ duration: 0.22 }}
     >
-      <div className={cn("relative mb-5 min-h-[250px] overflow-hidden rounded-[28px] bg-gradient-to-br px-5 py-6 text-white", professional.heroMood)}>
+      <div className={cn("relative mb-5 min-h-[230px] overflow-hidden rounded-[28px] bg-gradient-to-br px-4 py-5 text-white sm:min-h-[250px] sm:px-5 sm:py-6", professional.heroMood)}>
         <ImageLayer asset={professional.image} />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.1)_0%,rgba(13,27,42,0.55)_52%,rgba(13,27,42,0.9)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-start justify-between gap-4 p-5">
-          <div>
-            <p className="font-display text-3xl leading-tight">{professional.name}</p>
-            <p className="mt-2 text-sm text-white/82">{professional.specialty}</p>
+        <div className="absolute inset-x-0 bottom-0 z-10 flex min-w-0 items-start justify-between gap-3 p-4 sm:gap-4 sm:p-5">
+          <div className="min-w-0">
+            <p className="break-words font-display text-2xl leading-tight sm:text-3xl">{professional.name}</p>
+            <p className="mt-2 break-words text-sm text-white/82">{professional.specialty}</p>
           </div>
           {professional.verified ? <VerifiedBadge /> : null}
         </div>
       </div>
       <div className="space-y-4">
-        <p className="text-sm leading-6 text-[var(--ms-charcoal)]">{professional.description}</p>
+        <p className="break-words text-sm leading-6 text-[var(--ms-charcoal)]">{professional.description}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <MetaPill icon={<MapPin className="h-4 w-4" />} label={professional.location} />
           <MetaPill icon={<WalletCards className="h-4 w-4" />} label={`${professional.serviceMode} service`} />
@@ -1073,7 +1073,7 @@ export function ServiceCard({
   const visual = serviceImage(service);
 
   return (
-    <article className="beauty-card overflow-hidden rounded-[28px]">
+    <article className="beauty-card min-w-0 max-w-full overflow-hidden rounded-[28px]">
       <div className="relative min-h-[150px] p-5 text-white">
         <ImageLayer asset={visual} />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.12)_0%,rgba(13,27,42,0.72)_70%,rgba(13,27,42,0.92)_100%)]" />
@@ -1114,7 +1114,7 @@ export function ServiceCard({
 
 export function PackageCard({ offer }: { offer: PackageOffer }) {
   return (
-    <article className="decorative-orbit min-h-[310px] overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,var(--ms-plum),#512547_54%,var(--ms-navy))] p-5 text-white shadow-[0_22px_60px_rgba(13,27,42,0.18)]">
+    <article className="decorative-orbit min-h-[310px] min-w-0 max-w-full overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,var(--ms-plum),#512547_54%,var(--ms-navy))] p-5 text-white shadow-[0_22px_60px_rgba(13,27,42,0.18)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs uppercase tracking-[0.22em] text-white/65">{offer.badge}</p>
         {offer.trending ? (

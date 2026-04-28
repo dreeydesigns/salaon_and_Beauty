@@ -53,10 +53,12 @@ export function MyWorldCard() {
         <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">My World</p>
           <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">
-            Your {currentTheme.displayName} world shapes your feed.
+            {profile.theme === "not_set"
+              ? "Choose a beauty style only when you want to."
+              : `Your ${currentTheme.displayName} world shapes your feed.`}
           </h2>
           <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-            Change this any time. It only changes recommendations and visual mood; it does not affect bookings, payments, or saved requests.
+            Change this any time. It only affects recommendations and visual mood.
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {selectableThemes.map((themeKey) => {
@@ -87,7 +89,7 @@ export function MyWorldCard() {
             })}
           </div>
           <div className="mt-5 rounded-[24px] bg-white/80 p-4 text-sm leading-6 text-[var(--ms-charcoal)]">
-            Care membership and tribes are prepared as future features. For now, this setting personalises discovery without activating paid membership or community access.
+            This is only for discovery. It does not change bookings or payments.
           </div>
         </div>
       </div>

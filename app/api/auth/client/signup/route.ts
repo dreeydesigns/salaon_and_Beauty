@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       theme,
       tribeBadge: typeof body.tribeBadge === "string" ? body.tribeBadge : themeConfig.tribeBadge,
       quizCompleted: theme !== "not_set",
-      themeSetBy: "quiz",
+      themeSetBy: theme === "not_set" ? "fallback" : "quiz",
       themeUpdatedAt: new Date().toISOString(),
       location: body.location,
       subscription: {
