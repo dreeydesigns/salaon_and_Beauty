@@ -20,6 +20,7 @@ import {
   Menu,
   Search,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Star,
   UserRound,
@@ -72,8 +73,8 @@ const navItems: Array<{
 }> = [
   { key: "home", label: "Home", href: "/home", icon: Home },
   { key: "explore", label: "Explore", href: "/explore", icon: LayoutGrid },
+  { key: "counter", label: "Counter", href: "/counter", icon: ShoppingBag },
   { key: "book", label: "Book", href: "/book", icon: CalendarDays },
-  { key: "activity", label: "Activity", href: "/activity", icon: Bell },
   { key: "profile", label: "Profile", href: "/profile", icon: UserRound },
 ];
 
@@ -402,11 +403,14 @@ export function SplitBrandHeader({
               <DesktopNavLink href="/home" current={currentNav === "home"}>
                 Home
               </DesktopNavLink>
+              <DesktopNavLink href="/explore" current={currentNav === "explore"}>
+                Explore
+              </DesktopNavLink>
               <DesktopNavLink href="/guide">
                 Guide
               </DesktopNavLink>
-              <DesktopNavLink href="/explore" current={currentNav === "explore" || currentNav === "salons" || currentNav === "professionals"}>
-                Product Marketplace
+              <DesktopNavLink href="/counter" current={currentNav === "counter"}>
+                Counter
               </DesktopNavLink>
               <DesktopNavLink href="/services" current={currentNav === "book"}>
                 Services
@@ -447,14 +451,15 @@ export function SplitBrandHeader({
         <nav id="mobile-menu" className="grid gap-2">
           {[
             ["Home", "/home"],
+            ["Explore", "/explore"],
+            ["Counter", "/counter"],
             ["Guide", "/guide"],
-            ["Product Marketplace", "/explore"],
             ["Services", "/services"],
             ["Book now", "/book?rush=true"],
-            ["Activity", "/activity"],
             ["Profile", "/profile"],
             ["Sign in", "/auth/sign-in"],
             ["Create account", "/auth/sign-up"],
+            ["Terms & Conditions", "/terms"],
             ["Help", "/help"],
           ].map(([label, href]) => (
             <Link
@@ -509,15 +514,18 @@ export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = item.key === currentNav;
+          // Counter active state uses rose per spec; book uses the special circle CTA style
+          const isCounter = item.key === "counter";
+          const isBook = item.key === "book";
 
           return (
             <li className="min-w-0" key={item.key}>
               <Link
                 className={cn(
                   "flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-medium transition",
-                  active
-                    ? "bg-white text-[var(--ms-navy)]"
-                    : "text-white/72 hover:text-white",
+                  active && !isCounter && "bg-white text-[var(--ms-navy)]",
+                  active && isCounter && "bg-[var(--ms-rose)] text-white",
+                  !active && "text-white/72 hover:text-white",
                 )}
                 href={item.href}
               >

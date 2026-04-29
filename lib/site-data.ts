@@ -4,6 +4,7 @@ export type RoleMode = "salons" | "professionals";
 export type NavKey =
   | "home"
   | "explore"
+  | "counter"
   | "book"
   | "activity"
   | "profile"

@@ -24,6 +24,7 @@ import {
   TimePill,
   WhatsAppButton,
 } from "@/components/marketplace-ui";
+import { PaymentDisclaimer, usePaymentDisclaimer } from "@/components/payment-disclaimer";
 import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
 
 export function BookingExperience() {
@@ -116,6 +117,8 @@ export function BookingExperience() {
   const durationMin = selectedServices.reduce((sum, service) => sum + service.durationMin, 0);
   const durationMax = selectedServices.reduce((sum, service) => sum + service.durationMax, 0);
 
+  const { accepted: disclaimerAccepted, setAccepted: setDisclaimerAccepted } = usePaymentDisclaimer();
+
   const canContinue =
     (step === 1 && Boolean(targetType)) ||
     (step === 2 && selectedServiceIds.length > 0) ||
@@ -124,6 +127,7 @@ export function BookingExperience() {
     step === 5;
 
   function handleConfirm() {
+    if (!disclaimerAccepted) return;
     setStatus("processing");
   }
 
@@ -393,6 +397,8 @@ export function BookingExperience() {
                   The next production step opens protected checkout before the provider receives the job.
                 </p>
               </div>
+              {/* Payment disclaimer — ABOVE the CTA per spec. Checkbox required to enable payment. */}
+              <PaymentDisclaimer variant="booking" onAccepted={setDisclaimerAccepted} />
               <div className="grid gap-4 rounded-[28px] border border-[var(--ms-border)] bg-white p-5 md:grid-cols-2">
                 <SummaryItem editStep={1} label="Target" onEdit={setStep} value={targetEntity?.name ?? (targetType === "salons" ? "Salon" : "Professional")} />
                 <SummaryItem editStep={2} label="Services" onEdit={setStep} value={selectedServices.map((service) => service.name).join(", ")} />
@@ -430,7 +436,11 @@ export function BookingExperience() {
               <ChevronRight className="h-4 w-4" />
             </CTAButton>
           ) : (
-            <CTAButton className="ml-auto min-w-[180px]" onClick={handleConfirm}>
+            <CTAButton
+              className="ml-auto min-w-[180px]"
+              disabled={!disclaimerAccepted}
+              onClick={handleConfirm}
+            >
               Pay and confirm
             </CTAButton>
           )}
