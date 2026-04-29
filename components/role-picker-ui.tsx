@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Building2, Crown, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowRight, Building2, Crown, Sparkles, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { useState } from "react";
 
 import { SessionLaunchButton } from "@/components/session-launch-button";
@@ -23,6 +23,7 @@ const ROLES = [
     colorBorder: "rgba(200,40,74,0.32)",
     signUpHref: "/signup/client",
     signInDest: "/home",
+    showInSignIn: true,
   },
   {
     key: "salon" as const,
@@ -37,6 +38,7 @@ const ROLES = [
     colorBorder: "rgba(191,140,46,0.32)",
     signUpHref: "/onboarding/salon",
     signInDest: "/profile",
+    showInSignIn: true,
   },
   {
     key: "professional" as const,
@@ -51,6 +53,37 @@ const ROLES = [
     colorBorder: "rgba(26,122,107,0.32)",
     signUpHref: "/onboarding/professional?role=professional",
     signInDest: "/profile",
+    showInSignIn: true,
+  },
+  {
+    key: "shop" as const,
+    label: "Shop",
+    tagline: "Sell beauty products",
+    description:
+      "List and sell genuine beauty products on Counter. Escrow-protected. 5% commission only when you sell.",
+    badge: "Seller account",
+    icon: ShoppingBag,
+    color: "#8B5CF6",
+    colorLight: "rgba(139,92,246,0.10)",
+    colorBorder: "rgba(139,92,246,0.32)",
+    signUpHref: "/onboarding/shop",
+    signInDest: "/dashboard/shop",
+    showInSignIn: false, // Shop uses separate login — not in account switcher
+  },
+  {
+    key: "delivery" as const,
+    label: "Delivery",
+    tagline: "Deliver for shops",
+    description:
+      "Partner with Shop+ sellers as an independent delivery rider. Earn per delivery across Nairobi.",
+    badge: "Rider account",
+    icon: Truck,
+    color: "#EA580C",
+    colorLight: "rgba(234,88,12,0.10)",
+    colorBorder: "rgba(234,88,12,0.32)",
+    signUpHref: "/onboarding/delivery",
+    signInDest: "/dashboard/delivery",
+    showInSignIn: false, // Delivery uses separate login — not in account switcher
   },
 ] as const;
 
@@ -265,32 +298,31 @@ export function SignUpRolePicker() {
 }
 
 // ─── Sign-in picker ───────────────────────────────────────────────────────────
+// Shop and Delivery are separate logins — NEVER appear in the account switcher.
+const SIGN_IN_ROLES = ROLES.filter((r) => r.showInSignIn);
+type SignInRoleKey = "client" | "salon" | "professional";
 
 export function SignInRolePicker({ returnTo }: { returnTo: string }) {
-  const [active, setActive] = useState<RoleKey>("client");
-  const role = ROLES.find((r) => r.key === active)!;
+  const [active, setActive] = useState<SignInRoleKey>("client");
+  const role = SIGN_IN_ROLES.find((r) => r.key === active) ?? SIGN_IN_ROLES[0];
   const dest = role.key === "client" ? returnTo : role.signInDest;
 
   return (
     <div className="space-y-5">
-      {/* Tab pills */}
+      {/* Tab pills — Client/Salon/Pro only. Shop+Delivery have separate logins. */}
       <div className="flex gap-2 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1.5">
-        {ROLES.map((r) => {
+        {SIGN_IN_ROLES.map((r) => {
           const Icon = r.icon;
           const isActive = r.key === active;
           return (
             <button
               key={r.key}
               type="button"
-              onClick={() => setActive(r.key)}
+              onClick={() => setActive(r.key as SignInRoleKey)}
               className="flex flex-1 items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 text-sm font-semibold transition-all"
               style={
                 isActive
-                  ? {
-                      backgroundColor: r.color,
-                      color: "#fff",
-                      boxShadow: `0 6px 20px ${r.color}44`,
-                    }
+                  ? { backgroundColor: r.color, color: "#fff", boxShadow: `0 6px 20px ${r.color}44` }
                   : { color: "var(--ms-mauve)" }
               }
             >
@@ -304,10 +336,7 @@ export function SignInRolePicker({ returnTo }: { returnTo: string }) {
       {/* Active role card */}
       <div
         className="rounded-[24px] border p-5 transition-all"
-        style={{
-          backgroundColor: role.colorLight,
-          borderColor: role.colorBorder,
-        }}
+        style={{ backgroundColor: role.colorLight, borderColor: role.colorBorder }}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -317,10 +346,7 @@ export function SignInRolePicker({ returnTo }: { returnTo: string }) {
             >
               {role.badge}
             </span>
-            <p
-              className="mt-3 text-2xl font-semibold"
-              style={{ color: role.color }}
-            >
+            <p className="mt-3 text-2xl font-semibold" style={{ color: role.color }}>
               {role.tagline}
             </p>
             <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--ms-charcoal)]">
@@ -335,11 +361,7 @@ export function SignInRolePicker({ returnTo }: { returnTo: string }) {
           </span>
         </div>
 
-        <SessionLaunchButton
-          className="mt-5 w-full"
-          destination={dest}
-          role={role.key}
-        >
+        <SessionLaunchButton className="mt-5 w-full" destination={dest} role={role.key}>
           Sign in as {role.label}
         </SessionLaunchButton>
       </div>
@@ -351,7 +373,7 @@ export function SignInRolePicker({ returnTo }: { returnTo: string }) {
           type="button"
           onClick={() => setActive("client")}
           className="font-semibold"
-          style={{ color: ROLES[0].color }}
+          style={{ color: SIGN_IN_ROLES[0].color }}
         >
           Start as Client
         </button>{" "}

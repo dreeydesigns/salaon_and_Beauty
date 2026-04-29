@@ -332,7 +332,7 @@ export default function PublicLandingPage() {
           </p>
           <div className="flex flex-wrap gap-4">
             <Link className="hover:text-white" href="/help">Privacy</Link>
-            <Link className="hover:text-white" href="/help">Terms</Link>
+            <Link className="hover:text-white" href="/terms">Terms</Link>
             <Link className="hover:text-white" href="/help">Contact</Link>
             <Link className="hover:text-white" href="/help">Help</Link>
           </div>
