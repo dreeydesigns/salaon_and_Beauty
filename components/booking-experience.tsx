@@ -11,6 +11,7 @@ import {
   getSalon,
   getServicesByIds,
   services,
+  testimonials,
 } from "@/lib/site-data";
 import { useBookingStore } from "@/lib/booking-store";
 import {
@@ -20,7 +21,9 @@ import {
   DateChip,
   NotificationToggle,
   PriceSummary,
+  ReviewCard,
   SectionReveal,
+  ScrollSection,
   TimePill,
   WhatsAppButton,
 } from "@/components/marketplace-ui";
@@ -206,6 +209,7 @@ export function BookingExperience() {
   }
 
   return (
+    <>
     <div
       className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,0.66fr)_minmax(320px,0.34fr)]"
       style={{ maxWidth: "min(100%, calc(100vw - 2rem))" }}
@@ -225,7 +229,7 @@ export function BookingExperience() {
         <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Booking</p>
           <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Choose your beauty moment.</h1>
           <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--ms-mauve)]">
-          One calm step at a time. Sign in and payment are required before a provider receives the request.
+          Your booking is secured once you pay. The professional only sees it after payment.
         </p>
         {isRushBooking ? (
           <div className="mt-5 rounded-[28px] border border-[var(--ms-rose)]/25 bg-[var(--ms-petal)]/80 p-4">
@@ -452,7 +456,7 @@ export function BookingExperience() {
           durationLabel={
             selectedServices.length
               ? `Estimated duration ${formatDurationRange(durationMin, durationMax)}`
-              : "Pick at least one service to see the estimated total."
+              : "Choose a service to see your total."
           }
           priceTotal={selectedServices.length ? formatPriceRange(totalMin, totalMax) : "Select services"}
           serviceCount={selectedServices.length}
@@ -463,8 +467,7 @@ export function BookingExperience() {
             {targetEntity?.name ?? (targetType === "salons" ? "Salon request" : "Professional request")}
           </h2>
           <p className="mt-3 text-sm leading-6 text-[var(--ms-mauve)]">
-            {targetEntity?.description ??
-              "You can start broad here and refine your choice once you compare providers and prices."}
+            {targetEntity?.description ?? "Browse. Compare. Then book."}
           </p>
           <div className="mt-4 space-y-2 text-sm text-[var(--ms-charcoal)]">
             <p>Target type: {targetType === "salons" ? "Salon booking" : "Professional booking"}</p>
@@ -472,7 +475,7 @@ export function BookingExperience() {
           </div>
           <div className="mt-5 flex flex-col gap-3">
             <CTAButton href={targetType === "salons" ? "/salons" : "/professionals"} variant="outline">
-              Compare more options
+              Find more
             </CTAButton>
             <WhatsAppButton label="booking support" />
           </div>
@@ -532,6 +535,19 @@ export function BookingExperience() {
         </div>
       ) : null}
     </div>
+
+    {/* Review Snapshots — reassures client mid-booking */}
+    <ScrollSection
+      eyebrow="Review snapshots"
+      href="/guide"
+      hrefLabel="Read policy"
+      title="What women are saying"
+    >
+      {testimonials.map((review) => (
+        <ReviewCard key={review.id} review={review} />
+      ))}
+    </ScrollSection>
+    </>
   );
 }
 

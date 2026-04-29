@@ -34,13 +34,16 @@ export function MarketplaceDiscovery({
     collection === "salons"
       ? [
           { label: "Location", options: ["Kilimani", "Westlands", "South B", "Lavington", "Karen"] },
-          { label: "What you need", options: ["Natural Hair", "Braids", "Nails", "Self-Care", "Short Hair & Shave", "Bridal"] },
-          { label: "Access", options: ["Mobile service", "Verified"] },
+          { label: "Salon type", options: ["Hair Salon", "Beauty Spa", "Nail Bar", "Multi-service"] },
+          { label: "Services offered", options: ["Hair", "Nails", "Make-up", "Skincare", "Massage", "Waxing"] },
+          { label: "Verified only", options: ["Verified"] },
         ]
       : [
-          { label: "Location", options: ["Kilimani", "Karen", "Westlands", "South B"] },
-          { label: "Service mode", options: ["In salon", "Mobile", "Both", "Verified"] },
-          { label: "Specialty", options: ["Bridal", "Natural Hair", "Nails", "Self-Care", "Short Hair & Shave"] },
+          { label: "Location", options: ["Kilimani", "Karen", "Westlands", "South B", "Lavington"] },
+          { label: "Service mode", options: ["In salon", "Mobile", "Both"] },
+          { label: "Specialty", options: ["Bridal", "Natural Hair", "Nails", "Self-Care", "Short Hair & Shave", "Locs", "Make-up"] },
+          { label: "Availability", options: ["Today", "This week"] },
+          { label: "Verified only", options: ["Verified"] },
         ];
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
@@ -98,14 +101,14 @@ export function MarketplaceDiscovery({
         <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)] xl:items-end">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">
-              {collection === "salons" ? "Salons" : "Professionals"}
+              {collection === "salons" ? "Salons & Spas" : "Professionals"}
             </p>
             <h1 className="mt-3 break-words text-3xl font-semibold leading-tight text-[var(--ms-plum)] sm:text-4xl">
               {collection === "salons"
-                ? "Find a place that feels right."
+                ? "Trusted businesses. Verified spaces."
                 : "Find the person for your glow."}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">Search. Compare. Book.</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">Browse. Compare. Then book.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row xl:justify-end">
             <Link className="rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-[var(--ms-plum)] shadow-[0_12px_28px_rgba(132,36,92,0.08)]" href="/guide">

@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   CreditCard,
@@ -923,142 +924,192 @@ export function SecureContactCard({
   );
 }
 
-export function SalonCard({ salon }: { salon: Salon }) {
-  return (
-    <motion.article
-      className="beauty-card min-w-0 max-w-full rounded-[32px] p-4 sm:p-5"
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.22 }}
-    >
-      <div
-        className={cn(
-          "relative mb-5 min-h-[230px] overflow-hidden rounded-[28px] bg-gradient-to-br px-5 py-6 text-white sm:min-h-[270px]",
-          salon.heroMood,
-        )}
-      >
-        <ImageLayer asset={salon.image} priority />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.14)_0%,rgba(13,27,42,0.56)_48%,rgba(13,27,42,0.92)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 z-10 flex min-w-0 flex-col gap-3 p-4 sm:gap-4 sm:p-5">
-          <div className="flex flex-wrap items-center gap-2">
-            {salon.verified ? <VerifiedBadge /> : null}
-            <span className="rounded-full bg-white/16 px-3 py-1 text-xs font-medium">{salon.location}</span>
-          </div>
-          <div className="min-w-0">
-            <p className="break-words font-display text-2xl leading-tight sm:text-3xl">{salon.name}</p>
-            <p className="mt-2 max-w-lg break-words text-sm text-white/82">{salon.tagline}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {salon.categoryTags.map((tag) => (
-              <span className="rounded-full border border-white/25 px-3 py-1 text-xs" key={tag}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="space-y-4">
-        <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-          <div className="min-w-0 space-y-2">
-            <p className="flex min-w-0 items-start gap-2 break-words text-sm text-[var(--ms-mauve)]">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-              {salon.areasServed.join(" · ")}
-            </p>
-            <p className="flex min-w-0 items-center gap-2 break-words text-sm text-[var(--ms-mauve)]">
-              <Star className="h-4 w-4 shrink-0 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
-              {salon.rating} ({salon.reviewCount} reviews)
-            </p>
-          </div>
-          <div className="w-full rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3 text-left sm:w-auto sm:text-right">
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">From</p>
-            <p className="text-lg font-semibold text-[var(--ms-navy)]">{formatKES(salon.startingPrice)}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {getServicesByIds(salon.topServiceIds.slice(0, 3)).map((service) => (
-            <span
-              className="rounded-full bg-[var(--ms-soft-bg)] px-3 py-1 text-xs font-medium text-[var(--ms-mauve)]"
-              key={service.id}
-            >
-              {service.name}
+export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolean }) {
+  const bookHref = buildBookingHref({ targetType: "salons", targetId: salon.slug });
+  if (listView) {
+    return (
+      <article className="flex min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+        <div className="relative w-36 shrink-0 overflow-hidden sm:w-48">
+          <ImageLayer asset={salon.image} className="absolute inset-0" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.4)_100%)]" />
+          {salon.verified && (
+            <span className="absolute bottom-2 left-2">
+              <VerifiedBadge />
             </span>
-          ))}
+          )}
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <MetaPill icon={<Clock3 className="h-4 w-4" />} label={`Replies in ~${salon.responseSpeedMinutes} min`} />
-          <MetaPill icon={<CheckCircle2 className="h-4 w-4" />} label={`${salon.completionRate}% completion`} />
+        <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--ms-soft-bg)] px-2 py-0.5 text-xs text-[var(--ms-mauve)]">
+                <MapPin className="h-3 w-3" />{salon.location}
+              </span>
+            </div>
+            <p className="mt-1.5 truncate text-lg font-semibold text-[var(--ms-navy)]">{salon.name}</p>
+            <div className="mt-1 flex items-center gap-1.5 text-sm text-[var(--ms-mauve)]">
+              <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
+              {salon.rating} ({salon.reviewCount} reviews)
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">From</p>
+              <p className="text-base font-semibold text-[var(--ms-navy)]">{formatKES(salon.startingPrice)}</p>
+            </div>
+            <CTAButton className="shrink-0 px-5" href={bookHref}>Book Now</CTAButton>
+          </div>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <CTAButton className="flex-1" href={`/salons/${salon.slug}`} variant="outline">
-            View Salon
-          </CTAButton>
-          <CTAButton className="flex-1" href={buildBookingHref({ targetType: "salons", targetId: salon.slug })}>
-            Book Now
-          </CTAButton>
+      </article>
+    );
+  }
+
+  return (
+    <article className="group min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+      {/* Photo */}
+      <div className={cn("relative h-[180px] overflow-hidden bg-gradient-to-br", salon.heroMood)}>
+        <ImageLayer asset={salon.image} priority />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_40%,rgba(13,27,42,0.52)_100%)]" />
+        {/* Overlaid pills */}
+        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
+          {salon.verified && <VerifiedBadge />}
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ms-navy)] backdrop-blur-sm">
+            <MapPin className="h-3 w-3" />
+            {salon.location.length > 14 ? salon.location.slice(0, 14) + "…" : salon.location}
+          </span>
         </div>
       </div>
-    </motion.article>
+      {/* Info */}
+      <div className="p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ms-mauve)]">From</p>
+        <div className="flex min-w-0 items-baseline justify-between gap-2">
+          <p className="truncate text-[18px] font-semibold text-[var(--ms-navy)]">{salon.name}</p>
+          <p className="shrink-0 text-[18px] font-semibold text-[var(--ms-navy)]">{formatKES(salon.startingPrice)}</p>
+        </div>
+        <div className="mt-1 flex items-center gap-1 text-sm text-[var(--ms-mauve)]">
+          <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
+          {salon.rating} ({salon.reviewCount} reviews)
+        </div>
+        <CTAButton className="mt-4 w-full" href={bookHref}>
+          Book Now
+        </CTAButton>
+      </div>
+    </article>
   );
 }
 
-export function ProfessionalCard({ professional }: { professional: Professional }) {
-  return (
-    <motion.article
-      className="beauty-card min-w-0 max-w-full rounded-[32px] p-4 sm:p-5"
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.22 }}
-    >
-      <div className={cn("relative mb-5 min-h-[230px] overflow-hidden rounded-[28px] bg-gradient-to-br px-4 py-5 text-white sm:min-h-[250px] sm:px-5 sm:py-6", professional.heroMood)}>
-        <ImageLayer asset={professional.image} />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.1)_0%,rgba(13,27,42,0.55)_52%,rgba(13,27,42,0.9)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 z-10 flex min-w-0 items-start justify-between gap-3 p-4 sm:gap-4 sm:p-5">
+export function ProfessionalCard({ professional, listView }: { professional: Professional; listView?: boolean }) {
+  const bookHref = buildBookingHref({ targetType: "professionals", targetId: professional.slug });
+  const isOnline = professional.nextAvailable?.toLowerCase().includes("today") ?? false;
+  const desc = professional.description?.slice(0, 80) ?? professional.specialty;
+
+  if (listView) {
+    return (
+      <article className="flex min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+        <div className="relative w-36 shrink-0 overflow-hidden sm:w-48">
+          <ImageLayer asset={professional.image} className="absolute inset-0" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.4)_100%)]" />
+          {professional.verified && (
+            <span className="absolute bottom-2 left-2"><VerifiedBadge /></span>
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
           <div className="min-w-0">
-            <p className="break-words font-display text-2xl leading-tight sm:text-3xl">{professional.name}</p>
-            <p className="mt-2 break-words text-sm text-white/82">{professional.specialty}</p>
+            <p className="truncate text-lg font-semibold text-[var(--ms-navy)]">{professional.name}</p>
+            <p className="truncate text-xs text-[var(--ms-mauve)]">{desc}</p>
+            <div className="mt-1 flex items-center gap-1.5 text-sm text-[var(--ms-mauve)]">
+              <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
+              {professional.rating} ({professional.reviewCount} reviews)
+            </div>
           </div>
-          {professional.verified ? <VerifiedBadge /> : null}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">Starts at</p>
+              <p className="text-base font-semibold text-[var(--ms-navy)]">{formatKES(professional.startingPrice)}</p>
+            </div>
+            <CTAButton className="shrink-0 px-5" href={bookHref}>Book Now</CTAButton>
+          </div>
         </div>
-      </div>
-      <div className="space-y-4">
-        <p className="break-words text-sm leading-6 text-[var(--ms-charcoal)]">{professional.description}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <MetaPill icon={<MapPin className="h-4 w-4" />} label={professional.location} />
-          <MetaPill icon={<WalletCards className="h-4 w-4" />} label={`${professional.serviceMode} service`} />
-          <MetaPill icon={<Clock3 className="h-4 w-4" />} label={professional.nextAvailable} />
-          <MetaPill
-            icon={<Star className="h-4 w-4 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />}
-            label={`${professional.rating} rating`}
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {professional.identityAttributes.map((attribute) => (
-            <span
-              className="rounded-full bg-[var(--ms-petal)] px-3 py-1 text-xs font-semibold text-[var(--ms-plum)]"
-              key={attribute}
-            >
-              {attribute}
+      </article>
+    );
+  }
+
+  return (
+    <Link href={`/professionals/${professional.slug}`} className="group block min-w-0">
+      <article className="overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+        {/* Photo — 180px desktop, 160px mobile */}
+        <div className={cn("relative h-[160px] overflow-hidden bg-gradient-to-br sm:h-[180px]", professional.heroMood)}>
+          <ImageLayer asset={professional.image} />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_40%,rgba(13,27,42,0.48)_100%)]" />
+          {/* Overlaid pills */}
+          <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
+            {professional.verified && <VerifiedBadge />}
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ms-navy)] backdrop-blur-sm">
+              <MapPin className="h-3 w-3" />
+              {professional.location.length > 12 ? professional.location.slice(0, 12) + "…" : professional.location}
             </span>
-          ))}
+          </div>
+          {/* Hover overlay */}
+          <div className="absolute inset-0 flex items-center justify-center bg-[rgba(13,27,42,0.0)] transition-all duration-200 group-hover:bg-[rgba(13,27,42,0.38)]">
+            <span className="scale-90 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[var(--ms-navy)] opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
+              See their work
+            </span>
+          </div>
         </div>
-        <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-3">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Starts at</p>
-          <p className="mt-1 text-lg font-semibold text-[var(--ms-navy)]">{formatKES(professional.startingPrice)}</p>
-          <p className="mt-1 text-xs text-[var(--ms-mauve)]">
-            Replies in ~{professional.responseSpeedMinutes} min · {professional.completionRate}% completion
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <CTAButton className="flex-1" href={`/professionals/${professional.slug}`} variant="outline">
-            View Profile
-          </CTAButton>
-          <CTAButton
-            className="flex-1"
-            href={buildBookingHref({ targetType: "professionals", targetId: professional.slug })}
+
+        {/* Info */}
+        <div className="p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ms-mauve)]">Starts at</p>
+          <div className="flex min-w-0 items-baseline justify-between gap-2">
+            <p className="truncate text-[18px] font-semibold text-[var(--ms-navy)]">{professional.name}</p>
+            <p className="shrink-0 text-[17px] font-semibold text-[var(--ms-navy)]">{formatKES(professional.startingPrice)}</p>
+          </div>
+          <div className="mt-1 flex items-center gap-1 text-[13px] text-[var(--ms-mauve)]">
+            <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
+            {professional.rating} ({professional.reviewCount} reviews)
+          </div>
+          <p className="mt-1.5 truncate text-[13px] text-[var(--ms-mauve)]">{desc}</p>
+
+          {/* Service tags — max 3 */}
+          {professional.identityAttributes?.length > 0 && (
+            <div className="mt-2 flex max-w-full gap-1.5 overflow-hidden">
+              {professional.identityAttributes.slice(0, 3).map((tag) => (
+                <span key={tag} className="shrink-0 rounded-full bg-[var(--ms-petal)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--ms-plum)]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Replies / completion */}
+          <div className="mt-2 flex items-center justify-between text-[12px] text-[var(--ms-mauve)]">
+            <span className="flex items-center gap-1">
+              <Clock3 className="h-3 w-3" />
+              ~{professional.responseSpeedMinutes} min
+            </span>
+            <span className="flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              {professional.completionRate}% completed
+            </span>
+          </div>
+
+          {/* Status pill */}
+          <div
+            className="mt-2 flex w-full items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold"
+            style={
+              isOnline
+                ? { backgroundColor: "rgba(26,122,107,0.10)", color: "#1A7A6B" }
+                : { backgroundColor: "rgba(140,114,128,0.10)", color: "#8c7280" }
+            }
           >
-            Request Booking
-          </CTAButton>
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: isOnline ? "#1A7A6B" : "#8c7280" }}
+            />
+            {isOnline ? `ONLINE · ${professional.nextAvailable ?? "Today"}` : `Offline · ${professional.nextAvailable ?? "Check availability"}`}
+          </div>
         </div>
-      </div>
-    </motion.article>
+      </article>
+    </Link>
   );
 }
 
@@ -1329,6 +1380,95 @@ export function NotificationToggle({
   );
 }
 
+// ─── Portfolio Lightbox ───────────────────────────────────────────────────────
+
+function PortfolioLightbox({
+  items,
+  startIndex,
+  onClose,
+}: {
+  items: PortfolioItem[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const [current, setCurrent] = useState(startIndex);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") setCurrent((i) => (i + 1) % items.length);
+      if (e.key === "ArrowLeft") setCurrent((i) => (i - 1 + items.length) % items.length);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [items.length, onClose]);
+
+  const item = items[current];
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[rgba(0,0,0,0.88)]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.22 }}
+        onClick={onClose}
+      >
+        {/* Close */}
+        <button
+          type="button"
+          aria-label="Close"
+          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/14 text-white transition hover:bg-white/24"
+          onClick={onClose}
+        >
+          <span className="text-xl font-light leading-none">✕</span>
+        </button>
+
+        {/* Content */}
+        <motion.div
+          className="flex max-h-[90dvh] w-full max-w-[90vw] flex-col items-center gap-4"
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.22 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative max-h-[70dvh] w-full overflow-hidden rounded-lg">
+            <img
+              src={item.image?.url ?? portfolioImage(item.title).url}
+              alt={item.title}
+              className="mx-auto max-h-[70dvh] max-w-full rounded-lg object-contain"
+            />
+          </div>
+          <div className="max-h-[20dvh] overflow-y-auto px-4 text-center">
+            <p className="text-[20px] font-bold text-white">{item.title}</p>
+            <p className="mt-1 text-[16px] text-white/70">{item.note}</p>
+          </div>
+          <p className="text-[13px] text-white/50">{current + 1} / {items.length}</p>
+        </motion.div>
+
+        {/* Arrows */}
+        <button
+          type="button"
+          aria-label="Previous"
+          className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/14 text-white transition hover:bg-white/24"
+          onClick={(e) => { e.stopPropagation(); setCurrent((i) => (i - 1 + items.length) % items.length); }}
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          aria-label="Next"
+          className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/14 text-white transition hover:bg-white/24"
+          onClick={(e) => { e.stopPropagation(); setCurrent((i) => (i + 1) % items.length); }}
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export function PortfolioGrid({
   items,
   dark,
@@ -1336,31 +1476,62 @@ export function PortfolioGrid({
   items: PortfolioItem[];
   dark?: boolean;
 }) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   return (
-    <div className="scroll-row sm:grid sm:grid-flow-row sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => (
-        <div
-          className={cn(
-            "overflow-hidden rounded-[28px] border p-4",
-            dark
-              ? "border-white/10 bg-white/5"
-              : "border-[var(--ms-border)] bg-white shadow-[0_12px_30px_rgba(13,27,42,0.06)]",
-          )}
-          key={item.id}
-        >
-          <div className={cn("relative h-40 overflow-hidden rounded-[22px] bg-gradient-to-br", item.tint)}>
-            <ImageLayer asset={item.image ?? portfolioImage(item.title)} />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.02),rgba(13,27,42,0.34))]" />
+    <>
+      <div className="scroll-row sm:grid sm:grid-flow-row sm:grid-cols-2 xl:grid-cols-4">
+        {items.map((item, idx) => (
+          <div
+            className={cn(
+              "overflow-hidden rounded-[28px] border p-4",
+              dark
+                ? "border-white/10 bg-white/5"
+                : "border-[var(--ms-border)] bg-white shadow-[0_12px_30px_rgba(13,27,42,0.06)]",
+            )}
+            key={item.id}
+          >
+            {/* Photo with hover overlay */}
+            <button
+              type="button"
+              className="group relative block h-40 w-full cursor-pointer overflow-hidden rounded-[22px]"
+              onClick={() => setLightboxIndex(idx)}
+              aria-label={`View ${item.title}`}
+            >
+              <div className={cn("absolute inset-0 bg-gradient-to-br", item.tint)}>
+                <ImageLayer asset={item.image ?? portfolioImage(item.title)} />
+              </div>
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.02),rgba(13,27,42,0.34))]" />
+              {/* Hover overlay */}
+              <div className="absolute inset-0 flex items-center justify-center bg-[rgba(13,27,42,0)] transition-all duration-200 group-hover:bg-[rgba(13,27,42,0.42)]">
+                <Search className="h-6 w-6 scale-75 text-white opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100" />
+              </div>
+            </button>
+            {/* Caption — clickable */}
+            <button
+              type="button"
+              className="mt-4 block w-full cursor-pointer text-left"
+              onClick={() => setLightboxIndex(idx)}
+            >
+              <h3 className={cn("text-lg font-semibold underline-offset-2 hover:underline", dark ? "text-white" : "text-[var(--ms-navy)]")}>
+                {item.title}
+              </h3>
+            </button>
+            <p className={cn("mt-2 text-sm leading-6", dark ? "text-white/70" : "text-[var(--ms-mauve)]")}>
+              {item.note}
+            </p>
           </div>
-          <h3 className={cn("mt-4 text-lg font-semibold", dark ? "text-white" : "text-[var(--ms-navy)]")}>
-            {item.title}
-          </h3>
-          <p className={cn("mt-2 text-sm leading-6", dark ? "text-white/70" : "text-[var(--ms-mauve)]")}>
-            {item.note}
-          </p>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {lightboxIndex !== null && (
+        <PortfolioLightbox
+          items={items}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+    </>
   );
 }
 

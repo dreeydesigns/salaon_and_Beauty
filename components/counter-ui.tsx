@@ -133,62 +133,84 @@ function formatKES(amount: number) {
 
 // ─── Product card ───────────────────────────────────────────────────────────────
 function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
+  const [added, setAdded] = useState(false);
+
+  function handleAdd(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
+
   return (
-    <article className="beauty-card min-w-0 max-w-full overflow-hidden rounded-[28px] transition hover:-translate-y-1">
-      <div className="relative h-44 overflow-hidden bg-[var(--ms-soft-bg)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          alt={product.name}
-          className="h-full w-full object-cover"
-          loading="lazy"
-          src={product.image}
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.4))]" />
-        {/* Badge */}
-        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[var(--ms-navy)]">
-          {product.badge}
-        </span>
-        {/* Report flag */}
-        <button
-          aria-label="Report this product"
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-[var(--ms-mauve)] transition hover:bg-white hover:text-[var(--ms-danger)]"
-          type="button"
-        >
-          <Flag className="h-3.5 w-3.5" />
-        </button>
-      </div>
+    <article className="group min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
+      {/* Photo — clickable → product detail */}
+      <Link href={`/counter/product/${product.id}`} className="block">
+        <div className="relative h-[180px] overflow-hidden bg-[var(--ms-soft-bg)] sm:h-[180px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt={product.name}
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+            loading="lazy"
+            src={product.image}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.35))]" />
+          {/* Badge */}
+          {product.badge && (
+            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-[var(--ms-navy)]">
+              {product.badge}
+            </span>
+          )}
+          {/* Bookmark — does NOT navigate */}
+          <button
+            aria-label="Save product"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-[var(--ms-mauve)] transition hover:bg-white hover:text-[var(--ms-rose)]"
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            <Flag className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </Link>
 
       <div className="p-4">
-        <p className="text-xs text-[var(--ms-mauve)]">{product.brand}</p>
-        <h3 className="mt-1 text-sm font-semibold leading-snug text-[var(--ms-navy)]">{product.name}</h3>
+        <p className="text-[11px] text-[var(--ms-mauve)]">{product.brand}</p>
+        {/* Product name — clickable */}
+        <Link href={`/counter/product/${product.id}`}>
+          <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-[var(--ms-navy)] hover:underline">
+            {product.name}
+          </h3>
+        </Link>
 
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--ms-mauve)]">
+        <div className="mt-1.5 flex items-center gap-1 text-xs text-[var(--ms-mauve)]">
           <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
           <span className="font-semibold text-[var(--ms-charcoal)]">{product.rating}</span>
           <span>({product.reviewCount})</span>
         </div>
 
-        <div className="mt-2 flex items-center gap-2 text-xs text-[var(--ms-mauve)]">
+        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--ms-mauve)]">
           <Store className="h-3 w-3 shrink-0" />
           <span className="truncate">{product.shopName}</span>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-2">
+        {/* Price + Add */}
+        <div className="mt-3 flex items-center justify-between gap-2">
           <p className="text-base font-semibold text-[var(--ms-navy)]">{formatKES(product.price)}</p>
           <button
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ms-rose)] px-4 py-2 text-xs font-semibold text-white transition hover:brightness-110"
             type="button"
+            onClick={handleAdd}
           >
             <ShoppingBag className="h-3.5 w-3.5" />
-            Add
+            {added ? "Added ✓" : "Add"}
           </button>
         </div>
 
-        {/* Buyer duty notice — required on every product listing per safety spec */}
-        <p className="mt-3 rounded-[12px] bg-[var(--ms-soft-bg)] px-3 py-2 text-[10px] leading-4 text-[var(--ms-mauve)]">
-          You have a right to accurate products.{" "}
+        {/* Buyer duty notice */}
+        <p className="mt-2 rounded-[10px] bg-[var(--ms-soft-bg)] px-3 py-2 text-[10px] leading-4 text-[var(--ms-mauve)]">
+          Expect the real thing.{" "}
           <button className="text-[var(--ms-rose)] underline" type="button">
-            Report if not as described.
+            Report this product
           </button>
         </p>
       </div>
