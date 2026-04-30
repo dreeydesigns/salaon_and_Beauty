@@ -9,14 +9,13 @@ import { BottomMobileNav, SplitBrandHeader } from "@/components/marketplace-ui";
 export function AppShell({
   children,
   currentNav,
-  roleMode,
   requireSession = false,
   showBottomNav = true,
   showFooter = false,
 }: {
   children: ReactNode;
   currentNav: NavKey;
-  roleMode: RoleMode;
+  roleMode?: RoleMode; // kept for backward-compat but no longer used
   requireSession?: boolean;
   showBottomNav?: boolean;
   showFooter?: boolean;
@@ -24,7 +23,7 @@ export function AppShell({
   return (
     <div className="feminine-shell min-h-screen">
       <AppUsageTracker />
-      <SplitBrandHeader currentNav={currentNav} roleMode={roleMode} />
+      <SplitBrandHeader currentNav={currentNav} />
       <main className="mx-auto min-h-[calc(100vh-180px)] w-full max-w-7xl overflow-x-clip px-4 pb-28 pt-6 lg:px-6 lg:pb-12">
         {requireSession ? <ClientSessionGate>{children}</ClientSessionGate> : children}
       </main>

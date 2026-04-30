@@ -39,7 +39,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
-import { APP_SESSION_EVENT, readAppSession } from "@/lib/client-session";
 import type {
   NavKey,
   PackageOffer,
@@ -346,40 +345,10 @@ export function RoleSwitchTabs({
 
 export function SplitBrandHeader({
   currentNav,
-  roleMode,
 }: {
   currentNav: NavKey;
-  roleMode: RoleMode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sessionRoleMode, setSessionRoleMode] = useState<RoleMode>(roleMode);
-
-  useEffect(() => {
-    function syncRoleMode() {
-      const session = readAppSession();
-
-      if (session?.role === "professional") {
-        setSessionRoleMode("professionals");
-        return;
-      }
-
-      if (session?.role === "salon") {
-        setSessionRoleMode("salons");
-        return;
-      }
-
-      setSessionRoleMode(roleMode);
-    }
-
-    syncRoleMode();
-    window.addEventListener("storage", syncRoleMode);
-    window.addEventListener(APP_SESSION_EVENT, syncRoleMode);
-
-    return () => {
-      window.removeEventListener("storage", syncRoleMode);
-      window.removeEventListener(APP_SESSION_EVENT, syncRoleMode);
-    };
-  }, [roleMode]);
 
   return (
     <>
@@ -442,9 +411,6 @@ export function SplitBrandHeader({
                 Book
               </CTAButton>
             </div>
-          </div>
-          <div className="mx-auto mt-3 w-full max-w-80 sm:max-w-md">
-            <RoleSwitchTabs roleMode={sessionRoleMode} />
           </div>
         </div>
       </header>
