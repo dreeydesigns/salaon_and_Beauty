@@ -15,6 +15,7 @@ import {
   Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCartStore } from "@/lib/cart-store";
 
 // ─── Category data ─────────────────────────────────────────────────────────────
 const categories = [
@@ -134,10 +135,19 @@ function formatKES(amount: number) {
 // ─── Product card ───────────────────────────────────────────────────────────────
 function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
   const [added, setAdded] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
 
   function handleAdd(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    addItem({
+      id: product.id,
+      name: product.name,
+      brand: product.brand,
+      shopName: product.shopName,
+      price: product.price,
+      image: product.image,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   }
@@ -222,6 +232,7 @@ function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
 export function CounterUI() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const cartCount = useCartStore((s) => s.count());
 
   const filtered = placeholderProducts.filter((p) => {
     const matchesCat = activeCategory === "all" || p.category === activeCategory;
@@ -248,9 +259,18 @@ export function CounterUI() {
               Genuine beauty products from verified Kenyan sellers. Escrow-protected. Delivered across Nairobi.
             </p>
           </div>
-          <span className="hidden shrink-0 text-white/30 sm:block">
-            <ShoppingBag className="h-20 w-20" />
-          </span>
+          <Link
+            href="/counter/cart"
+            className="relative shrink-0 rounded-full bg-white/15 p-3 text-white hover:bg-white/25 transition"
+            aria-label="View cart"
+          >
+            <ShoppingBag className="h-6 w-6" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ms-gold)] text-[10px] font-bold text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
         </div>
 
         {/* Search */}
