@@ -48,7 +48,7 @@ export function PublicLayout({
       </header>
 
       {/* Page content */}
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
 
       {/* Minimal footer */}
       <footer className="border-t border-[var(--ms-border)] bg-white py-5 text-center text-[11px] text-[var(--ms-mauve)]">

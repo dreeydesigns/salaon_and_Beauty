@@ -369,7 +369,7 @@ export function SplitBrandHeader({
               </span>
             </Link>
 
-            <nav className="ml-auto hidden items-center gap-1 xl:flex">
+            <nav className="ml-auto hidden items-center gap-0.5 lg:flex">
               <DesktopNavLink href="/home" current={currentNav === "home"}>
                 Home
               </DesktopNavLink>
@@ -382,21 +382,20 @@ export function SplitBrandHeader({
               <DesktopNavLink href="/counter" current={currentNav === "counter"}>
                 Counter
               </DesktopNavLink>
-              <DesktopNavLink href="/services" current={currentNav === "book"}>
-                Services
-              </DesktopNavLink>
               <DesktopNavLink href="/book" current={currentNav === "book"}>
                 Book
               </DesktopNavLink>
               <DesktopNavLink href="/profile" current={currentNav === "profile"}>
                 Profile
               </DesktopNavLink>
-              <CTAButton className="ml-2 min-h-12 px-6" href="/book?rush=true">
-                Start Booking <ArrowRight className="h-4 w-4" />
+              <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href="/book?rush=true">
+                <span className="hidden xl:inline">Start Booking</span>
+                <span className="xl:hidden">Book</span>
+                <ArrowRight className="h-4 w-4" />
               </CTAButton>
             </nav>
 
-            <div className="ml-auto flex items-center gap-2 xl:hidden">
+            <div className="ml-auto flex items-center gap-2 lg:hidden">
               <button
                 aria-controls="mobile-menu"
                 aria-expanded={menuOpen}
@@ -471,7 +470,7 @@ function DesktopNavLink({
 export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
   return (
     <nav
-      className="mobile-bottom-nav fixed bottom-3 z-40 overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(135deg,rgba(58,24,58,0.96),rgba(132,36,92,0.94))] px-1.5 py-1.5 shadow-[0_18px_50px_rgba(132,36,92,0.32)] backdrop-blur md:hidden"
+      className="mobile-bottom-nav fixed bottom-3 z-40 overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(135deg,rgba(58,24,58,0.96),rgba(132,36,92,0.94))] px-1.5 py-1.5 shadow-[0_18px_50px_rgba(132,36,92,0.32)] backdrop-blur lg:hidden"
       style={{ left: "0.5rem", maxWidth: "calc(100vw - 1rem)", right: "0.5rem", width: "auto" }}
     >
       <ul
@@ -1531,14 +1530,14 @@ export function AuthCard({
   aside?: ReactNode;
 }) {
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.6fr)_minmax(0,0.4fr)]">
-      <div className="silk-panel rounded-[32px] p-6">
+    <div className="grid gap-5 md:grid-cols-[minmax(0,0.58fr)_minmax(0,0.42fr)]">
+      <div className="silk-panel rounded-[32px] p-6 sm:p-8">
         <p className="text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">{eyebrow}</p>
         <h1 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">{title}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ms-mauve)]">{description}</p>
         <div className="mt-6">{children}</div>
       </div>
-      <div className="rounded-[32px] bg-[linear-gradient(160deg,var(--ms-plum)_0%,#68235c_52%,rgba(232,62,140,0.52)_100%)] p-6 text-white shadow-[0_22px_60px_rgba(132,36,92,0.18)]">
+      <div className="hidden md:block rounded-[32px] bg-[linear-gradient(160deg,var(--ms-plum)_0%,#68235c_52%,rgba(232,62,140,0.52)_100%)] p-6 text-white shadow-[0_22px_60px_rgba(132,36,92,0.18)]">
         <p className="text-xs uppercase tracking-[0.24em] text-white/62">Why Mobile Salon</p>
         <h2 className="mt-3 font-display text-4xl leading-tight">Saved choices. Softer booking.</h2>
         <p className="mt-4 text-sm leading-7 text-white/76">
