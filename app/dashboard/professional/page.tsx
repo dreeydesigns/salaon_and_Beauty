@@ -155,21 +155,38 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
 
 // ── Home tab ───────────────────────────────────────────────────────────────
 
-function HomeTab() {
-  const nudges = [
-    { icon: <Star className="h-4 w-4" />, label: "Add portfolio photos" },
-    { icon: <ShieldCheck className="h-4 w-4" />, label: "Get verified" },
-    { icon: <Clock className="h-4 w-4" />, label: "Set your availability" },
+const OPEN_GIGS = [
+  { id: "g1", salon: "Glam Studio Westlands", service: "Braiding specialist", date: "Sat 17 May", fee: "Ksh 3,500", applied: 2 },
+  { id: "g2", salon: "Naturelle Salon Karen", service: "Locs retouch", date: "Sun 18 May", fee: "Ksh 2,800", applied: 0 },
+];
+
+function HomeTab({ onNavigate }: { onNavigate?: (tab: Tab) => void }) {
+  const [appliedGigs, setAppliedGigs] = useState<string[]>([]);
+  const [myApplications, setMyApplications] = useState([
+    { salon: "Zara Hair Studio", date: "May 10", status: "Pending" },
+    { salon: "Bella Naturals", date: "May 7", status: "Accepted" },
+  ]);
+
+  const nudges: { icon: React.ReactNode; label: string; tab?: Tab }[] = [
+    { icon: <Star className="h-4 w-4" />, label: "Add portfolio photos", tab: "profile" },
+    { icon: <ShieldCheck className="h-4 w-4" />, label: "Get verified", tab: "settings" },
+    { icon: <Clock className="h-4 w-4" />, label: "Set your availability", tab: "profile" },
   ];
+
+  function applyForGig(gig: typeof OPEN_GIGS[number]) {
+    setAppliedGigs(prev => [...prev, gig.id]);
+    setMyApplications(prev => [...prev, { salon: gig.salon, date: "Today", status: "Pending" }]);
+  }
 
   return (
     <div className="space-y-6">
-      {/* Profile nudge pills (NO progress bar — specific items only) */}
+      {/* Profile nudge pills */}
       <div className="flex flex-wrap gap-2">
         {nudges.map((n) => (
           <button
             key={n.label}
             type="button"
+            onClick={() => n.tab && onNavigate?.(n.tab)}
             className="flex items-center gap-2 rounded-full border border-[var(--ms-border)] bg-white px-4 py-2 text-xs font-medium text-[var(--ms-navy)] shadow-[0_2px_8px_rgba(13,27,42,0.05)] hover:border-[var(--ms-rose)] hover:text-[var(--ms-rose)]"
           >
             {n.icon}
@@ -219,38 +236,45 @@ function HomeTab() {
         <h2 className="mb-1 text-base font-semibold text-[var(--ms-navy)]">Open gig requests</h2>
         <p className="mb-4 text-xs text-[var(--ms-mauve)]">Verified salons looking for professionals.</p>
         <div className="space-y-3">
-          {[
-            { salon: "Glam Studio Westlands", service: "Braiding specialist", date: "Sat 17 May", fee: "Ksh 3,500", applied: 2 },
-            { salon: "Naturelle Salon Karen", service: "Locs retouch", date: "Sun 18 May", fee: "Ksh 2,800", applied: 0 },
-          ].map((gig) => (
-            <div key={gig.salon + gig.date} className="rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{gig.salon}</p>
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Verified ✓</span>
+          {OPEN_GIGS.map((gig) => {
+            const hasApplied = appliedGigs.includes(gig.id);
+            return (
+              <div key={gig.id} className="rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{gig.salon}</p>
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Verified ✓</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{gig.service} · {gig.date}</p>
+                    {gig.applied > 0 && (
+                      <p className="mt-1 text-[10px] text-[var(--ms-mauve)]">{gig.applied + (hasApplied ? 1 : 0)} {(gig.applied + (hasApplied ? 1 : 0)) === 1 ? "person" : "people"} applied</p>
+                    )}
                   </div>
-                  <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{gig.service} · {gig.date}</p>
-                  {gig.applied > 0 && (
-                    <p className="mt-1 text-[10px] text-[var(--ms-mauve)]">{gig.applied} {gig.applied === 1 ? "person" : "people"} applied</p>
-                  )}
+                  <p className="shrink-0 text-sm font-bold text-[var(--ms-navy)]">{gig.fee}</p>
                 </div>
-                <p className="shrink-0 text-sm font-bold text-[var(--ms-navy)]">{gig.fee}</p>
+                <button
+                  type="button"
+                  disabled={hasApplied}
+                  onClick={() => applyForGig(gig)}
+                  className={cn(
+                    "mt-3 w-full rounded-full py-2 text-xs font-semibold transition",
+                    hasApplied
+                      ? "bg-emerald-100 text-emerald-700 cursor-default"
+                      : "bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white hover:opacity-90",
+                  )}
+                >
+                  {hasApplied ? "✓ Application sent" : "Apply for this gig"}
+                </button>
               </div>
-              <button type="button" className="mt-3 w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-2 text-xs font-semibold text-white hover:opacity-90">
-                Apply for this gig
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="mt-4 rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">My applications</h3>
           <div className="space-y-2">
-            {[
-              { salon: "Zara Hair Studio", date: "May 10", status: "Pending" },
-              { salon: "Bella Naturals", date: "May 7", status: "Accepted" },
-            ].map((app) => (
-              <div key={app.salon} className="flex items-center justify-between py-1.5">
+            {myApplications.map((app, i) => (
+              <div key={i} className="flex items-center justify-between py-1.5">
                 <div>
                   <p className="text-sm text-[var(--ms-navy)]">{app.salon}</p>
                   <p className="text-xs text-[var(--ms-mauve)]">{app.date}</p>
@@ -273,23 +297,52 @@ function HomeTab() {
 // ── Bookings tab ───────────────────────────────────────────────────────────
 
 function BookingsTab() {
+  const [incoming, setIncoming] = useState(INCOMING);
+  const [upcoming, setUpcoming] = useState(UPCOMING);
+  const [todaySchedule, setTodaySchedule] = useState(TODAY_SCHEDULE);
+
+  function acceptBooking(id: number) {
+    const req = incoming.find(r => r.id === id);
+    if (req) {
+      setUpcoming(prev => [...prev, { ...req, time: req.time, client: req.client, service: req.service, total: req.total }]);
+    }
+    setIncoming(prev => prev.filter(r => r.id !== id));
+  }
+
+  function declineBooking(id: number) {
+    setIncoming(prev => prev.filter(r => r.id !== id));
+  }
+
+  function markUpcomingComplete(id: number) {
+    setUpcoming(prev => prev.filter(r => r.id !== id));
+  }
+
+  function markTodayComplete(id: number) {
+    setTodaySchedule(prev => prev.map(b => b.id === id ? { ...b, status: "completed" } : b));
+  }
+
   return (
     <div className="space-y-6">
       {/* Incoming */}
       <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
-        <h2 className="mb-4 text-sm font-semibold text-amber-800">Incoming requests ({INCOMING.length})</h2>
+        <h2 className="mb-4 text-sm font-semibold text-amber-800">Incoming requests ({incoming.length})</h2>
         <div className="space-y-3">
-          {INCOMING.map((b) => (
+          {incoming.length === 0 && (
+            <p className="rounded-[14px] bg-amber-100/50 px-4 py-5 text-center text-sm text-amber-700">
+              All requests handled ✓
+            </p>
+          )}
+          {incoming.map((b) => (
             <div key={b.id} className="flex items-center justify-between rounded-[16px] bg-white p-4 shadow-[0_1px_4px_rgba(13,27,42,0.06)]">
               <div>
                 <p className="text-sm font-medium text-[var(--ms-navy)]">{b.client} · {b.service}</p>
                 <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{b.time} · {b.total}</p>
               </div>
               <div className="flex gap-2">
-                <button type="button" className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">
+                <button type="button" onClick={() => acceptBooking(b.id)} className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">
                   Accept
                 </button>
-                <button type="button" className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-200">
+                <button type="button" onClick={() => declineBooking(b.id)} className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-200">
                   Decline
                 </button>
               </div>
@@ -302,13 +355,16 @@ function BookingsTab() {
       <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
         <h2 className="mb-4 text-sm font-semibold text-[var(--ms-navy)]">Upcoming</h2>
         <div className="divide-y divide-[var(--ms-border)]">
-          {UPCOMING.map((b) => (
+          {upcoming.length === 0 && (
+            <p className="py-4 text-center text-sm text-[var(--ms-mauve)]">No upcoming bookings.</p>
+          )}
+          {upcoming.map((b) => (
             <div key={b.id} className="flex items-center justify-between py-3">
               <div>
                 <p className="text-sm font-medium text-[var(--ms-navy)]">{b.client} · {b.service}</p>
                 <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{b.time} · {b.total}</p>
               </div>
-              <button type="button" className="rounded-full bg-[var(--ms-rose)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
+              <button type="button" onClick={() => markUpcomingComplete(b.id)} className="rounded-full bg-[var(--ms-rose)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
                 Mark complete
               </button>
             </div>
@@ -320,7 +376,7 @@ function BookingsTab() {
       <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
         <h2 className="mb-4 text-sm font-semibold text-[var(--ms-navy)]">Today (active)</h2>
         <div className="divide-y divide-[var(--ms-border)]">
-          {TODAY_SCHEDULE.map((b) => (
+          {todaySchedule.map((b) => (
             <div key={b.id} className="flex items-center justify-between py-3">
               <div>
                 <p className="text-sm font-medium text-[var(--ms-navy)]">{b.client} · {b.service}</p>
@@ -329,7 +385,7 @@ function BookingsTab() {
               <div className="flex items-center gap-2">
                 <StatusPill status={b.status} />
                 {b.status === "in-progress" && (
-                  <button type="button" className="rounded-full bg-[var(--ms-rose)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
+                  <button type="button" onClick={() => markTodayComplete(b.id)} className="rounded-full bg-[var(--ms-rose)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
                     Mark complete
                   </button>
                 )}
@@ -368,11 +424,21 @@ function MyProfileTab() {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const [activeDays, setActiveDays] = useState(["Mon", "Tue", "Wed", "Thu", "Fri"]);
   const [profilePhoto, setProfilePhoto] = useState<string | undefined>();
-  const [portfolioPhotos, setPortfolioPhotos] = useState<(string | undefined)[]>(Array(6).fill(undefined));
+  const [portfolioPhotos, setPortfolioPhotos] = useState<(string | undefined)[]>(Array(3).fill(undefined));
   type PortfolioMeta = { services: string[]; description: string };
   const [portfolioMeta, setPortfolioMeta] = useState<PortfolioMeta[]>(
-    Array(6).fill(null).map(() => ({ services: [], description: "" }))
+    Array(3).fill(null).map(() => ({ services: [], description: "" }))
   );
+
+  const [showAddService, setShowAddService] = useState(false);
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceCategory, setNewServiceCategory] = useState("Hair");
+  const [newServicePrice, setNewServicePrice] = useState("");
+  const [newServiceDuration, setNewServiceDuration] = useState("");
+  const [newServiceProducts, setNewServiceProducts] = useState("");
+  const [identitySaved, setIdentitySaved] = useState(false);
+  const [availabilitySaved, setAvailabilitySaved] = useState(false);
+  const [workStyle, setWorkStyle] = useState<string>("Mobile");
 
   function toggleDay(d: string) {
     setActiveDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
@@ -444,15 +510,23 @@ function MyProfileTab() {
                   <button
                     key={opt}
                     type="button"
-                    className="rounded-full border border-[var(--ms-border)] px-4 py-2 text-sm font-medium text-[var(--ms-mauve)] transition hover:border-[var(--ms-rose)] hover:text-[var(--ms-rose)]"
+                    onClick={() => setWorkStyle(opt)}
+                    className={cn(
+                      "rounded-full border px-4 py-2 text-sm font-medium transition",
+                      workStyle === opt
+                        ? "border-[var(--ms-rose)] bg-[var(--ms-petal)] text-[var(--ms-plum)] font-semibold"
+                        : "border-[var(--ms-border)] text-[var(--ms-mauve)] hover:border-[var(--ms-rose)] hover:text-[var(--ms-rose)]",
+                    )}
                   >
                     {opt}
                   </button>
                 ))}
               </div>
             </div>
-            <button type="button" className="w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3 text-sm font-semibold text-white hover:opacity-90">
-              Save identity
+            <button type="button"
+              onClick={() => { setIdentitySaved(true); setTimeout(() => setIdentitySaved(false), 2200); }}
+              className="w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3 text-sm font-semibold text-white hover:opacity-90">
+              {identitySaved ? "✓ Saved!" : "Save identity"}
             </button>
           </div>
         </div>
@@ -463,10 +537,65 @@ function MyProfileTab() {
         <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[var(--ms-navy)]">Your services</h2>
-            <button type="button" className="flex items-center gap-1.5 rounded-full bg-[var(--ms-rose)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90">
+            <button type="button"
+              onClick={() => { setShowAddService(true); setNewServiceName(""); setNewServicePrice(""); setNewServiceDuration(""); setNewServiceProducts(""); }}
+              className="flex items-center gap-1.5 rounded-full bg-[var(--ms-rose)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90">
               <Plus className="h-3.5 w-3.5" /> Add service
             </button>
           </div>
+          {showAddService && (
+            <div className="mb-4 rounded-[18px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ms-mauve)]">New service</p>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Service name</label>
+                <input type="text" value={newServiceName} onChange={e => setNewServiceName(e.target.value)}
+                  placeholder="e.g. Gel Manicure"
+                  className="w-full rounded-[12px] border border-[var(--ms-border)] bg-white px-4 py-2.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Specialty</label>
+                  <input type="text" value={newServiceCategory} onChange={e => setNewServiceCategory(e.target.value)}
+                    placeholder="e.g. Hair"
+                    className="w-full rounded-[12px] border border-[var(--ms-border)] bg-white px-4 py-2.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Price (Ksh)</label>
+                  <input type="text" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)}
+                    placeholder="e.g. 2,500"
+                    className="w-full rounded-[12px] border border-[var(--ms-border)] bg-white px-4 py-2.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]" />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Duration</label>
+                <input type="text" value={newServiceDuration} onChange={e => setNewServiceDuration(e.target.value)}
+                  placeholder="e.g. 1h 30min"
+                  className="w-full rounded-[12px] border border-[var(--ms-border)] bg-white px-4 py-2.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Products used (optional)</label>
+                <input type="text" value={newServiceProducts} onChange={e => setNewServiceProducts(e.target.value)}
+                  placeholder="e.g. Cantu Leave-in, Shea Moisture"
+                  className="w-full rounded-[12px] border border-[var(--ms-border)] bg-white px-4 py-2.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]" />
+              </div>
+              <div className="flex gap-2">
+                <button type="button"
+                  disabled={!newServiceName.trim() || !newServicePrice.trim() || !newServiceDuration.trim()}
+                  onClick={() => {
+                    if (!newServiceName.trim()) return;
+                    setServices(prev => [...prev, { id: `ps${Date.now()}`, name: newServiceName.trim(), price: `Ksh ${newServicePrice.trim()}`, duration: newServiceDuration.trim(), products: newServiceProducts.trim() || "None", active: true }]);
+                    setShowAddService(false);
+                  }}
+                  className="flex-1 rounded-full bg-[var(--ms-rose)] py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90">
+                  Save service
+                </button>
+                <button type="button" onClick={() => setShowAddService(false)}
+                  className="rounded-full border border-[var(--ms-border)] px-5 py-2.5 text-sm font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <div className="space-y-3">
             {services.map((s) => {
               const isExpanded = expandedServiceId === s.id;
@@ -554,7 +683,13 @@ function MyProfileTab() {
         <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[var(--ms-navy)]">Portfolio</h2>
-            <button type="button" className="flex items-center gap-1.5 rounded-full bg-[var(--ms-rose)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90">
+            <button type="button"
+              onClick={() => {
+                if (portfolioPhotos.length >= 12) return;
+                setPortfolioPhotos(prev => [...prev, undefined]);
+                setPortfolioMeta(prev => [...prev, { services: [], description: "" }]);
+              }}
+              className="flex items-center gap-1.5 rounded-full bg-[var(--ms-rose)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90">
               <Plus className="h-3.5 w-3.5" /> Add photo
             </button>
           </div>
@@ -662,8 +797,12 @@ function MyProfileTab() {
               );
             })}
           </div>
-          <button type="button" className="mt-4 w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3 text-sm font-semibold text-white hover:opacity-90">
-            Save availability
+          <button
+            type="button"
+            onClick={() => { setAvailabilitySaved(true); setTimeout(() => setAvailabilitySaved(false), 2200); }}
+            className="mt-4 w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3 text-sm font-semibold text-white hover:opacity-90"
+          >
+            {availabilitySaved ? "✓ Availability saved!" : "Save availability"}
           </button>
         </div>
       )}
@@ -674,6 +813,8 @@ function MyProfileTab() {
 // ── Earnings tab ───────────────────────────────────────────────────────────
 
 function EarningsTab() {
+  const [withdrawn, setWithdrawn] = useState(false);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -707,8 +848,12 @@ function EarningsTab() {
         ))}
       </div>
 
-      <button type="button" className="w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(232,62,140,0.2)] hover:opacity-90">
-        Withdraw to M-Pesa
+      <button
+        type="button"
+        onClick={() => { setWithdrawn(true); setTimeout(() => setWithdrawn(false), 3000); }}
+        className="w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(232,62,140,0.2)] hover:opacity-90"
+      >
+        {withdrawn ? "Request sent — M-Pesa notification incoming" : "Withdraw to M-Pesa"}
       </button>
     </div>
   );
@@ -718,6 +863,7 @@ function EarningsTab() {
 
 function MonthlyReportModal({ onClose, role }: { onClose: () => void; role: "salon" | "professional" }) {
   const [monthIndex, setMonthIndex] = useState(0);
+  const [downloading, setDownloading] = useState<"pdf" | "csv" | null>(null);
   const MONTHS = ["May 2026", "April 2026", "March 2026", "February 2026"];
   const month = MONTHS[monthIndex];
 
@@ -814,11 +960,15 @@ function MonthlyReportModal({ onClose, role }: { onClose: () => void; role: "sal
           </div>
           {/* Download buttons */}
           <div className="grid grid-cols-2 gap-3">
-            <button type="button" className="flex items-center justify-center gap-2 rounded-full border border-[var(--ms-plum)] py-2.5 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]">
-              <FileText className="h-4 w-4" /> Download PDF
+            <button type="button"
+              onClick={() => { setDownloading("pdf"); setTimeout(() => setDownloading(null), 2000); }}
+              className="flex items-center justify-center gap-2 rounded-full border border-[var(--ms-plum)] py-2.5 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]">
+              {downloading === "pdf" ? "Preparing PDF..." : <><FileText className="h-4 w-4" /> Download PDF</>}
             </button>
-            <button type="button" className="flex items-center justify-center gap-2 rounded-full border border-[var(--ms-plum)] py-2.5 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]">
-              <FileText className="h-4 w-4" /> Download CSV
+            <button type="button"
+              onClick={() => { setDownloading("csv"); setTimeout(() => setDownloading(null), 2000); }}
+              className="flex items-center justify-center gap-2 rounded-full border border-[var(--ms-plum)] py-2.5 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]">
+              {downloading === "csv" ? "Preparing CSV..." : <><FileText className="h-4 w-4" /> Download CSV</>}
             </button>
           </div>
         </div>
@@ -997,6 +1147,16 @@ function LogOutButton() {
 
 function SettingsTab() {
   const [reportOpen, setReportOpen] = useState(false);
+  const [notifications, setNotifications] = useState({
+    "Booking requests": true,
+    "Booking confirmations": true,
+    "Payment releases": true,
+    "Weekly summary": false,
+  });
+
+  function toggleNotification(label: string) {
+    setNotifications(prev => ({ ...prev, [label]: !prev[label as keyof typeof prev] }));
+  }
 
   return (
     <div className="space-y-4">
@@ -1046,16 +1206,11 @@ function SettingsTab() {
 
       <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
         <h2 className="mb-4 text-sm font-semibold text-[var(--ms-navy)]">Notifications</h2>
-        {[
-          { label: "Booking requests", on: true },
-          { label: "Booking confirmations", on: true },
-          { label: "Payment releases", on: true },
-          { label: "Weekly summary", on: false },
-        ].map((n) => (
-          <div key={n.label} className="flex items-center justify-between py-2.5">
-            <p className="text-sm text-[var(--ms-navy)]">{n.label}</p>
-            <button type="button" className={cn("transition", n.on ? "text-emerald-600" : "text-slate-300")}>
-              {n.on ? <ToggleRight className="h-7 w-7" /> : <ToggleLeft className="h-7 w-7" />}
+        {(Object.keys(notifications) as Array<keyof typeof notifications>).map((label) => (
+          <div key={label} className="flex items-center justify-between py-2.5">
+            <p className="text-sm text-[var(--ms-navy)]">{label}</p>
+            <button type="button" onClick={() => toggleNotification(label)} className={cn("transition", notifications[label] ? "text-emerald-600" : "text-slate-300")}>
+              {notifications[label] ? <ToggleRight className="h-7 w-7" /> : <ToggleLeft className="h-7 w-7" />}
             </button>
           </div>
         ))}
@@ -1121,7 +1276,7 @@ export default function ProfessionalDashboardPage() {
   const isVerified = false;
 
   const tabContent: Record<Tab, React.ReactNode> = {
-    home: <HomeTab />,
+    home: <HomeTab onNavigate={setTab} />,
     bookings: <BookingsTab />,
     profile: <MyProfileTab />,
     earnings: <EarningsTab />,
