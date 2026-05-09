@@ -703,8 +703,8 @@ export function SignUpRolePicker({
   // Step: "role" — role picker + agreements
   return (
     <div className="space-y-5">
-      {/* Tab pills */}
-      <div className="flex gap-2 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1.5">
+      {/* Role grid — 5 items, compact, always shows labels */}
+      <div className="grid grid-cols-5 gap-1 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1">
         {ROLES.map((r) => {
           const Icon = r.icon;
           const isActive = r.key === active;
@@ -713,15 +713,15 @@ export function SignUpRolePicker({
               key={r.key}
               type="button"
               onClick={() => handleRoleChange(r.key)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 text-sm font-semibold transition-all"
+              className="flex flex-col items-center justify-center gap-1 rounded-[14px] px-1 py-2.5 font-semibold transition-all"
               style={
                 isActive
-                  ? { backgroundColor: r.color, color: "#fff", boxShadow: `0 6px 20px ${r.color}44` }
+                  ? { backgroundColor: r.color, color: "#fff", boxShadow: `0 4px 14px ${r.color}44` }
                   : { color: "var(--ms-mauve)" }
               }
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">{r.label}</span>
+              <span className="text-[10px] leading-none">{r.label}</span>
             </button>
           );
         })}

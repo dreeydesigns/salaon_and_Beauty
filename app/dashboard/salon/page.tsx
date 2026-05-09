@@ -73,6 +73,17 @@ const TEAM = [
 
 const PORTFOLIO_SERVICES = ["Hair styling", "Braiding", "Locs", "Nails", "Make-up", "Skincare", "Facial", "Threading", "Bridal"] as const;
 
+const OCCASION_TAGS = [
+  "Valentine's Day", "Date night", "Anniversary", "Baecation",
+  "Birthday", "21st celebration", "Girls' trip", "Bachelorette",
+  "Wedding day", "Traditional ceremony", "Bridal shower",
+  "Baby shower", "Gender reveal", "Bump shoot",
+  "Corporate event", "Business dinner", "Product launch",
+  "Eid celebration", "Christmas", "New Year's Eve",
+  "Graduation", "Self-care day", "Mental health reset",
+  "Holiday prep", "Photo shoot", "Everyday glam",
+] as const;
+
 type Tab = "home" | "bookings" | "salon" | "earnings" | "settings" | "ads";
 type SalonSection = "identity" | "services" | "team" | "portfolio" | "hours";
 
@@ -287,6 +298,8 @@ type HoursEntry = { open: boolean; start: string; startPeriod: "AM" | "PM"; end:
 function MySalonTab() {
   const [section, setSection] = useState<SalonSection>("identity");
   const [services, setServices] = useState(SERVICES);
+  const [serviceOccasions, setServiceOccasions] = useState<Record<string, string[]>>({});
+  const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const [logoPhoto, setLogoPhoto] = useState<string | undefined>();
   const [coverPhoto, setCoverPhoto] = useState<string | undefined>();
   const [portfolioPhotos, setPortfolioPhotos] = useState<(string | undefined)[]>(Array(6).fill(undefined));
@@ -400,23 +413,82 @@ function MySalonTab() {
             </button>
           </div>
           <div className="divide-y divide-[var(--ms-border)]">
-            {services.map((s) => (
-              <div key={s.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-medium text-[var(--ms-navy)]">{s.name}</p>
-                  <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{s.category} · {s.price} · {s.duration}</p>
+            {services.map((s) => {
+              const isExpanded = expandedServiceId === s.id;
+              const selectedOccasions = serviceOccasions[s.id] ?? [];
+              return (
+                <div key={s.id} className="py-3">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedServiceId(isExpanded ? null : s.id)}
+                      className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                    >
+                      <ChevronRight className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0 text-[var(--ms-mauve)] transition-transform",
+                        isExpanded && "rotate-90",
+                      )} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--ms-navy)]">{s.name}</p>
+                        <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{s.category} · {s.price} · {s.duration}</p>
+                        {selectedOccasions.length > 0 && !isExpanded && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {selectedOccasions.slice(0, 3).map((o) => (
+                              <span key={o} className="rounded-full bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-plum)]">✦ {o}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleService(s.id)}
+                      className={cn("ml-2 shrink-0 transition", s.active ? "text-emerald-600" : "text-slate-300")}
+                    >
+                      {s.active ? <ToggleRight className="h-7 w-7" /> : <ToggleLeft className="h-7 w-7" />}
+                    </button>
+                  </div>
+                  {/* Occasion tags — expandable */}
+                  {isExpanded && (
+                    <div className="ml-6 mt-3 rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ms-mauve)]">
+                        Perfect for which occasion?
+                      </p>
+                      <p className="mb-3 text-xs text-[var(--ms-mauve)]">
+                        Help clients find you when planning for these moments.
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {OCCASION_TAGS.map((o) => {
+                          const active = selectedOccasions.includes(o);
+                          return (
+                            <button
+                              key={o}
+                              type="button"
+                              onClick={() =>
+                                setServiceOccasions((prev) => ({
+                                  ...prev,
+                                  [s.id]: active
+                                    ? (prev[s.id] ?? []).filter((x) => x !== o)
+                                    : [...(prev[s.id] ?? []), o],
+                                }))
+                              }
+                              className={cn(
+                                "rounded-full border px-3 py-1 text-xs font-medium transition",
+                                active
+                                  ? "border-[var(--ms-rose)] bg-[var(--ms-petal)] text-[var(--ms-plum)]"
+                                  : "border-[var(--ms-border)] text-[var(--ms-mauve)] hover:border-[var(--ms-rose)]/50",
+                              )}
+                            >
+                              {active ? "✦ " : ""}{o}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggleService(s.id)}
-                  className={cn("transition", s.active ? "text-emerald-600" : "text-slate-300")}
-                >
-                  {s.active
-                    ? <ToggleRight className="h-7 w-7" />
-                    : <ToggleLeft className="h-7 w-7" />}
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

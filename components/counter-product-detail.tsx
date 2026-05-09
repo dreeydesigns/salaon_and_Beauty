@@ -235,11 +235,11 @@ export function CounterProductDetail({ productId }: { productId: string }) {
 
         {/* Gallery */}
         <div className="space-y-3">
-          <div className="relative overflow-hidden rounded-[18px] bg-[var(--ms-soft-bg)]">
+          <div className="relative aspect-square overflow-hidden rounded-[24px] bg-[var(--ms-soft-bg)]">
             <img
               src={product.images[activeImage]}
               alt={product.name}
-              className="h-auto max-h-[440px] w-full object-contain"
+              className="h-full w-full object-cover transition-all duration-300"
             />
             {product.badge && (
               <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[var(--ms-navy)]">
@@ -268,14 +268,16 @@ export function CounterProductDetail({ productId }: { productId: string }) {
           </div>
           {/* Thumbnails */}
           {product.images.length > 1 && (
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               {product.images.map((img, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setActiveImage(idx)}
-                  className={`h-16 w-16 overflow-hidden rounded-[10px] border-2 transition ${
-                    activeImage === idx ? "border-[var(--ms-rose)]" : "border-transparent opacity-60 hover:opacity-100"
+                  className={`aspect-square w-[72px] shrink-0 overflow-hidden rounded-[14px] border-2 transition ${
+                    activeImage === idx
+                      ? "border-[var(--ms-rose)] shadow-[0_0_0_3px_rgba(214,51,108,0.15)]"
+                      : "border-transparent opacity-55 hover:opacity-90"
                   }`}
                 >
                   <img src={img} alt="" className="h-full w-full object-cover" />

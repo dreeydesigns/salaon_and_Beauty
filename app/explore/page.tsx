@@ -128,9 +128,10 @@ const PACKAGES = [
     services: ["Hair", "Make-up", "Nails", "Skin"],
     price: "KES 18,000",
     duration: "Full day",
-    description: "Full bridal prep. Book well in advance.",
+    description: "Your most important day deserves your most beautiful self.",
     image: "https://images.pexels.com/photos/2253842/pexels-photo-2253842.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: null,
+    occasions: ["Wedding day", "Traditional ceremony", "Engagement photos"],
   },
   {
     id: "birthday",
@@ -140,9 +141,10 @@ const PACKAGES = [
     services: ["Hair", "Nails", "Make-up"],
     price: "KES 8,500",
     duration: "4–6 hrs",
-    description: "Treat yourself on your birthday.",
+    description: "Because you deserve to be celebrated — loudly.",
     image: "https://images.pexels.com/photos/3738359/pexels-photo-3738359.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: "Popular",
+    occasions: ["Birthday", "21st celebration", "Birthday dinner"],
   },
   {
     id: "self-care",
@@ -152,9 +154,10 @@ const PACKAGES = [
     services: ["Massage", "Facial", "Nail care"],
     price: "KES 9,200",
     duration: "Full day",
-    description: "A full day of restoration.",
+    description: "Rest is a ritual. You have earned this.",
     image: "https://images.pexels.com/photos/3997990/pexels-photo-3997990.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: null,
+    occasions: ["Self-care day", "Burnout recovery", "Mental health reset"],
   },
   {
     id: "baby-shower",
@@ -164,9 +167,10 @@ const PACKAGES = [
     services: ["Hair", "Make-up", "Nails"],
     price: "KES 7,800",
     duration: "3–4 hrs",
-    description: "Look your best for the celebration.",
+    description: "Glow different when you are welcoming a new chapter.",
     image: "https://images.pexels.com/photos/3912572/pexels-photo-3912572.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: null,
+    occasions: ["Baby shower", "Gender reveal", "Bump photoshoot"],
   },
   {
     id: "corporate",
@@ -176,9 +180,10 @@ const PACKAGES = [
     services: ["Make-up", "Hair styling"],
     price: "KES 5,500",
     duration: "2–3 hrs",
-    description: "Professional make-up + hair for events.",
+    description: "Command the room the moment you walk in.",
     image: "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: null,
+    occasions: ["Corporate event", "Business dinner", "Award ceremony"],
   },
   {
     id: "seasonal",
@@ -188,9 +193,10 @@ const PACKAGES = [
     services: ["Varies by season"],
     price: "KES 6,000",
     duration: "3–5 hrs",
-    description: "Curated seasonal rituals — updated quarterly.",
+    description: "Every season has a ritual. This one is yours.",
     image: "https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: "Limited",
+    occasions: ["Valentine's Day", "Eid celebration", "New Year's Eve"],
   },
   {
     id: "locs-starter",
@@ -200,9 +206,10 @@ const PACKAGES = [
     services: ["Locs installation", "Consultation"],
     price: "KES 4,500",
     duration: "4–8 hrs",
-    description: "First-time locs consultation + first session.",
+    description: "The beginning of a lifelong relationship with your hair.",
     image: "https://images.pexels.com/photos/3993398/pexels-photo-3993398.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: null,
+    occasions: ["New locs journey", "Hair reset", "Natural hair transition"],
   },
   {
     id: "natural-reset",
@@ -212,9 +219,10 @@ const PACKAGES = [
     services: ["Deep treatment", "Style", "Aftercare guide"],
     price: "KES 3,800",
     duration: "2–3 hrs",
-    description: "Deep treatment + style + aftercare guide.",
+    description: "Your curls remember what they are capable of.",
     image: "https://images.pexels.com/photos/3993392/pexels-photo-3993392.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
     badge: null,
+    occasions: ["Hair reset", "Pre-holiday prep", "Healthy hair journey"],
   },
 ];
 
@@ -372,10 +380,13 @@ export default function ExplorePage() {
                     </div>
                     <div className="p-4">
                       <p className="font-semibold text-[var(--ms-navy)]">{pkg.name}</p>
-                      <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{pkg.description}</p>
+                      <p className="mt-0.5 text-xs leading-5 text-[var(--ms-mauve)]">{pkg.description}</p>
+                      {/* Occasion chips */}
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {pkg.services.map((s) => (
-                          <span key={s} className="rounded-full bg-[var(--ms-soft-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--ms-mauve)]">{s}</span>
+                        {pkg.occasions.slice(0, 2).map((o) => (
+                          <span key={o} className="inline-flex items-center gap-1 rounded-full border border-[var(--ms-rose)]/25 bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-plum)]">
+                            ✦ {o}
+                          </span>
                         ))}
                       </div>
                       <div className="mt-3 flex items-center justify-between">
@@ -414,10 +425,12 @@ export default function ExplorePage() {
                             <span className="rounded-full bg-[var(--ms-rose)] px-2 py-0.5 text-[10px] font-semibold text-white">{pkg.badge}</span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{pkg.description}</p>
+                        <p className="mt-0.5 text-xs leading-5 text-[var(--ms-mauve)]">{pkg.description}</p>
                         <div className="mt-1.5 flex flex-wrap gap-1">
-                          {pkg.services.slice(0, 3).map((s) => (
-                            <span key={s} className="rounded-full bg-[var(--ms-soft-bg)] px-2 py-0.5 text-[10px] text-[var(--ms-mauve)]">{s}</span>
+                          {pkg.occasions.slice(0, 2).map((o) => (
+                            <span key={o} className="inline-flex items-center gap-1 rounded-full border border-[var(--ms-rose)]/25 bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-plum)]">
+                              ✦ {o}
+                            </span>
                           ))}
                         </div>
                       </div>
