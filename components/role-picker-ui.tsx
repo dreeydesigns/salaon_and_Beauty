@@ -36,8 +36,8 @@ const ROLES = [
     color: "#BF8C2E",
     colorLight: "rgba(191,140,46,0.10)",
     colorBorder: "rgba(191,140,46,0.32)",
-    signUpHref: "/onboarding/salon",
-    signInDest: "/profile",
+    signUpHref: "/salon/profile",
+    signInDest: "/salon/dashboard",
     showInSignIn: true,
   },
   {
@@ -51,8 +51,8 @@ const ROLES = [
     color: "#1A7A6B",
     colorLight: "rgba(26,122,107,0.10)",
     colorBorder: "rgba(26,122,107,0.32)",
-    signUpHref: "/onboarding/professional?role=professional",
-    signInDest: "/profile",
+    signUpHref: "/pro/profile",
+    signInDest: "/pro/dashboard",
     showInSignIn: true,
   },
   {
@@ -66,8 +66,8 @@ const ROLES = [
     color: "#8B5CF6",
     colorLight: "rgba(139,92,246,0.10)",
     colorBorder: "rgba(139,92,246,0.32)",
-    signUpHref: "/onboarding/shop",
-    signInDest: "/dashboard/shop",
+    signUpHref: "/shop/profile",
+    signInDest: "/shop/dashboard",
     showInSignIn: false, // Shop uses separate login — not in account switcher
   },
   {
@@ -81,8 +81,8 @@ const ROLES = [
     color: "#EA580C",
     colorLight: "rgba(234,88,12,0.10)",
     colorBorder: "rgba(234,88,12,0.32)",
-    signUpHref: "/onboarding/delivery",
-    signInDest: "/dashboard/delivery",
+    signUpHref: "/delivery/profile",
+    signInDest: "/delivery/dashboard",
     showInSignIn: false, // Delivery uses separate login — not in account switcher
   },
 ] as const;

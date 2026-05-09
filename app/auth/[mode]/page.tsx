@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-import { AppShell } from "@/components/app-shell";
+import { PublicLayout } from "@/components/public-layout";
 import { AuthCard, CTAButton, SectionReveal } from "@/components/marketplace-ui";
 import { SignInRolePicker, SignUpRolePicker } from "@/components/role-picker-ui";
 
@@ -24,7 +24,7 @@ export default async function AuthPage({
   const isSignUp = mode === "sign-up";
 
   return (
-    <AppShell currentNav="profile" roleMode="salons" showBottomNav={false}>
+    <PublicLayout backHref="/" backLabel="Home">
       <SectionReveal>
         <AuthCard
           eyebrow="Account"
@@ -85,7 +85,7 @@ export default async function AuthPage({
           </div>
         </AuthCard>
       </SectionReveal>
-    </AppShell>
+    </PublicLayout>
   );
 }
 
