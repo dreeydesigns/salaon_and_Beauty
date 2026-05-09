@@ -135,6 +135,8 @@ function formatKES(amount: number) {
 // ─── Product card ───────────────────────────────────────────────────────────────
 function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
   const [added, setAdded] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [reported, setReported] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
 
   function handleAdd(e: React.MouseEvent) {
@@ -171,14 +173,19 @@ function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
               {product.badge}
             </span>
           )}
-          {/* Bookmark — does NOT navigate */}
+          {/* Bookmark / Save */}
           <button
-            aria-label="Save product"
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-[var(--ms-mauve)] transition hover:bg-white hover:text-[var(--ms-rose)]"
+            aria-label={saved ? "Unsave product" : "Save product"}
+            className={cn(
+              "absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full transition",
+              saved
+                ? "bg-[var(--ms-rose)] text-white"
+                : "bg-white/80 text-[var(--ms-mauve)] hover:bg-white hover:text-[var(--ms-rose)]",
+            )}
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSaved((v) => !v); }}
           >
-            <Flag className="h-3.5 w-3.5" />
+            <Flag className={cn("h-3.5 w-3.5", saved && "fill-white")} />
           </button>
         </div>
       </Link>
@@ -219,8 +226,12 @@ function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
         {/* Buyer duty notice */}
         <p className="mt-2 rounded-[10px] bg-[var(--ms-soft-bg)] px-3 py-2 text-[10px] leading-4 text-[var(--ms-mauve)]">
           Expect the real thing.{" "}
-          <button className="text-[var(--ms-rose)] underline" type="button">
-            Report this product
+          <button
+            className="text-[var(--ms-rose)] underline"
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setReported(true); setTimeout(() => setReported(false), 3000); }}
+          >
+            {reported ? "Report sent ✓" : "Report this product"}
           </button>
         </p>
       </div>

@@ -671,6 +671,18 @@ export function SignUpRolePicker({
   }
 
   function handleVerified() {
+    // Write a preview session so profile-setup pages know the role/user context
+    const existing = readAppSession();
+    if (!existing || existing.role !== role.key) {
+      if (role.key === "client") {
+        writeAppSession(createPreviewClientSession());
+      } else if (role.key === "salon") {
+        writeAppSession(createPreviewSalonSession());
+      } else if (role.key === "professional") {
+        writeAppSession(createPreviewProfessionalSession());
+      }
+      // shop and delivery don't have preview sessions — just redirect
+    }
     if (onSuccess) {
       onSuccess(role.signUpHref);
     } else {

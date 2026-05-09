@@ -14,6 +14,8 @@ import {
   Truck,
 } from "lucide-react";
 
+import { useCartStore } from "@/lib/cart-store";
+
 // ─── Mock product data (matches counter-ui placeholderProducts) ────────────────
 
 const PRODUCTS = [
@@ -212,10 +214,28 @@ export function CounterProductDetail({ productId }: { productId: string }) {
 
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
+  const [qty, setQty] = useState(1);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [showReviews, setShowReviews] = useState(5);
+  const [reported, setReported] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
+
+  function handleReport() {
+    setReported(true);
+    setTimeout(() => setReported(false), 3000);
+  }
 
   function handleAdd() {
+    for (let i = 0; i < qty; i++) {
+      addItem({
+        id: product.id,
+        name: product.name,
+        brand: product.brand,
+        shopName: product.shopName,
+        price: product.price,
+        image: product.images[0],
+      });
+    }
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   }
@@ -356,13 +376,39 @@ export function CounterProductDetail({ productId }: { productId: string }) {
 
           {/* Add to Cart — desktop */}
           <div className="hidden lg:block space-y-3">
+            {/* Quantity picker */}
+            <div className="flex items-center gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ms-mauve)]">Qty</p>
+              <div className="flex items-center overflow-hidden rounded-[12px] border border-[var(--ms-border)]">
+                <button
+                  type="button"
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  disabled={qty <= 1}
+                  className="flex h-9 w-9 items-center justify-center text-[var(--ms-mauve)] transition hover:bg-[var(--ms-soft-bg)] disabled:opacity-30"
+                >
+                  <span className="text-lg leading-none">−</span>
+                </button>
+                <span className="w-8 text-center text-sm font-semibold text-[var(--ms-navy)]">{qty}</span>
+                <button
+                  type="button"
+                  onClick={() => setQty((q) => q + 1)}
+                  disabled={!product.inStock || qty >= product.stockCount}
+                  className="flex h-9 w-9 items-center justify-center text-[var(--ms-mauve)] transition hover:bg-[var(--ms-soft-bg)] disabled:opacity-30"
+                >
+                  <span className="text-lg leading-none">+</span>
+                </button>
+              </div>
+              {product.inStock && product.stockCount <= 5 && (
+                <p className="text-[11px] text-[#BF8C2E]">Only {product.stockCount} left</p>
+              )}
+            </div>
             <button
               type="button"
               disabled={!product.inStock}
               onClick={handleAdd}
               className="w-full rounded-[16px] bg-[var(--ms-rose)] py-3.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {added ? "Added to cart ✓" : "Add to cart"}
+              {added ? `${qty > 1 ? `${qty}× ` : ""}Added to cart ✓` : `Add to cart${qty > 1 ? ` (${qty})` : ""}`}
             </button>
             <p className="text-[11px] text-center text-[var(--ms-mauve)]">
               You pay securely through the platform. Seller receives payment only after you confirm receipt.
@@ -371,7 +417,7 @@ export function CounterProductDetail({ productId }: { productId: string }) {
               <Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--ms-mauve)]" />
               <p className="text-[11px] leading-4 text-[var(--ms-mauve)]">
                 Expect the real thing.{" "}
-                <button type="button" className="text-[var(--ms-rose)] underline">Report this product</button>
+                <button type="button" onClick={handleReport} className="text-[var(--ms-rose)] underline">{reported ? "Report sent ✓" : "Report this product"}</button>
               </p>
             </div>
           </div>
@@ -454,15 +500,35 @@ export function CounterProductDetail({ productId }: { productId: string }) {
       {/* Sticky Add to Cart — mobile */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--ms-border)] bg-white px-4 py-3 lg:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
+          {/* Mobile qty */}
+          <div className="flex items-center overflow-hidden rounded-[12px] border border-[var(--ms-border)]">
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={qty <= 1}
+              className="flex h-9 w-9 items-center justify-center text-[var(--ms-mauve)] disabled:opacity-30"
+            >
+              <span className="text-lg leading-none">−</span>
+            </button>
+            <span className="w-7 text-center text-sm font-semibold text-[var(--ms-navy)]">{qty}</span>
+            <button
+              type="button"
+              onClick={() => setQty((q) => q + 1)}
+              disabled={!product.inStock || qty >= product.stockCount}
+              className="flex h-9 w-9 items-center justify-center text-[var(--ms-mauve)] disabled:opacity-30"
+            >
+              <span className="text-lg leading-none">+</span>
+            </button>
+          </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{product.name}</p>
-            <p className="text-sm text-[var(--ms-mauve)]">{formatKES(product.price)}</p>
+            <p className="text-sm text-[var(--ms-mauve)]">{formatKES(product.price * qty)}</p>
           </div>
           <button
             type="button"
             disabled={!product.inStock}
             onClick={handleAdd}
-            className="shrink-0 rounded-full bg-[var(--ms-rose)] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="shrink-0 rounded-full bg-[var(--ms-rose)] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {added ? "Added ✓" : "Add to cart"}
           </button>
