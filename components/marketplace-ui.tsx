@@ -37,7 +37,10 @@ import {
   Hand,
   Eye,
 } from "lucide-react";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+
+import { openGuestGate } from "@/lib/guest-session";
+import { readAppSession } from "@/lib/client-session";
 
 import type {
   NavKey,
@@ -63,6 +66,23 @@ import {
 export interface FilterSection {
   label: string;
   options: string[];
+}
+
+// ─── Guest booking gate ───────────────────────────────────────────────────────
+// Intercepts "Book Now" clicks when no session is present.
+// Opens the GuestAuthGate with the booking return URL preserved.
+
+function useGuestBookingGate(bookHref: string) {
+  return useCallback(
+    (e: React.MouseEvent) => {
+      if (!readAppSession()) {
+        e.preventDefault();
+        openGuestGate("booking", bookHref);
+      }
+      // If session exists, the Link navigates normally — no action needed.
+    },
+    [bookHref],
+  );
 }
 
 const navItems: Array<{
@@ -893,18 +913,28 @@ export function SecureContactCard({
 
 export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolean }) {
   const bookHref = buildBookingHref({ targetType: "salons", targetId: salon.slug });
+  const salonHref = `/salons/${salon.slug}`;
+  const interceptBook = useGuestBookingGate(bookHref);
+
   if (listView) {
     return (
       <article className="flex min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
-        <div className="relative min-h-[140px] w-36 shrink-0 self-stretch overflow-hidden sm:w-48">
+        {/* Thumbnail — clicking goes to salon detail */}
+        <Link href={salonHref} className="group/img relative min-h-[140px] w-36 shrink-0 self-stretch overflow-hidden sm:w-48">
           <ImageLayer asset={salon.image} />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.4)_100%)]" />
+          {/* "See their work" on hover */}
+          <div className="absolute inset-0 flex items-center justify-center bg-[rgba(13,27,42,0)] transition-all duration-200 group-hover/img:bg-[rgba(13,27,42,0.38)]">
+            <span className="scale-90 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ms-navy)] opacity-0 transition-all duration-200 group-hover/img:scale-100 group-hover/img:opacity-100">
+              See their work
+            </span>
+          </div>
           {salon.verified && (
             <span className="absolute bottom-2 left-2">
               <VerifiedBadge />
             </span>
           )}
-        </div>
+        </Link>
         <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -923,7 +953,7 @@ export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolea
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">From</p>
               <p className="text-base font-semibold text-[var(--ms-navy)]">{formatKES(salon.startingPrice)}</p>
             </div>
-            <CTAButton className="shrink-0 px-5" href={bookHref}>Book Now</CTAButton>
+            <CTAButton className="shrink-0 px-5" href={bookHref} onClick={interceptBook}>Book Now</CTAButton>
           </div>
         </div>
       </article>
@@ -931,36 +961,51 @@ export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolea
   }
 
   return (
-    <article className="group min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
-      {/* Photo */}
-      <div className={cn("relative h-[180px] w-full overflow-hidden bg-gradient-to-br", salon.heroMood)}>
-        <ImageLayer asset={salon.image} priority sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 90vw" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_40%,rgba(13,27,42,0.52)_100%)]" />
-        {/* Overlaid pills */}
-        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
-          {salon.verified && <VerifiedBadge />}
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ms-navy)] backdrop-blur-sm">
-            <MapPin className="h-3 w-3" />
-            {salon.location.length > 14 ? salon.location.slice(0, 14) + "…" : salon.location}
-          </span>
+    <Link href={salonHref} className="group block min-w-0">
+      <article className="overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+        {/* Photo */}
+        <div className={cn("relative h-[180px] w-full overflow-hidden bg-gradient-to-br", salon.heroMood)}>
+          <ImageLayer asset={salon.image} priority sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 90vw" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_40%,rgba(13,27,42,0.52)_100%)]" />
+          {/* Overlaid pills */}
+          <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
+            {salon.verified && <VerifiedBadge />}
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ms-navy)] backdrop-blur-sm">
+              <MapPin className="h-3 w-3" />
+              {salon.location.length > 14 ? salon.location.slice(0, 14) + "…" : salon.location}
+            </span>
+          </div>
+          {/* "See their work" hover overlay — matches ProfessionalCard pattern */}
+          <div className="absolute inset-0 flex items-center justify-center bg-[rgba(13,27,42,0.0)] transition-all duration-200 group-hover:bg-[rgba(13,27,42,0.38)]">
+            <span className="scale-90 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[var(--ms-navy)] opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
+              See their work
+            </span>
+          </div>
         </div>
-      </div>
-      {/* Info */}
-      <div className="p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ms-mauve)]">From</p>
-        <div className="flex min-w-0 items-baseline justify-between gap-2">
-          <p className="truncate text-[18px] font-semibold text-[var(--ms-navy)]">{salon.name}</p>
-          <p className="shrink-0 text-[18px] font-semibold text-[var(--ms-navy)]">{formatKES(salon.startingPrice)}</p>
+        {/* Info */}
+        <div className="p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ms-mauve)]">From</p>
+          <div className="flex min-w-0 items-baseline justify-between gap-2">
+            <p className="truncate text-[18px] font-semibold text-[var(--ms-navy)]">{salon.name}</p>
+            <p className="shrink-0 text-[18px] font-semibold text-[var(--ms-navy)]">{formatKES(salon.startingPrice)}</p>
+          </div>
+          <div className="mt-1 flex items-center gap-1 text-sm text-[var(--ms-mauve)]">
+            <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
+            {salon.rating} ({salon.reviewCount} reviews)
+          </div>
+          {/* Book Now — intercepted for guests */}
+          <CTAButton
+            className="mt-4 w-full"
+            href={bookHref}
+            onClick={(e: React.MouseEvent) => {
+              interceptBook(e);
+            }}
+          >
+            Book Now
+          </CTAButton>
         </div>
-        <div className="mt-1 flex items-center gap-1 text-sm text-[var(--ms-mauve)]">
-          <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
-          {salon.rating} ({salon.reviewCount} reviews)
-        </div>
-        <CTAButton className="mt-4 w-full" href={bookHref}>
-          Book Now
-        </CTAButton>
-      </div>
-    </article>
+      </article>
+    </Link>
   );
 }
 
@@ -968,6 +1013,7 @@ export function ProfessionalCard({ professional, listView }: { professional: Pro
   const bookHref = buildBookingHref({ targetType: "professionals", targetId: professional.slug });
   const isOnline = professional.nextAvailable?.toLowerCase().includes("today") ?? false;
   const desc = professional.description?.slice(0, 80) ?? professional.specialty;
+  const interceptBook = useGuestBookingGate(bookHref);
 
   if (listView) {
     return (
@@ -993,7 +1039,7 @@ export function ProfessionalCard({ professional, listView }: { professional: Pro
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">Starts at</p>
               <p className="text-base font-semibold text-[var(--ms-navy)]">{formatKES(professional.startingPrice)}</p>
             </div>
-            <CTAButton className="shrink-0 px-5" href={bookHref}>Book Now</CTAButton>
+            <CTAButton className="shrink-0 px-5" href={bookHref} onClick={interceptBook}>Book Now</CTAButton>
           </div>
         </div>
       </article>

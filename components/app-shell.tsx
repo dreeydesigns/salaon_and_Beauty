@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { AppUsageTracker } from "@/components/app-usage-tracker";
+import { GuestAuthGate } from "@/components/guest-auth-gate";
 import type { NavKey, RoleMode } from "@/lib/site-data";
 import { ClientSessionGate } from "@/components/client-session-gate";
 import { BottomMobileNav, SplitBrandHeader } from "@/components/marketplace-ui";
@@ -23,6 +24,8 @@ export function AppShell({
   return (
     <div className="feminine-shell min-h-screen">
       <AppUsageTracker />
+      {/* Guest 10-min timer + booking/checkout gate — renders nothing until triggered */}
+      <GuestAuthGate />
       <SplitBrandHeader currentNav={currentNav} />
       <main className="mx-auto min-h-[calc(100vh-180px)] w-full max-w-7xl overflow-x-clip px-4 pb-28 pt-6 lg:px-6 lg:pb-12">
         {requireSession ? <ClientSessionGate>{children}</ClientSessionGate> : children}

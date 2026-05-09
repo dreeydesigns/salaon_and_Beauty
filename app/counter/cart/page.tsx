@@ -7,6 +7,8 @@ import { CheckCircle2, ChevronLeft, MapPin, Minus, Plus, ShoppingBag, Star, Tras
 import { useCartStore } from "@/lib/cart-store";
 import { AppShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
+import { openGuestGate } from "@/lib/guest-session";
+import { readAppSession } from "@/lib/client-session";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -137,7 +139,13 @@ function StepCart({
 
       <button
         type="button"
-        onClick={onNext}
+        onClick={() => {
+          if (!readAppSession()) {
+            openGuestGate("checkout", "/counter/cart");
+            return;
+          }
+          onNext();
+        }}
         className="w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(200,40,74,0.22)] hover:opacity-90"
       >
         Continue to delivery →

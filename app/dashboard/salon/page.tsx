@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BarChart2,
@@ -32,6 +33,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { ImageUploadEditor } from "@/components/image-upload-editor";
+import { clearAppSession } from "@/lib/client-session";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -560,9 +562,67 @@ function SettingsTab() {
         ))}
       </div>
 
-      <button type="button" className="flex w-full items-center justify-center gap-2 rounded-full border border-red-200 py-3 text-sm font-semibold text-red-500 hover:bg-red-50">
-        <LogOut className="h-4 w-4" /> Log out
-      </button>
+      <LogOutButton />
+    </div>
+  );
+}
+
+function LogOutButton() {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => { clearAppSession(); router.push("/"); }}
+      className="flex w-full items-center justify-center gap-2 rounded-full border border-red-200 py-3 text-sm font-semibold text-red-500 hover:bg-red-50"
+    >
+      <LogOut className="h-4 w-4" /> Log out
+    </button>
+  );
+}
+
+// ── Client preview modal ───────────────────────────────────────────────────
+
+function ClientPreviewModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-[rgba(13,27,42,0.6)] backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 flex w-full max-w-2xl flex-col overflow-hidden rounded-t-[32px] bg-[var(--ms-soft-bg)] sm:rounded-[32px]" style={{ maxHeight: "90dvh" }}>
+        {/* Preview header */}
+        <div className="flex items-center justify-between border-b border-[var(--ms-border)] bg-white px-5 py-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--ms-rose)]">Preview mode</p>
+            <p className="text-sm font-semibold text-[var(--ms-navy)]">How clients see your salon</p>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {/* Mock client view */}
+        <div className="overflow-y-auto p-5 space-y-4">
+          <div className="h-40 w-full rounded-[20px] bg-gradient-to-br from-[var(--ms-plum)] to-[var(--ms-rose)] flex items-end p-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/70">Kilimani</p>
+              <p className="text-2xl font-semibold text-white">Glam Studio</p>
+            </div>
+          </div>
+          <div className="rounded-[20px] border border-[var(--ms-border)] bg-white p-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ms-mauve)]">Services</p>
+            {["Hair styling · Ksh 800", "Braids · Ksh 2,500", "Make-up · Ksh 1,500"].map(s => (
+              <div key={s} className="flex items-center justify-between py-1.5 border-b border-[var(--ms-border)] last:border-0">
+                <p className="text-sm text-[var(--ms-navy)]">{s.split("·")[0]}</p>
+                <p className="text-sm font-semibold text-[var(--ms-navy)]">{s.split("·")[1]}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-3 rounded-[16px] border border-[var(--ms-border)] bg-amber-50 px-4 py-3">
+            <Eye className="h-4 w-4 shrink-0 text-amber-600" />
+            <p className="text-xs text-amber-700">All booking buttons are disabled in preview mode. Publish your listing to go live.</p>
+          </div>
+          <button disabled className="w-full rounded-full bg-[var(--ms-border)] py-3 text-sm font-semibold text-[var(--ms-mauve)] cursor-not-allowed">
+            Book Now (preview only)
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -571,6 +631,7 @@ function SettingsTab() {
 
 export default function SalonDashboardPage() {
   const [tab, setTab] = useState<Tab>("home");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const tabContent: Record<Tab, React.ReactNode> = {
     home: <HomeTab />,
@@ -589,9 +650,13 @@ export default function SalonDashboardPage() {
             <p className="text-xs uppercase tracking-[0.18em] text-[var(--ms-mauve)]">Salon Dashboard</p>
             <p className="mt-0.5 text-lg font-semibold text-[var(--ms-navy)]">Glam Studio</p>
           </div>
-          <Link href="/home" className="rounded-full bg-[var(--ms-soft-bg)] px-4 py-2 text-sm font-medium text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">
-            Exit dashboard
-          </Link>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="flex items-center gap-2 rounded-full bg-[var(--ms-petal)] px-4 py-2 text-sm font-medium text-[var(--ms-plum)] hover:opacity-90"
+          >
+            <Eye className="h-4 w-4" /> Preview as client
+          </button>
         </div>
       </header>
 
@@ -602,6 +667,8 @@ export default function SalonDashboardPage() {
           {tabContent[tab]}
         </main>
       </div>
+
+      {previewOpen && <ClientPreviewModal onClose={() => setPreviewOpen(false)} />}
     </div>
   );
 }

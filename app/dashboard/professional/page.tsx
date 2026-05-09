@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BarChart2,
@@ -20,10 +21,12 @@ import {
   Star,
   ToggleLeft,
   ToggleRight,
+  X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ImageUploadEditor } from "@/components/image-upload-editor";
+import { clearAppSession } from "@/lib/client-session";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -586,9 +589,55 @@ function SettingsTab() {
         ))}
       </div>
 
-      <button type="button" className="flex w-full items-center justify-center gap-2 rounded-full border border-red-200 py-3 text-sm font-semibold text-red-500 hover:bg-red-50">
-        <LogOut className="h-4 w-4" /> Log out
-      </button>
+      <LogOutButton />
+    </div>
+  );
+}
+
+// ── Log out button ─────────────────────────────────────────────────────────
+
+function LogOutButton() {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => { clearAppSession(); router.push("/"); }}
+      className="flex w-full items-center justify-center gap-2 rounded-full border border-red-200 py-3 text-sm font-semibold text-red-500 hover:bg-red-50"
+    >
+      <LogOut className="h-4 w-4" /> Log out
+    </button>
+  );
+}
+
+// ── Client preview modal ───────────────────────────────────────────────────
+
+function ClientPreviewModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-[rgba(13,27,42,0.60)] backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-sm rounded-[28px] bg-white p-6 shadow-xl">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close preview"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ms-petal)]">
+          <Eye className="h-5 w-5 text-[var(--ms-plum)]" />
+        </div>
+        <h2 className="text-lg font-semibold text-[var(--ms-plum)]">Client view</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">
+          This is how clients see your public profile. Tap below to open a live preview in a new tab.
+        </p>
+        <Link
+          href="/professionals/preview"
+          target="_blank"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--ms-plum)] py-3 text-sm font-semibold text-white hover:opacity-90"
+        >
+          <Eye className="h-4 w-4" /> Open client preview
+        </Link>
+      </div>
     </div>
   );
 }
@@ -597,6 +646,7 @@ function SettingsTab() {
 
 export default function ProfessionalDashboardPage() {
   const [tab, setTab] = useState<Tab>("home");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const tabContent: Record<Tab, React.ReactNode> = {
     home: <HomeTab />,
@@ -615,9 +665,13 @@ export default function ProfessionalDashboardPage() {
             <p className="text-xs uppercase tracking-[0.18em] text-[var(--ms-mauve)]">Professional Dashboard</p>
             <p className="mt-0.5 text-lg font-semibold text-[var(--ms-navy)]">Njeri Kamau</p>
           </div>
-          <Link href="/home" className="rounded-full bg-[var(--ms-soft-bg)] px-4 py-2 text-sm font-medium text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">
-            Exit dashboard
-          </Link>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="flex items-center gap-2 rounded-full bg-[var(--ms-petal)] px-4 py-2 text-sm font-medium text-[var(--ms-plum)] hover:opacity-90"
+          >
+            <Eye className="h-4 w-4" /> Preview as client
+          </button>
         </div>
       </header>
 
@@ -628,6 +682,8 @@ export default function ProfessionalDashboardPage() {
           {tabContent[tab]}
         </main>
       </div>
+
+      {previewOpen && <ClientPreviewModal onClose={() => setPreviewOpen(false)} />}
     </div>
   );
 }

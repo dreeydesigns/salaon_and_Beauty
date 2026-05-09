@@ -110,17 +110,50 @@ type RoleKey = (typeof ROLES)[number]["key"];
 // TODO(team): Remove this hint when switching to live SMS gateway.
 const DEV_OTP = "123456";
 
-// ─── Community standards ──────────────────────────────────────────────────────
+// ─── Role-specific community standards (spec §5.4) ───────────────────────────
 
-const COMMUNITY_STANDARDS = [
-  "Be who you say you are. Misrepresentation is grounds for permanent removal.",
-  "Respect every person's time. Cancel with as much notice as possible.",
-  "Transact through the platform. Off-platform payment requests are a red flag.",
-  "Sell what you say you are selling. Counterfeit products harm real people.",
-  "Leave honest reviews. Your review helps the next woman make a better decision.",
-  "This is a safe space. Harassment and threats result in permanent removal.",
-  "Report what you see. You are protecting yourself and every other woman here.",
-];
+const COMMUNITY_STANDARDS: Record<RoleKey, string[]> = {
+  client: [
+    "Book honestly. Only book services you intend to keep.",
+    "Respect the professional’s time. Cancel with as much notice as possible.",
+    "Pay through the platform. Never pay cash or outside the app.",
+    "Leave honest reviews. Your review helps every other woman here.",
+    "This is a safe space. Report anything that feels wrong.",
+    "Your data is private. We will never share your personal details without your consent.",
+  ],
+  salon: [
+    "Be who you say you are. Your salon name, location, and services must be accurate.",
+    "Deliver what you list. Misrepresentation is grounds for removal.",
+    "Respond promptly to bookings. Slow response drops your ranking.",
+    "All payments go through the platform. Off-platform transactions are prohibited.",
+    "Your team is your responsibility. Ensure everyone who works under your account meets our standards.",
+    "Keep your information up to date. Outdated services or hours damage client trust.",
+  ],
+  professional: [
+    "Your profile is your business. Make it accurate and keep it current.",
+    "Show up on time. Every no-show harms your ranking and your reputation.",
+    "Deliver what you promise. Only list services you can actually provide.",
+    "All payments go through the platform. No cash, no off-platform transfers.",
+    "Respect client privacy. Never share a client’s details with anyone.",
+    "Build trust through honesty. A real review is worth more than a fake five stars.",
+  ],
+  shop: [
+    "Sell real products. Counterfeit or mislabelled products result in immediate removal.",
+    "Describe accurately. Photos and descriptions must match the real product.",
+    "Dispatch on time. Late shipping damages your rating and your clients’ trust.",
+    "Honour your prices. Do not change a price after a client has paid.",
+    "All payments go through the platform. You will be paid after client confirms receipt.",
+    "Report issues to us. If there is a dispute, go through the platform — not directly to the client.",
+  ],
+  delivery: [
+    "Show up for every job you accept. A missed delivery damages everyone — you, the seller, and the client.",
+    "Handle products with care. You are responsible for the item from pickup to delivery.",
+    "Be on time. Your rating depends on it.",
+    "Communicate through the platform. Do not exchange personal contact with clients or sellers.",
+    "Your availability status matters. Set it accurately — Available means you will take jobs.",
+    "All earnings go through the platform. No side payments.",
+  ],
+};
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
@@ -452,7 +485,14 @@ const SIGN_IN_ROLES = ROLES.filter((r) => r.showInSignIn);
 type SignInRoleKey = "client" | "salon" | "professional";
 type SignInStep = "role" | "phone" | "otp";
 
-export function SignInRolePicker({ returnTo }: { returnTo: string }) {
+export function SignInRolePicker({
+  returnTo,
+  onSuccess,
+}: {
+  returnTo: string;
+  /** Optional override: called instead of router.push after successful auth. */
+  onSuccess?: (destination: string) => void;
+}) {
   const router = useRouter();
   const [active, setActive] = useState<SignInRoleKey>("client");
   const [step, setStep] = useState<SignInStep>("role");
@@ -484,7 +524,11 @@ export function SignInRolePicker({ returnTo }: { returnTo: string }) {
     } else {
       writeAppSession(createPreviewProfessionalSession());
     }
-    router.push(dest);
+    if (onSuccess) {
+      onSuccess(dest);
+    } else {
+      router.push(dest);
+    }
   }
 
   if (step === "phone") {
@@ -597,7 +641,12 @@ export function SignInRolePicker({ returnTo }: { returnTo: string }) {
 
 type SignUpStep = "role" | "phone" | "otp";
 
-export function SignUpRolePicker() {
+export function SignUpRolePicker({
+  onSuccess,
+}: {
+  /** Optional override: called instead of router.push after successful auth. */
+  onSuccess?: (destination: string) => void;
+} = {}) {
   const router = useRouter();
   const [active, setActive] = useState<RoleKey>("client");
   const [agreedCommunity, setAgreedCommunity] = useState(false);
@@ -622,7 +671,11 @@ export function SignUpRolePicker() {
   }
 
   function handleVerified() {
-    router.push(role.signUpHref);
+    if (onSuccess) {
+      onSuccess(role.signUpHref);
+    } else {
+      router.push(role.signUpHref);
+    }
   }
 
   if (step === "phone") {
@@ -716,7 +769,7 @@ export function SignUpRolePicker() {
             </div>
           </div>
           <ul className="mt-3 space-y-1.5">
-            {COMMUNITY_STANDARDS.map((standard, i) => (
+            {COMMUNITY_STANDARDS[active].map((standard, i) => (
               <li key={i} className="flex items-start gap-2 text-xs leading-5 text-[var(--ms-charcoal)]">
                 <span className="mt-0.5 shrink-0 text-[var(--ms-rose)]">✦</span>
                 {standard}
