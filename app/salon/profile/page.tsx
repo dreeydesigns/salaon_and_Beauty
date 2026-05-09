@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Building2,
-  Camera,
   Check,
   ChevronRight,
   Clock,
@@ -18,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageUploadEditor } from "@/components/image-upload-editor";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -104,23 +104,19 @@ function Textarea({
 // ── Tab panels ───────────────────────────────────────────────────────────────
 
 function IdentityTab() {
+  const [coverPhoto, setCoverPhoto] = useState<string | undefined>();
+
   return (
     <div className="space-y-4">
-      {/* Photo upload */}
-      <div className="flex items-center gap-4 rounded-[20px] border border-dashed border-[var(--ms-border)] bg-white p-5">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[var(--ms-soft-bg)]">
-          <Camera className="h-8 w-8 text-[var(--ms-mauve)]" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-[var(--ms-charcoal)]">Salon cover photo</p>
-          <p className="mt-1 text-xs text-[var(--ms-mauve)]">
-            Upload a high-quality image of your salon interior or team. JPG or PNG, min 800×600.
-          </p>
-          <button className="mt-2 rounded-full border border-[var(--ms-border)] px-3 py-1.5 text-xs font-semibold text-[var(--ms-plum)] transition hover:bg-[var(--ms-soft-bg)]">
-            Upload photo
-          </button>
-        </div>
-      </div>
+      {/* Cover photo — ImageUploadEditor */}
+      <ImageUploadEditor
+        label="Salon cover photo"
+        requirements="JPG or PNG · min 800 × 600 px · max 5 MB"
+        aspectHint="Landscape 4:3 or 16:9 recommended"
+        maxMB={5}
+        value={coverPhoto}
+        onSave={setCoverPhoto}
+      />
 
       <Field label="Salon name" placeholder="e.g. Kilimani Texture House" />
       <Field label="Contact name" placeholder="Your name or manager's name" />

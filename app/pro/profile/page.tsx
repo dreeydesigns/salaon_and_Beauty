@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Briefcase,
-  Camera,
   Check,
   ChevronRight,
   Clock,
@@ -16,6 +15,7 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageUploadEditor } from "@/components/image-upload-editor";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -107,24 +107,19 @@ function Textarea({
 
 function IdentityTab() {
   const [workStyle, setWorkStyle] = useState("both");
+  const [profilePhoto, setProfilePhoto] = useState<string | undefined>();
 
   return (
     <div className="space-y-4">
-      {/* Photo */}
-      <div className="flex items-center gap-4 rounded-[20px] border border-dashed border-[var(--ms-border)] bg-white p-5">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[var(--ms-soft-bg)]">
-          <Camera className="h-8 w-8 text-[var(--ms-mauve)]" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-[var(--ms-charcoal)]">Profile photo</p>
-          <p className="mt-1 text-xs text-[var(--ms-mauve)]">
-            A clear, professional photo builds trust. Use a real photo of yourself.
-          </p>
-          <button className="mt-2 rounded-full border border-[var(--ms-border)] px-3 py-1.5 text-xs font-semibold text-[#C8284A] transition hover:bg-[var(--ms-soft-bg)]">
-            Upload photo
-          </button>
-        </div>
-      </div>
+      {/* Profile photo — ImageUploadEditor */}
+      <ImageUploadEditor
+        label="Profile photo"
+        requirements="JPG or PNG · min 400 × 400 px · max 3 MB"
+        aspectHint="Square 1:1 recommended — your face clearly visible"
+        maxMB={3}
+        value={profilePhoto}
+        onSave={setProfilePhoto}
+      />
 
       <Field label="Display name" placeholder="Name clients will see (e.g. Njeri K.)" />
       <Field label="Specialty" placeholder="e.g. Protective styling, Natural hair care" />

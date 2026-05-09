@@ -1,10 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Building2, Crown, Sparkles, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Crown,
+  Phone,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Truck,
+} from "lucide-react";
+import { useRef, useState } from "react";
 
-import { SessionLaunchButton } from "@/components/session-launch-button";
+import {
+  createPreviewClientSession,
+  createPreviewProfessionalSession,
+  createPreviewSalonSession,
+  readAppSession,
+  writeAppSession,
+} from "@/lib/client-session";
 import { cn } from "@/lib/utils";
 
 // ─── Role definitions ────────────────────────────────────────────────────────
@@ -68,7 +85,7 @@ const ROLES = [
     colorBorder: "rgba(139,92,246,0.32)",
     signUpHref: "/shop/profile",
     signInDest: "/shop/dashboard",
-    showInSignIn: false, // Shop uses separate login — not in account switcher
+    showInSignIn: false,
   },
   {
     key: "delivery" as const,
@@ -83,13 +100,17 @@ const ROLES = [
     colorBorder: "rgba(234,88,12,0.32)",
     signUpHref: "/delivery/profile",
     signInDest: "/delivery/dashboard",
-    showInSignIn: false, // Delivery uses separate login — not in account switcher
+    showInSignIn: false,
   },
 ] as const;
 
 type RoleKey = (typeof ROLES)[number]["key"];
 
-// ─── Community standards content ─────────────────────────────────────────────
+// ─── Dev OTP constant ─────────────────────────────────────────────────────────
+// TODO(team): Remove this hint when switching to live SMS gateway.
+const DEV_OTP = "123456";
+
+// ─── Community standards ──────────────────────────────────────────────────────
 
 const COMMUNITY_STANDARDS = [
   "Be who you say you are. Misrepresentation is grounds for permanent removal.",
@@ -101,7 +122,7 @@ const COMMUNITY_STANDARDS = [
   "Report what you see. You are protecting yourself and every other woman here.",
 ];
 
-// ─── Checkbox atom ─────────────────────────────────────────────────────────────
+// ─── Shared sub-components ────────────────────────────────────────────────────
 
 function AgreementCheckbox({
   checked,
@@ -117,38 +138,516 @@ function AgreementCheckbox({
       <span
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition",
-          checked ? "border-[var(--ms-rose)] bg-[var(--ms-rose)] text-white" : "border-[var(--ms-border)] bg-white",
+          checked
+            ? "border-[var(--ms-rose)] bg-[var(--ms-rose)] text-white"
+            : "border-[var(--ms-border)] bg-white",
         )}
         style={{ minWidth: "1.25rem", minHeight: "1.25rem" }}
       >
         {checked ? (
           <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M2 6l3 3 5-5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         ) : null}
       </span>
-      <input checked={checked} className="sr-only" onChange={(e) => onChange(e.target.checked)} type="checkbox" />
+      <input
+        checked={checked}
+        className="sr-only"
+        onChange={(e) => onChange(e.target.checked)}
+        type="checkbox"
+      />
       <span className="text-xs leading-5 text-[var(--ms-charcoal)]">{children}</span>
     </label>
   );
 }
 
+// ─── OTP 6-digit input ────────────────────────────────────────────────────────
+
+function OtpInput({
+  value,
+  onChange,
+  color,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  color: string;
+}) {
+  const r0 = useRef<HTMLInputElement>(null);
+  const r1 = useRef<HTMLInputElement>(null);
+  const r2 = useRef<HTMLInputElement>(null);
+  const r3 = useRef<HTMLInputElement>(null);
+  const r4 = useRef<HTMLInputElement>(null);
+  const r5 = useRef<HTMLInputElement>(null);
+  const refs = [r0, r1, r2, r3, r4, r5];
+
+  function handleKey(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !value[i] && i > 0) {
+      refs[i - 1].current?.focus();
+    }
+  }
+
+  function handleChange(i: number, raw: string) {
+    const digit = raw.replace(/\D/g, "").slice(-1);
+    const arr = (value + "      ").slice(0, 6).split("");
+    arr[i] = digit;
+    const next = arr.join("");
+    onChange(next);
+    if (digit && i < 5) {
+      setTimeout(() => refs[i + 1].current?.focus(), 0);
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    onChange((pasted + "      ").slice(0, 6));
+    const lastIdx = Math.min(pasted.length, 5);
+    setTimeout(() => refs[lastIdx].current?.focus(), 0);
+  }
+
+  return (
+    <div className="flex justify-center gap-2">
+      {refs.map((ref, i) => (
+        <input
+          key={i}
+          ref={ref}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={(value[i] ?? "").trim()}
+          onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKey(i, e)}
+          onPaste={handlePaste}
+          className="h-12 w-10 rounded-[12px] border-2 bg-white text-center text-lg font-bold outline-none transition focus:scale-105"
+          style={{
+            borderColor: value[i]?.trim() ? color : "var(--ms-border)",
+            color: color,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Phone step ───────────────────────────────────────────────────────────────
+
+function PhoneStep({
+  color,
+  label,
+  onBack,
+  onSend,
+}: {
+  color: string;
+  label: string;
+  onBack: () => void;
+  onSend: (phone: string) => void;
+}) {
+  const [phone, setPhone] = useState("");
+  const clean = phone.replace(/\D/g, "");
+  const valid = clean.length >= 9; // Kenyan numbers: at least 9 digits
+
+  return (
+    <div className="space-y-5">
+      {/* Back */}
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm font-medium text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </button>
+
+      {/* Card */}
+      <div
+        className="rounded-[24px] border p-5"
+        style={{ backgroundColor: `${color}10`, borderColor: `${color}40` }}
+      >
+        {/* Icon + heading */}
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span
+            className="flex h-14 w-14 items-center justify-center rounded-full"
+            style={{ backgroundColor: color }}
+          >
+            <Phone className="h-6 w-6 text-white" />
+          </span>
+          <p className="text-xl font-semibold" style={{ color }}>
+            Verify your number
+          </p>
+          <p className="max-w-xs text-sm leading-6 text-[var(--ms-charcoal)]">
+            Enter your phone number. We&rsquo;ll send a one-time code to confirm it&rsquo;s you.
+          </p>
+        </div>
+
+        {/* Phone input */}
+        <div className="mt-5">
+          <div className="flex overflow-hidden rounded-[14px] border-2 bg-white transition focus-within:border-current"
+            style={{ borderColor: `${color}60` }}
+          >
+            <span className="flex items-center border-r px-4 text-sm font-semibold text-[var(--ms-charcoal)]"
+              style={{ borderColor: `${color}30` }}
+            >
+              🇰🇪 +254
+            </span>
+            <input
+              type="tel"
+              placeholder="7XX XXX XXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="flex-1 bg-transparent px-4 py-3.5 text-sm text-[var(--ms-navy)] outline-none placeholder:text-[var(--ms-mauve)]/50"
+              autoComplete="tel"
+            />
+          </div>
+        </div>
+
+        {/* Send OTP */}
+        <button
+          type="button"
+          disabled={!valid}
+          onClick={() => onSend(phone)}
+          className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ backgroundColor: color }}
+        >
+          Send verification code
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <p className="text-center text-xs text-[var(--ms-mauve)]">
+        Standard SMS rates may apply.
+      </p>
+    </div>
+  );
+}
+
+// ─── OTP step ─────────────────────────────────────────────────────────────────
+
+function OtpStep({
+  color,
+  phone,
+  onBack,
+  onVerified,
+}: {
+  color: string;
+  phone: string;
+  onBack: () => void;
+  onVerified: () => void;
+}) {
+  const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [resent, setResent] = useState(false);
+
+  function handleVerify() {
+    if (otp === DEV_OTP) {
+      setError("");
+      onVerified();
+    } else {
+      setError("Incorrect code. Please try again.");
+    }
+  }
+
+  function handleResend() {
+    setOtp("");
+    setError("");
+    setResent(true);
+    setTimeout(() => setResent(false), 3000);
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Back */}
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm font-medium text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Change number
+      </button>
+
+      {/* Card */}
+      <div
+        className="rounded-[24px] border p-5"
+        style={{ backgroundColor: `${color}10`, borderColor: `${color}40` }}
+      >
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span
+            className="flex h-14 w-14 items-center justify-center rounded-full"
+            style={{ backgroundColor: color }}
+          >
+            <ShieldCheck className="h-6 w-6 text-white" />
+          </span>
+          <p className="text-xl font-semibold" style={{ color }}>
+            Enter your code
+          </p>
+          <p className="max-w-xs text-sm leading-6 text-[var(--ms-charcoal)]">
+            We sent a 6-digit code to{" "}
+            <span className="font-semibold text-[var(--ms-navy)]">+254 {phone}</span>.
+          </p>
+        </div>
+
+        {/* OTP boxes */}
+        <div className="mt-6">
+          <OtpInput value={otp} onChange={setOtp} color={color} />
+        </div>
+
+        {/* Error */}
+        {error && (
+          <p className="mt-3 text-center text-xs font-medium text-red-500">{error}</p>
+        )}
+
+        {/* Dev hint — remove before production */}
+        <p className="mt-3 rounded-[10px] bg-amber-50 px-3 py-2 text-center text-[11px] font-medium text-amber-700">
+          🛠 Dev preview: use code{" "}
+          <button
+            type="button"
+            className="font-bold tracking-widest underline"
+            onClick={() => setOtp(DEV_OTP)}
+          >
+            {DEV_OTP}
+          </button>
+        </p>
+
+        {/* Verify */}
+        <button
+          type="button"
+          disabled={otp.replace(/\s/g, "").length < 6}
+          onClick={handleVerify}
+          className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ backgroundColor: color }}
+        >
+          Verify &amp; continue
+          <ArrowRight className="h-4 w-4" />
+        </button>
+
+        {/* Resend */}
+        <div className="mt-3 text-center">
+          {resent ? (
+            <p className="text-xs text-green-600 font-medium">Code resent ✓</p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              className="text-xs text-[var(--ms-mauve)] underline-offset-2 hover:underline"
+            >
+              Didn&rsquo;t receive it? Resend code
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Sign-in picker ────────────────────────────────────────────────────────────
+// Shop and Delivery are separate logins — NEVER appear in the account switcher.
+
+const SIGN_IN_ROLES = ROLES.filter((r) => r.showInSignIn);
+type SignInRoleKey = "client" | "salon" | "professional";
+type SignInStep = "role" | "phone" | "otp";
+
+export function SignInRolePicker({ returnTo }: { returnTo: string }) {
+  const router = useRouter();
+  const [active, setActive] = useState<SignInRoleKey>("client");
+  const [step, setStep] = useState<SignInStep>("role");
+  const [phone, setPhone] = useState("");
+
+  const role = SIGN_IN_ROLES.find((r) => r.key === active) ?? SIGN_IN_ROLES[0];
+  const dest = role.key === "client" ? returnTo : role.signInDest;
+
+  function handleRoleChange(key: SignInRoleKey) {
+    setActive(key);
+    setStep("role");
+    setPhone("");
+  }
+
+  function handleSend(p: string) {
+    setPhone(p);
+    setStep("otp");
+  }
+
+  function handleVerified() {
+    // Write session
+    const existing = readAppSession();
+    if (existing?.role === role.key) {
+      writeAppSession(existing);
+    } else if (role.key === "client") {
+      writeAppSession(createPreviewClientSession());
+    } else if (role.key === "salon") {
+      writeAppSession(createPreviewSalonSession());
+    } else {
+      writeAppSession(createPreviewProfessionalSession());
+    }
+    router.push(dest);
+  }
+
+  if (step === "phone") {
+    return (
+      <PhoneStep
+        color={role.color}
+        label={role.label}
+        onBack={() => setStep("role")}
+        onSend={handleSend}
+      />
+    );
+  }
+
+  if (step === "otp") {
+    return (
+      <OtpStep
+        color={role.color}
+        phone={phone}
+        onBack={() => setStep("phone")}
+        onVerified={handleVerified}
+      />
+    );
+  }
+
+  // Step: "role"
+  return (
+    <div className="space-y-5">
+      {/* Tab pills */}
+      <div className="flex gap-2 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1.5">
+        {SIGN_IN_ROLES.map((r) => {
+          const Icon = r.icon;
+          const isActive = r.key === active;
+          return (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => handleRoleChange(r.key as SignInRoleKey)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 text-sm font-semibold transition-all"
+              style={
+                isActive
+                  ? { backgroundColor: r.color, color: "#fff", boxShadow: `0 6px 20px ${r.color}44` }
+                  : { color: "var(--ms-mauve)" }
+              }
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">{r.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Active role card */}
+      <div
+        className="rounded-[24px] border p-5 transition-all"
+        style={{ backgroundColor: role.colorLight, borderColor: role.colorBorder }}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <span
+              className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+              style={{ backgroundColor: role.color, color: "#fff" }}
+            >
+              {role.badge}
+            </span>
+            <p className="mt-3 text-2xl font-semibold" style={{ color: role.color }}>
+              {role.tagline}
+            </p>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--ms-charcoal)]">
+              {role.description}
+            </p>
+          </div>
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white"
+            style={{ backgroundColor: role.color }}
+          >
+            <role.icon className="h-5 w-5" />
+          </span>
+        </div>
+
+        {/* CTA → goes to phone step */}
+        <button
+          type="button"
+          onClick={() => setStep("phone")}
+          className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110"
+          style={{ backgroundColor: role.color }}
+        >
+          Sign in as {role.label}
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Helper hint */}
+      <p className="rounded-[16px] bg-[var(--ms-soft-bg)] px-4 py-3 text-center text-xs leading-5 text-[var(--ms-mauve)]">
+        Not sure?{" "}
+        <button
+          type="button"
+          onClick={() => handleRoleChange("client")}
+          className="font-semibold"
+          style={{ color: SIGN_IN_ROLES[0].color }}
+        >
+          Start as Client
+        </button>{" "}
+        — you can always book without a pro account.
+      </p>
+    </div>
+  );
+}
+
 // ─── Sign-up picker ───────────────────────────────────────────────────────────
 
+type SignUpStep = "role" | "phone" | "otp";
+
 export function SignUpRolePicker() {
+  const router = useRouter();
   const [active, setActive] = useState<RoleKey>("client");
   const [agreedCommunity, setAgreedCommunity] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
+  const [step, setStep] = useState<SignUpStep>("role");
+  const [phone, setPhone] = useState("");
+
   const role = ROLES.find((r) => r.key === active)!;
   const canProceed = agreedCommunity && agreedTerms;
 
-  // Reset agreements when switching role
   function handleRoleChange(key: RoleKey) {
     setActive(key);
     setAgreedCommunity(false);
     setAgreedTerms(false);
+    setStep("role");
+    setPhone("");
   }
 
+  function handleSend(p: string) {
+    setPhone(p);
+    setStep("otp");
+  }
+
+  function handleVerified() {
+    router.push(role.signUpHref);
+  }
+
+  if (step === "phone") {
+    return (
+      <PhoneStep
+        color={role.color}
+        label={role.label}
+        onBack={() => setStep("role")}
+        onSend={handleSend}
+      />
+    );
+  }
+
+  if (step === "otp") {
+    return (
+      <OtpStep
+        color={role.color}
+        phone={phone}
+        onBack={() => setStep("phone")}
+        onVerified={handleVerified}
+      />
+    );
+  }
+
+  // Step: "role" — role picker + agreements
   return (
     <div className="space-y-5">
       {/* Tab pills */}
@@ -203,7 +702,7 @@ export function SignUpRolePicker() {
           </span>
         </div>
 
-        {/* Community Standards — separate screen per spec (shown inline here as collapsible) */}
+        {/* Community Standards */}
         <div className="mt-5 rounded-[18px] border border-[var(--ms-border)] bg-white p-4">
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ms-rose)]" />
@@ -226,7 +725,7 @@ export function SignUpRolePicker() {
           </ul>
         </div>
 
-        {/* Agreement checkboxes — MUST NOT be pre-ticked per Consumer Protection Act 2012 */}
+        {/* Agreement checkboxes */}
         <div className="mt-4 space-y-3">
           <AgreementCheckbox checked={agreedCommunity} onChange={setAgreedCommunity}>
             I agree to the{" "}
@@ -235,28 +734,29 @@ export function SignUpRolePicker() {
           </AgreementCheckbox>
 
           <AgreementCheckbox checked={agreedTerms} onChange={setAgreedTerms}>
-            I have read and agree to Mobile Salon's{" "}
+            I have read and agree to Mobile Salon&rsquo;s{" "}
             <Link
               href="/terms"
               className="font-semibold text-[var(--ms-rose)] underline underline-offset-2"
               onClick={(e) => e.stopPropagation()}
             >
-              Terms & Conditions
+              Terms &amp; Conditions
             </Link>
             . I am 18 years of age or older.
           </AgreementCheckbox>
         </div>
 
-        {/* CTA — disabled until both checkboxes ticked */}
+        {/* CTA — goes to phone verification after agreements */}
         {canProceed ? (
-          <Link
-            href={role.signUpHref}
+          <button
+            type="button"
+            onClick={() => setStep("phone")}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110"
             style={{ backgroundColor: role.color }}
           >
             Continue as {role.label}
             <ArrowRight className="h-4 w-4" />
-          </Link>
+          </button>
         ) : (
           <button
             disabled
@@ -292,92 +792,6 @@ export function SignUpRolePicker() {
           </span>
         ))}
         <span className="ml-1">accounts also available</span>
-      </p>
-    </div>
-  );
-}
-
-// ─── Sign-in picker ───────────────────────────────────────────────────────────
-// Shop and Delivery are separate logins — NEVER appear in the account switcher.
-const SIGN_IN_ROLES = ROLES.filter((r) => r.showInSignIn);
-type SignInRoleKey = "client" | "salon" | "professional";
-
-export function SignInRolePicker({ returnTo }: { returnTo: string }) {
-  const [active, setActive] = useState<SignInRoleKey>("client");
-  const role = SIGN_IN_ROLES.find((r) => r.key === active) ?? SIGN_IN_ROLES[0];
-  const dest = role.key === "client" ? returnTo : role.signInDest;
-
-  return (
-    <div className="space-y-5">
-      {/* Tab pills — Client/Salon/Pro only. Shop+Delivery have separate logins. */}
-      <div className="flex gap-2 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1.5">
-        {SIGN_IN_ROLES.map((r) => {
-          const Icon = r.icon;
-          const isActive = r.key === active;
-          return (
-            <button
-              key={r.key}
-              type="button"
-              onClick={() => setActive(r.key as SignInRoleKey)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 text-sm font-semibold transition-all"
-              style={
-                isActive
-                  ? { backgroundColor: r.color, color: "#fff", boxShadow: `0 6px 20px ${r.color}44` }
-                  : { color: "var(--ms-mauve)" }
-              }
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">{r.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active role card */}
-      <div
-        className="rounded-[24px] border p-5 transition-all"
-        style={{ backgroundColor: role.colorLight, borderColor: role.colorBorder }}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <span
-              className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-              style={{ backgroundColor: role.color, color: "#fff" }}
-            >
-              {role.badge}
-            </span>
-            <p className="mt-3 text-2xl font-semibold" style={{ color: role.color }}>
-              {role.tagline}
-            </p>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--ms-charcoal)]">
-              {role.description}
-            </p>
-          </div>
-          <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: role.color }}
-          >
-            <role.icon className="h-5 w-5" />
-          </span>
-        </div>
-
-        <SessionLaunchButton className="mt-5 w-full" destination={dest} role={role.key}>
-          Sign in as {role.label}
-        </SessionLaunchButton>
-      </div>
-
-      {/* Helper hint */}
-      <p className="rounded-[16px] bg-[var(--ms-soft-bg)] px-4 py-3 text-center text-xs leading-5 text-[var(--ms-mauve)]">
-        Not sure?{" "}
-        <button
-          type="button"
-          onClick={() => setActive("client")}
-          className="font-semibold"
-          style={{ color: SIGN_IN_ROLES[0].color }}
-        >
-          Start as Client
-        </button>{" "}
-        — you can always book without a pro account.
       </p>
     </div>
   );

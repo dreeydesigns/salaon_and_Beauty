@@ -6,13 +6,11 @@ import {
   BarChart2,
   Banknote,
   CalendarDays,
-  Camera,
   Check,
   CheckCircle2,
   Clock,
   Eye,
   Home,
-  ImagePlus,
   LogOut,
   MapPin,
   Pencil,
@@ -22,10 +20,10 @@ import {
   Star,
   ToggleLeft,
   ToggleRight,
-  UserRound,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { ImageUploadEditor } from "@/components/image-upload-editor";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -82,7 +80,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "home", label: "Home", icon: <Home className="h-5 w-5" /> },
     { key: "bookings", label: "Bookings", icon: <CalendarDays className="h-5 w-5" /> },
-    { key: "profile", label: "My Profile", icon: <UserRound className="h-5 w-5" /> },
+    { key: "profile", label: "My Profile", icon: <Star className="h-5 w-5" /> },
     { key: "earnings", label: "Earnings", icon: <Banknote className="h-5 w-5" /> },
     { key: "settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
@@ -139,7 +137,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
 
 function HomeTab() {
   const nudges = [
-    { icon: <Camera className="h-4 w-4" />, label: "Add portfolio photos" },
+    { icon: <Star className="h-4 w-4" />, label: "Add portfolio photos" },
     { icon: <ShieldCheck className="h-4 w-4" />, label: "Get verified" },
     { icon: <Clock className="h-4 w-4" />, label: "Set your availability" },
   ];
@@ -294,6 +292,8 @@ function MyProfileTab() {
   const [services, setServices] = useState(PRO_SERVICES);
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const [activeDays, setActiveDays] = useState(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+  const [profilePhoto, setProfilePhoto] = useState<string | undefined>();
+  const [portfolioPhotos, setPortfolioPhotos] = useState<(string | undefined)[]>(Array(6).fill(undefined));
 
   function toggleDay(d: string) {
     setActiveDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
@@ -336,14 +336,14 @@ function MyProfileTab() {
         <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
           <h2 className="mb-4 text-sm font-semibold text-[var(--ms-navy)]">Your identity</h2>
           <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--ms-petal)]">
-                <UserRound className="h-10 w-10 text-[var(--ms-plum)]" />
-              </div>
-              <button type="button" className="rounded-full border border-[var(--ms-border)] px-4 py-2 text-sm font-medium text-[var(--ms-navy)] hover:border-[var(--ms-rose)]">
-                Change photo
-              </button>
-            </div>
+            <ImageUploadEditor
+              label="Profile photo"
+              requirements="JPG or PNG · min 400 × 400 px · max 3 MB"
+              aspectHint="Square 1:1 — your face clearly visible"
+              maxMB={3}
+              value={profilePhoto}
+              onSave={setProfilePhoto}
+            />
             {[
               { label: "Full name", placeholder: "Njeri Kamau" },
               { label: "One-line bio", placeholder: "Natural hair specialist based in Kilimani" },
@@ -419,13 +419,22 @@ function MyProfileTab() {
             </button>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="group relative aspect-square overflow-hidden rounded-[14px] bg-[var(--ms-soft-bg)]">
-                <div className="flex h-full flex-col items-center justify-center gap-1 text-[var(--ms-border)]">
-                  <ImagePlus className="h-5 w-5" />
-                  <p className="text-[10px]">Add photo</p>
-                </div>
-              </div>
+            {portfolioPhotos.map((photo, i) => (
+              <ImageUploadEditor
+                key={i}
+                label={`Photo ${i + 1}`}
+                requirements="JPG or PNG · min 600 × 600 px · max 5 MB"
+                aspectHint="Square or portrait works best"
+                maxMB={5}
+                value={photo}
+                onSave={(url) =>
+                  setPortfolioPhotos((prev) => {
+                    const next = [...prev];
+                    next[i] = url;
+                    return next;
+                  })
+                }
+              />
             ))}
           </div>
           <p className="mt-3 text-center text-xs text-[var(--ms-mauve)]">Caption each photo after uploading.</p>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronLeft, MapPin, Minus, Plus, ShoppingBag, Star, Trash2, Truck } from "lucide-react";
 
 import { useCartStore } from "@/lib/cart-store";
 import { AppShell } from "@/components/app-shell";
@@ -146,84 +146,168 @@ function StepCart({
   );
 }
 
+// ── Mock riders ─────────────────────────────────────────────────────────────
+
+const MOCK_RIDERS = [
+  { id: "r1", name: "James K.", areas: "Kilimani · Westlands · CBD", rating: 4.9, fee: 200, eta: "30–45 min", available: true, trips: 312 },
+  { id: "r2", name: "Brian M.", areas: "South B · Langata · Karen", rating: 4.7, fee: 200, eta: "45–60 min", available: true, trips: 189 },
+  { id: "r3", name: "Felix O.", areas: "Eastlands · Umoja · Donholm", rating: 4.8, fee: 200, eta: "20–35 min", available: false, trips: 441 },
+  { id: "r4", name: "Peter N.", areas: "Kikuyu · Runda · Rosslyn", rating: 4.6, fee: 200, eta: "40–55 min", available: true, trips: 97 },
+];
+
 // ── Step 2 — Delivery ──────────────────────────────────────────────────────
 
 function StepDelivery({ onNext }: { onNext: () => void }) {
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
   const [address, setAddress] = useState("");
+  const [area, setArea] = useState("");
+  const [selectedRider, setSelectedRider] = useState<string | null>(null);
+
+  const availableRiders = MOCK_RIDERS.filter((r) => r.available);
+  const canProceed =
+    deliveryType === "pickup" ||
+    (address.trim().length >= 4 && area.trim().length >= 2 && selectedRider !== null);
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-[var(--ms-navy)]">Where should we deliver?</h2>
+      <h2 className="text-lg font-semibold text-[var(--ms-navy)]">Delivery details</h2>
 
       {/* Delivery type */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { key: "delivery" as const, label: "📍 Deliver to me", sub: "We bring it to your door" },
-          { key: "pickup" as const, label: "🏪 I'll pick up", sub: "Collect from seller's location" },
+          { key: "delivery" as const, icon: <Truck className="h-4 w-4" />, label: "Deliver to me", sub: "We bring it to your door" },
+          { key: "pickup" as const, icon: <MapPin className="h-4 w-4" />, label: "I'll pick up", sub: "Collect from seller's location" },
         ].map((opt) => (
           <button
             key={opt.key}
             type="button"
-            onClick={() => setDeliveryType(opt.key)}
+            onClick={() => { setDeliveryType(opt.key); setSelectedRider(null); }}
             className={cn(
-              "rounded-[20px] border p-4 text-left transition",
+              "flex items-start gap-3 rounded-[20px] border p-4 text-left transition",
               deliveryType === opt.key
                 ? "border-[var(--ms-rose)] bg-[var(--ms-petal)] text-[var(--ms-plum)]"
                 : "border-[var(--ms-border)] bg-white text-[var(--ms-navy)]",
             )}
           >
-            <p className="text-sm font-semibold">{opt.label}</p>
-            <p className="mt-1 text-xs text-[var(--ms-mauve)]">{opt.sub}</p>
+            <span className="mt-0.5">{opt.icon}</span>
+            <div>
+              <p className="text-sm font-semibold">{opt.label}</p>
+              <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{opt.sub}</p>
+            </div>
           </button>
         ))}
       </div>
 
       {deliveryType === "delivery" && (
-        <div className="space-y-3 rounded-[20px] border border-[var(--ms-border)] bg-white p-4">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Delivery address</label>
-            <input
-              type="text"
-              placeholder="Estate name, road, apartment number..."
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm outline-none focus:border-[var(--ms-rose)]"
-            />
+        <>
+          {/* Address fields */}
+          <div className="space-y-3 rounded-[20px] border border-[var(--ms-border)] bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">Your address</p>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ms-mauve)]">Street / building / road</label>
+              <input
+                type="text"
+                placeholder="Estate name, road, apartment number..."
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm outline-none focus:border-[var(--ms-rose)]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ms-mauve)]">Neighbourhood / area</label>
+              <input
+                type="text"
+                placeholder="Kilimani, Westlands, Karen..."
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm outline-none focus:border-[var(--ms-rose)]"
+              />
+            </div>
+            <p className="rounded-[12px] bg-[var(--ms-soft-bg)] px-3 py-2 text-[11px] leading-4 text-[var(--ms-mauve)]">
+              🔒 Address is only shared with your delivery rider after payment is confirmed.
+            </p>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Neighbourhood / Area</label>
-            <input
-              type="text"
-              placeholder="Kilimani, Westlands, Karen..."
-              className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm outline-none focus:border-[var(--ms-rose)]"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Phone (for delivery updates)</label>
-            <input
-              type="tel"
-              placeholder="+254 7XX XXX XXX"
-              className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm outline-none focus:border-[var(--ms-rose)]"
-            />
-          </div>
-          <p className="text-xs text-[var(--ms-mauve)]">Your address is only shared with the seller after payment is confirmed.</p>
-        </div>
+
+          {/* Rider selection */}
+          {address.trim().length >= 4 && area.trim().length >= 2 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">
+                Choose your rider
+              </p>
+              <p className="text-xs text-[var(--ms-mauve)]">All deliveries are Ksh 200 · Riders are verified Mobile Salon partners.</p>
+              <div className="space-y-2">
+                {availableRiders.map((rider) => (
+                  <button
+                    key={rider.id}
+                    type="button"
+                    onClick={() => setSelectedRider(rider.id)}
+                    className={cn(
+                      "flex w-full items-center gap-4 rounded-[18px] border p-4 text-left transition",
+                      selectedRider === rider.id
+                        ? "border-[var(--ms-rose)] bg-[var(--ms-petal)]"
+                        : "border-[var(--ms-border)] bg-white hover:border-[var(--ms-rose)]/40",
+                    )}
+                  >
+                    {/* Avatar */}
+                    <div className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white",
+                      selectedRider === rider.id ? "bg-[var(--ms-rose)]" : "bg-[var(--ms-plum)]",
+                    )}>
+                      {rider.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[var(--ms-navy)]">{rider.name}</p>
+                        <p className="shrink-0 text-xs font-semibold text-[var(--ms-navy)]">Ksh {rider.fee}</p>
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <span className="flex items-center gap-0.5 text-xs text-[var(--ms-mauve)]">
+                          <Star className="h-3 w-3 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
+                          {rider.rating}
+                        </span>
+                        <span className="text-[var(--ms-border)]">·</span>
+                        <span className="text-xs text-[var(--ms-mauve)]">{rider.trips} deliveries</span>
+                        <span className="text-[var(--ms-border)]">·</span>
+                        <span className="text-xs text-emerald-600">{rider.eta}</span>
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] text-[var(--ms-mauve)]">
+                        <MapPin className="mr-0.5 inline h-2.5 w-2.5" />{rider.areas}
+                      </p>
+                    </div>
+                    {selectedRider === rider.id && (
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-[var(--ms-rose)]" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {deliveryType === "pickup" && (
         <div className="rounded-[20px] border border-[var(--ms-border)] bg-white p-4">
-          <p className="text-sm text-[var(--ms-mauve)]">Pickup location will be shared once your order is confirmed.</p>
+          <div className="flex items-start gap-3">
+            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ms-plum)]" />
+            <div>
+              <p className="text-sm font-semibold text-[var(--ms-navy)]">Pickup location confirmed after payment</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--ms-mauve)]">
+                The seller will send you their exact address via WhatsApp once payment is held in escrow.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       <button
         type="button"
         onClick={onNext}
-        disabled={deliveryType === "delivery" && address.trim().length < 4}
+        disabled={!canProceed}
         className="w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(200,40,74,0.22)] hover:opacity-90 disabled:opacity-50"
       >
-        Continue to payment →
+        {deliveryType === "delivery" && !selectedRider && address.trim().length >= 4
+          ? "Select a rider to continue →"
+          : "Continue to payment →"}
       </button>
     </div>
   );

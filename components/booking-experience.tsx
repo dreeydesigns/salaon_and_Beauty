@@ -33,7 +33,6 @@ import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
 export function BookingExperience() {
   const searchParams = useSearchParams();
   const isRushBooking = searchParams.get("rush") === "true";
-  const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const {
     step,
     targetType,
@@ -135,12 +134,6 @@ export function BookingExperience() {
   }
 
   function handleNextStep() {
-    if (step === 2 && selectedServiceIds.length > 0) {
-      saveBookingDraft();
-      setAuthPromptOpen(true);
-      return;
-    }
-
     nextStep();
   }
 
@@ -495,45 +488,6 @@ export function BookingExperience() {
         </div>
       ) : null}
 
-      {authPromptOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(58,24,58,0.5)] px-4 pb-4 backdrop-blur-sm sm:items-center sm:pb-0">
-          <div className="relative w-full max-w-md overflow-hidden rounded-[34px] border border-white/70 bg-white p-5 shadow-[0_28px_90px_rgba(132,36,92,0.28)]">
-            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--ms-blush)]/80 blur-2xl" />
-            <div className="absolute -bottom-12 -left-10 h-36 w-36 rounded-full bg-[var(--ms-lilac)]/80 blur-2xl" />
-            <div className="relative">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Saved for you</p>
-              <h2 className="mt-3 font-display text-3xl leading-tight text-[var(--ms-plum)]">
-                Your services are tucked safely away.
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
-                Sign in or create an account to finish the request without losing your choice.
-              </p>
-              <div className="mt-5 rounded-[24px] bg-[var(--ms-soft-bg)] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Selected</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--ms-navy)]">
-                  {selectedServices.map((service) => service.name).join(", ")}
-                </p>
-                <p className="mt-1 text-sm text-[var(--ms-mauve)]">{formatPriceRange(totalMin, totalMax)}</p>
-              </div>
-              <div className="mt-5 grid gap-3">
-                <CTAButton href={`/signup/client?returnTo=${encodeURIComponent("/book?resume=booking")}`}>
-                  Create account and continue
-                </CTAButton>
-                <CTAButton href={`/auth/sign-in?returnTo=${encodeURIComponent("/book?resume=booking")}`} variant="outline">
-                  Sign in
-                </CTAButton>
-                <button
-                  className="rounded-full px-4 py-3 text-sm font-semibold text-[var(--ms-mauve)] transition hover:text-[var(--ms-plum)]"
-                  onClick={() => setAuthPromptOpen(false)}
-                  type="button"
-                >
-                  Review my services again
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
 
     {/* Review Snapshots — reassures client mid-booking */}

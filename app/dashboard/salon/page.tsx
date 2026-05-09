@@ -15,7 +15,6 @@ import {
   Clock,
   Eye,
   Home,
-  ImagePlus,
   LogOut,
   Pencil,
   Plus,
@@ -32,6 +31,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { ImageUploadEditor } from "@/components/image-upload-editor";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -276,6 +276,9 @@ function BookingsTab() {
 function MySalonTab() {
   const [section, setSection] = useState<SalonSection>("identity");
   const [services, setServices] = useState(SERVICES);
+  const [logoPhoto, setLogoPhoto] = useState<string | undefined>();
+  const [coverPhoto, setCoverPhoto] = useState<string | undefined>();
+  const [portfolioPhotos, setPortfolioPhotos] = useState<(string | undefined)[]>(Array(6).fill(undefined));
 
   function toggleService(id: string) {
     setServices((prev) => prev.map((s) => s.id === id ? { ...s, active: !s.active } : s));
@@ -327,20 +330,22 @@ function MySalonTab() {
                 />
               </div>
             ))}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex aspect-video items-center justify-center rounded-[16px] border-2 border-dashed border-[var(--ms-border)] text-[var(--ms-mauve)] hover:border-[var(--ms-rose)]">
-                <div className="text-center">
-                  <ImagePlus className="mx-auto h-6 w-6" />
-                  <p className="mt-1 text-xs">Logo</p>
-                </div>
-              </div>
-              <div className="flex aspect-video items-center justify-center rounded-[16px] border-2 border-dashed border-[var(--ms-border)] text-[var(--ms-mauve)] hover:border-[var(--ms-rose)]">
-                <div className="text-center">
-                  <ImagePlus className="mx-auto h-6 w-6" />
-                  <p className="mt-1 text-xs">Cover photo</p>
-                </div>
-              </div>
-            </div>
+            <ImageUploadEditor
+              label="Salon logo"
+              requirements="PNG recommended · min 400 × 400 px · max 2 MB"
+              aspectHint="Square 1:1 — used on your listing card"
+              maxMB={2}
+              value={logoPhoto}
+              onSave={setLogoPhoto}
+            />
+            <ImageUploadEditor
+              label="Cover photo"
+              requirements="JPG or PNG · min 800 × 600 px · max 5 MB"
+              aspectHint="Landscape 4:3 or 16:9 recommended"
+              maxMB={5}
+              value={coverPhoto}
+              onSave={setCoverPhoto}
+            />
             <button type="button" className="w-full rounded-full bg-[var(--ms-plum)] py-3 text-sm font-semibold text-white hover:opacity-90">
               Save identity
             </button>
@@ -422,12 +427,22 @@ function MySalonTab() {
             </button>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="group relative aspect-square overflow-hidden rounded-[14px] bg-[var(--ms-soft-bg)]">
-                <div className="flex h-full items-center justify-center text-[var(--ms-border)]">
-                  <ImagePlus className="h-6 w-6" />
-                </div>
-              </div>
+            {portfolioPhotos.map((photo, i) => (
+              <ImageUploadEditor
+                key={i}
+                label={`Photo ${i + 1}`}
+                requirements="JPG or PNG · min 600 × 600 px · max 5 MB"
+                aspectHint="Square or portrait works best"
+                maxMB={5}
+                value={photo}
+                onSave={(url) =>
+                  setPortfolioPhotos((prev) => {
+                    const next = [...prev];
+                    next[i] = url;
+                    return next;
+                  })
+                }
+              />
             ))}
           </div>
         </div>

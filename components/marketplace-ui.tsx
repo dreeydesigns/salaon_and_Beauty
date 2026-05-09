@@ -741,10 +741,12 @@ function ImageLayer({
   asset,
   className,
   priority,
+  sizes,
 }: {
   asset?: VisualAsset;
   className?: string;
   priority?: boolean;
+  sizes?: string;
 }) {
   if (!asset) {
     return null;
@@ -753,10 +755,10 @@ function ImageLayer({
   return (
     <Image
       alt={asset.alt}
-      className={cn("object-cover", className)}
+      className={cn("absolute inset-0 h-full w-full object-cover", className)}
       fill
       priority={priority}
-      sizes="(min-width: 1280px) 42vw, (min-width: 768px) 50vw, 100vw"
+      sizes={sizes ?? "(min-width: 1280px) 42vw, (min-width: 768px) 50vw, 100vw"}
       src={asset.url}
       style={{ objectPosition: asset.position ?? "center" }}
     />
@@ -894,8 +896,8 @@ export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolea
   if (listView) {
     return (
       <article className="flex min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
-        <div className="relative w-36 shrink-0 overflow-hidden sm:w-48">
-          <ImageLayer asset={salon.image} className="absolute inset-0" />
+        <div className="relative min-h-[140px] w-36 shrink-0 self-stretch overflow-hidden sm:w-48">
+          <ImageLayer asset={salon.image} />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.4)_100%)]" />
           {salon.verified && (
             <span className="absolute bottom-2 left-2">
@@ -931,8 +933,8 @@ export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolea
   return (
     <article className="group min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
       {/* Photo */}
-      <div className={cn("relative h-[180px] overflow-hidden bg-gradient-to-br", salon.heroMood)}>
-        <ImageLayer asset={salon.image} priority />
+      <div className={cn("relative h-[180px] w-full overflow-hidden bg-gradient-to-br", salon.heroMood)}>
+        <ImageLayer asset={salon.image} priority sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 90vw" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_40%,rgba(13,27,42,0.52)_100%)]" />
         {/* Overlaid pills */}
         <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
@@ -970,8 +972,8 @@ export function ProfessionalCard({ professional, listView }: { professional: Pro
   if (listView) {
     return (
       <article className="flex min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
-        <div className="relative w-36 shrink-0 overflow-hidden sm:w-48">
-          <ImageLayer asset={professional.image} className="absolute inset-0" />
+        <div className="relative min-h-[140px] w-36 shrink-0 self-stretch overflow-hidden sm:w-48">
+          <ImageLayer asset={professional.image} />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.4)_100%)]" />
           {professional.verified && (
             <span className="absolute bottom-2 left-2"><VerifiedBadge /></span>
