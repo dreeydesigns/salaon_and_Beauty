@@ -71,6 +71,8 @@ const TEAM = [
   { id: "t3", name: "Mariam Hassan", specialty: "Skincare & Facial", active: false },
 ];
 
+const PORTFOLIO_SERVICES = ["Hair styling", "Braiding", "Locs", "Nails", "Make-up", "Skincare", "Facial", "Threading", "Bridal"] as const;
+
 type Tab = "home" | "bookings" | "salon" | "earnings" | "settings" | "ads";
 type SalonSection = "identity" | "services" | "team" | "portfolio" | "hours";
 
@@ -288,6 +290,10 @@ function MySalonTab() {
   const [logoPhoto, setLogoPhoto] = useState<string | undefined>();
   const [coverPhoto, setCoverPhoto] = useState<string | undefined>();
   const [portfolioPhotos, setPortfolioPhotos] = useState<(string | undefined)[]>(Array(6).fill(undefined));
+  type PortfolioMeta = { services: string[]; description: string };
+  const [portfolioMeta, setPortfolioMeta] = useState<PortfolioMeta[]>(
+    Array(6).fill(null).map(() => ({ services: [], description: "" }))
+  );
   const [hours, setHours] = useState<Record<DayKey, HoursEntry>>({
     Monday:    { open: true,  start: "09:00", startPeriod: "AM", end: "07:00", endPeriod: "PM" },
     Tuesday:   { open: true,  start: "09:00", startPeriod: "AM", end: "07:00", endPeriod: "PM" },
@@ -457,23 +463,78 @@ function MySalonTab() {
               <Plus className="h-3.5 w-3.5" /> Add photo
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-4">
             {portfolioPhotos.map((photo, i) => (
-              <ImageUploadEditor
-                key={i}
-                label={`Photo ${i + 1}`}
-                requirements="JPG or PNG · min 600 × 600 px · max 5 MB"
-                aspectHint="Square or portrait works best"
-                maxMB={5}
-                value={photo}
-                onSave={(url) =>
-                  setPortfolioPhotos((prev) => {
-                    const next = [...prev];
-                    next[i] = url;
-                    return next;
-                  })
-                }
-              />
+              <div key={i} className="rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4 space-y-3">
+                <ImageUploadEditor
+                  label={`Photo ${i + 1}`}
+                  requirements="JPG or PNG · min 600 × 600 px · max 5 MB"
+                  aspectHint="Square or portrait works best"
+                  maxMB={5}
+                  value={photo}
+                  onSave={(url) =>
+                    setPortfolioPhotos((prev) => {
+                      const next = [...prev];
+                      next[i] = url;
+                      return next;
+                    })
+                  }
+                />
+
+                {/* Service tags */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-[var(--ms-mauve)]">Service done</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PORTFOLIO_SERVICES.map((s) => {
+                      const active = portfolioMeta[i].services.includes(s);
+                      return (
+                        <button key={s} type="button"
+                          onClick={() => setPortfolioMeta(prev => {
+                            const next = [...prev];
+                            next[i] = {
+                              ...next[i],
+                              services: active
+                                ? next[i].services.filter(x => x !== s)
+                                : [...next[i].services, s],
+                            };
+                            return next;
+                          })}
+                          className={cn(
+                            "rounded-full border px-3 py-1 text-xs font-medium transition",
+                            active
+                              ? "border-[var(--ms-rose)] bg-[var(--ms-petal)] text-[var(--ms-plum)]"
+                              : "border-[var(--ms-border)] text-[var(--ms-mauve)] hover:border-[var(--ms-rose)]/50",
+                          )}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-[var(--ms-mauve)]">Description of work</p>
+                    <p className={cn("text-[10px]", portfolioMeta[i].description.length > 280 ? "text-[var(--ms-rose)]" : "text-[var(--ms-mauve)]")}>
+                      {portfolioMeta[i].description.length} / 300
+                    </p>
+                  </div>
+                  <textarea
+                    value={portfolioMeta[i].description}
+                    maxLength={300}
+                    onChange={(e) => setPortfolioMeta(prev => {
+                      const next = [...prev];
+                      next[i] = { ...next[i], description: e.target.value };
+                      return next;
+                    })}
+                    placeholder="Describe the work done — hair type, technique, products used..."
+                    rows={3}
+                    className="w-full resize-none rounded-[14px] border border-[var(--ms-border)] bg-white px-3 py-2 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)] placeholder:text-[var(--ms-border)]"
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </div>

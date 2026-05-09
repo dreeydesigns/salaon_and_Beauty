@@ -384,7 +384,7 @@ export default function ExplorePage() {
                           <p className="text-sm font-semibold text-[var(--ms-navy)]">{pkg.price}</p>
                         </div>
                         <Link
-                          href={`/book?rush=true`}
+                          href={`/explore/packages/${pkg.id}`}
                           className="rounded-full bg-[var(--ms-rose)] px-4 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
                         >
                           Explore package
@@ -423,7 +423,7 @@ export default function ExplorePage() {
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <p className="text-sm font-semibold text-[var(--ms-navy)]">{pkg.price}</p>
-                        <Link href="/book?rush=true" className="rounded-full bg-[var(--ms-rose)] px-4 py-1.5 text-xs font-semibold text-white">
+                        <Link href={`/explore/packages/${pkg.id}`} className="rounded-full bg-[var(--ms-rose)] px-4 py-1.5 text-xs font-semibold text-white">
                           Explore package
                         </Link>
                       </div>

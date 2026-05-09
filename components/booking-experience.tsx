@@ -125,7 +125,7 @@ export function BookingExperience() {
     (step === 1 && Boolean(targetType)) ||
     (step === 2 && selectedServiceIds.length > 0) ||
     (step === 3 && Boolean(selectedDate && selectedTime)) ||
-    (step === 4 && Boolean(contact.fullName && contact.phone && contact.email)) ||
+    step === 4 ||
     step === 5;
 
   function handleConfirm() {
@@ -342,16 +342,28 @@ export function BookingExperience() {
 
           {step === 4 ? (
             <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <InputField label="Full name" value={contact.fullName} onChange={(value) => setContact("fullName", value)} />
-                <InputField label="Phone" value={contact.phone} onChange={(value) => setContact("phone", value)} />
-                <InputField label="Email" value={contact.email} onChange={(value) => setContact("email", value)} />
-                <div className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Booking mode</p>
-                  <p className="mt-2 text-sm text-[var(--ms-charcoal)]">
-                    {targetType === "salons" ? "Salon booking request" : "Professional booking request"}
-                  </p>
+              {/* Pre-filled from session — read-only display */}
+              <div className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Your details</p>
+                <p className="mt-1 text-[10px] text-[var(--ms-mauve)]">Pulled from your account. <button type="button" className="underline hover:no-underline">Edit profile</button></p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  {[
+                    { label: "Name", value: contact.fullName || "Your name" },
+                    { label: "Phone", value: contact.phone || "+254 7XX XXX XXX" },
+                    { label: "Email", value: contact.email || "your@email.com" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-[16px] border border-[var(--ms-border)] bg-white px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ms-mauve)]">{label}</p>
+                      <p className="mt-1 text-sm font-medium text-[var(--ms-navy)]">{value}</p>
+                    </div>
+                  ))}
                 </div>
+              </div>
+              <div className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Booking mode</p>
+                <p className="mt-2 text-sm text-[var(--ms-charcoal)]">
+                  {targetType === "salons" ? "Salon booking request" : "Professional booking request"}
+                </p>
               </div>
               <label className="block rounded-[24px] border border-[var(--ms-border)] bg-white p-4">
                 <span className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Notes</span>
