@@ -12,9 +12,11 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Eye,
+  FileText,
   Home,
   LogOut,
   Pencil,
@@ -69,8 +71,8 @@ const TEAM = [
   { id: "t3", name: "Mariam Hassan", specialty: "Skincare & Facial", active: false },
 ];
 
-type Tab = "home" | "bookings" | "salon" | "earnings" | "settings";
-type SalonSection = "identity" | "services" | "team" | "portfolio";
+type Tab = "home" | "bookings" | "salon" | "earnings" | "settings" | "ads";
+type SalonSection = "identity" | "services" | "team" | "portfolio" | "hours";
 
 // ── Status pill ────────────────────────────────────────────────────────────
 
@@ -97,6 +99,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
     { key: "salon", label: "My Salon", icon: <BriefcaseBusiness className="h-5 w-5" /> },
     { key: "earnings", label: "Earnings", icon: <Banknote className="h-5 w-5" /> },
     { key: "settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },
+    { key: "ads", label: "Ads", icon: <BarChart2 className="h-5 w-5" /> },
   ];
 
   return (
@@ -275,12 +278,29 @@ function BookingsTab() {
 
 // ── My Salon tab ───────────────────────────────────────────────────────────
 
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+type DayKey = typeof DAYS_OF_WEEK[number];
+type HoursEntry = { open: boolean; start: string; startPeriod: "AM" | "PM"; end: string; endPeriod: "AM" | "PM" };
+
 function MySalonTab() {
   const [section, setSection] = useState<SalonSection>("identity");
   const [services, setServices] = useState(SERVICES);
   const [logoPhoto, setLogoPhoto] = useState<string | undefined>();
   const [coverPhoto, setCoverPhoto] = useState<string | undefined>();
   const [portfolioPhotos, setPortfolioPhotos] = useState<(string | undefined)[]>(Array(6).fill(undefined));
+  const [hours, setHours] = useState<Record<DayKey, HoursEntry>>({
+    Monday:    { open: true,  start: "09:00", startPeriod: "AM", end: "07:00", endPeriod: "PM" },
+    Tuesday:   { open: true,  start: "09:00", startPeriod: "AM", end: "07:00", endPeriod: "PM" },
+    Wednesday: { open: true,  start: "09:00", startPeriod: "AM", end: "07:00", endPeriod: "PM" },
+    Thursday:  { open: true,  start: "09:00", startPeriod: "AM", end: "07:00", endPeriod: "PM" },
+    Friday:    { open: true,  start: "09:00", startPeriod: "AM", end: "07:00", endPeriod: "PM" },
+    Saturday:  { open: true,  start: "09:00", startPeriod: "AM", end: "05:00", endPeriod: "PM" },
+    Sunday:    { open: false, start: "10:00", startPeriod: "AM", end: "04:00", endPeriod: "PM" },
+  });
+
+  function updateHours(day: DayKey, patch: Partial<HoursEntry>) {
+    setHours(prev => ({ ...prev, [day]: { ...prev[day], ...patch } }));
+  }
 
   function toggleService(id: string) {
     setServices((prev) => prev.map((s) => s.id === id ? { ...s, active: !s.active } : s));
@@ -291,6 +311,7 @@ function MySalonTab() {
     { key: "services", label: "Services" },
     { key: "team", label: "Team" },
     { key: "portfolio", label: "Portfolio" },
+    { key: "hours", label: "Hours" },
   ];
 
   return (
@@ -319,19 +340,27 @@ function MySalonTab() {
         <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
           <h2 className="mb-4 text-sm font-semibold text-[var(--ms-navy)]">Salon identity</h2>
           <div className="space-y-4">
-            {[
-              { label: "Salon name", placeholder: "Glam Studio Westlands" },
-              { label: "Salon type", placeholder: "Hair Salon" },
-            ].map((f) => (
-              <div key={f.label}>
-                <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">{f.label}</label>
-                <input
-                  type="text"
-                  placeholder={f.placeholder}
-                  className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
-                />
-              </div>
-            ))}
+            {/* Salon name — individual render with lock warning */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Salon name</label>
+              <input
+                type="text"
+                placeholder="Glam Studio Westlands"
+                className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
+              />
+              <p className="mt-1.5 rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] leading-5 text-amber-800">
+                ⚠️ Your salon name cannot be changed for 6 months after account creation. Once set, you can update it every 3 months.
+              </p>
+            </div>
+            {/* Salon type */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-[var(--ms-mauve)]">Salon type</label>
+              <input
+                type="text"
+                placeholder="Hair Salon"
+                className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
+              />
+            </div>
             <ImageUploadEditor
               label="Salon logo"
               requirements="PNG recommended · min 400 × 400 px · max 2 MB"
@@ -449,6 +478,73 @@ function MySalonTab() {
           </div>
         </div>
       )}
+
+      {/* Hours */}
+      {section === "hours" && (
+        <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
+          <h2 className="mb-1 text-sm font-semibold text-[var(--ms-navy)]">Operating hours</h2>
+          <p className="mb-4 text-xs text-[var(--ms-mauve)]">Type any time you like — e.g. 09:30 AM. Toggle a day off to mark it as closed.</p>
+          <div className="space-y-3">
+            {DAYS_OF_WEEK.map((day) => {
+              const h = hours[day];
+              return (
+                <div key={day} className="rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <p className="w-24 text-sm font-medium text-[var(--ms-navy)]">{day}</p>
+                    <button
+                      type="button"
+                      onClick={() => updateHours(day, { open: !h.open })}
+                      className={cn("transition", h.open ? "text-emerald-600" : "text-slate-300")}
+                    >
+                      {h.open ? <ToggleRight className="h-7 w-7" /> : <ToggleLeft className="h-7 w-7" />}
+                    </button>
+                  </div>
+                  {h.open && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-[var(--ms-mauve)]">Opens</span>
+                      <input
+                        type="text"
+                        value={h.start}
+                        onChange={(e) => updateHours(day, { start: e.target.value })}
+                        placeholder="09:00"
+                        className="w-20 rounded-[10px] border border-[var(--ms-border)] bg-white px-3 py-1.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
+                      />
+                      <select
+                        value={h.startPeriod}
+                        onChange={(e) => updateHours(day, { startPeriod: e.target.value as "AM" | "PM" })}
+                        className="rounded-[10px] border border-[var(--ms-border)] bg-white px-2 py-1.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
+                      >
+                        <option>AM</option><option>PM</option>
+                      </select>
+                      <span className="text-xs text-[var(--ms-mauve)]">closes</span>
+                      <input
+                        type="text"
+                        value={h.end}
+                        onChange={(e) => updateHours(day, { end: e.target.value })}
+                        placeholder="07:00"
+                        className="w-20 rounded-[10px] border border-[var(--ms-border)] bg-white px-3 py-1.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
+                      />
+                      <select
+                        value={h.endPeriod}
+                        onChange={(e) => updateHours(day, { endPeriod: e.target.value as "AM" | "PM" })}
+                        className="rounded-[10px] border border-[var(--ms-border)] bg-white px-2 py-1.5 text-sm text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
+                      >
+                        <option>AM</option><option>PM</option>
+                      </select>
+                    </div>
+                  )}
+                  {!h.open && (
+                    <p className="mt-1 text-xs text-[var(--ms-mauve)]">Closed</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <button type="button" className="mt-5 w-full rounded-full bg-[var(--ms-plum)] py-3 text-sm font-semibold text-white hover:opacity-90">
+            Save hours
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -496,9 +592,290 @@ function EarningsTab() {
   );
 }
 
+// ── Monthly report modal ───────────────────────────────────────────────────
+
+function MonthlyReportModal({ onClose, role }: { onClose: () => void; role: "salon" | "professional" }) {
+  const [monthIndex, setMonthIndex] = useState(0);
+  const MONTHS = ["May 2026", "April 2026", "March 2026", "February 2026"];
+  const month = MONTHS[monthIndex];
+
+  const salonBookings = [
+    { date: "Apr 28", client: "Amina W.", service: "Balayage + Trim", amount: "Ksh 4,500", status: "Completed", payout: "Settled" },
+    { date: "Apr 25", client: "Wanjiru K.", service: "Manicure & Pedicure", amount: "Ksh 1,800", status: "Completed", payout: "Settled" },
+    { date: "Apr 22", client: "Fatuma A.", service: "Deep Conditioning", amount: "Ksh 1,200", status: "Completed", payout: "Settled" },
+    { date: "Apr 19", client: "Grace N.", service: "Bridal Trial", amount: "Ksh 3,500", status: "Completed", payout: "Pending" },
+  ];
+  const proBookings = [
+    { date: "Apr 27", client: "Sasha M.", service: "Box Braids", amount: "Ksh 2,800", status: "Completed", payout: "Settled" },
+    { date: "Apr 24", client: "Nour H.", service: "Locs Starter", amount: "Ksh 2,400", status: "Completed", payout: "Settled" },
+    { date: "Apr 20", client: "Keiko T.", service: "Natural Hair Styling", amount: "Ksh 1,200", status: "Completed", payout: "Pending" },
+  ];
+  const bookings = role === "salon" ? salonBookings : proBookings;
+  const total = role === "salon" ? 48500 : 28200;
+  const commission = Math.round(total * 0.05);
+  const net = total - commission;
+
+  return (
+    <div className="fixed inset-0 z-[9990] flex items-end justify-center sm:items-center p-4 bg-[rgba(13,27,42,0.6)] backdrop-blur-sm">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-t-[32px] bg-white sm:rounded-[32px]" style={{ maxHeight: "90dvh" }}>
+        <div className="flex items-center justify-between border-b border-[var(--ms-border)] px-5 py-4">
+          <h2 className="text-base font-semibold text-[var(--ms-navy)]">Monthly report</h2>
+          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-5 space-y-5">
+          {/* Month selector */}
+          <div className="flex items-center justify-between rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setMonthIndex(i => Math.min(i + 1, MONTHS.length - 1))}
+              className="text-[var(--ms-mauve)] hover:text-[var(--ms-navy)] disabled:opacity-30"
+              disabled={monthIndex >= MONTHS.length - 1}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <p className="text-sm font-semibold text-[var(--ms-navy)]">{month}</p>
+            <button
+              type="button"
+              onClick={() => setMonthIndex(i => Math.max(i - 1, 0))}
+              className="text-[var(--ms-mauve)] hover:text-[var(--ms-navy)] disabled:opacity-30"
+              disabled={monthIndex === 0}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+          {/* Summary */}
+          <div className="rounded-[20px] border border-[var(--ms-border)] bg-white p-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">Summary</p>
+            {[
+              ["Total bookings", bookings.length.toString()],
+              ["Completed", bookings.filter(b => b.status === "Completed").length.toString()],
+              ["Cancelled", "0"],
+              ["No-shows", "0"],
+              ["Total revenue", `Ksh ${total.toLocaleString()}`],
+              ["Platform commission (5%)", `Ksh ${commission.toLocaleString()}`],
+              ["Net paid out", `Ksh ${net.toLocaleString()}`],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between py-1.5 border-b border-[var(--ms-border)] last:border-0">
+                <p className="text-sm text-[var(--ms-mauve)]">{label}</p>
+                <p className="text-sm font-semibold text-[var(--ms-navy)]">{value}</p>
+              </div>
+            ))}
+          </div>
+          {/* Booking breakdown */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">Booking breakdown</p>
+            <div className="overflow-x-auto rounded-[16px] border border-[var(--ms-border)]">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--ms-border)] bg-[var(--ms-soft-bg)]">
+                    {["Date", "Client", "Service", "Amount", "Status", "Payout"].map(h => (
+                      <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ms-mauve)]">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((b, i) => (
+                    <tr key={i} className="border-b border-[var(--ms-border)] last:border-0">
+                      <td className="px-3 py-2.5 text-xs text-[var(--ms-mauve)]">{b.date}</td>
+                      <td className="px-3 py-2.5 text-xs font-medium text-[var(--ms-navy)]">{b.client}</td>
+                      <td className="px-3 py-2.5 text-xs text-[var(--ms-navy)]">{b.service}</td>
+                      <td className="px-3 py-2.5 text-xs font-semibold text-[var(--ms-navy)]">{b.amount}</td>
+                      <td className="px-3 py-2.5"><span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{b.status}</span></td>
+                      <td className="px-3 py-2.5"><span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", b.payout === "Settled" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>{b.payout}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {/* Download buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" className="flex items-center justify-center gap-2 rounded-full border border-[var(--ms-plum)] py-2.5 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]">
+              <FileText className="h-4 w-4" /> Download PDF
+            </button>
+            <button type="button" className="flex items-center justify-center gap-2 rounded-full border border-[var(--ms-plum)] py-2.5 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]">
+              <FileText className="h-4 w-4" /> Download CSV
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Ads tab ────────────────────────────────────────────────────────────────
+
+function AdsTab() {
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [boostTarget, setBoostTarget] = useState<"profile" | "service">("profile");
+  const [placements, setPlacements] = useState<string[]>([]);
+  const [duration, setDuration] = useState<string>("");
+  const [budget, setBudget] = useState(500);
+
+  const togglePlacement = (p: string) =>
+    setPlacements(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+
+  const PLACEMENTS = ["Home page feed", "Search results", "Explore page"];
+  const DURATIONS = ["3 days", "7 days", "14 days", "30 days"];
+  const estimatedReach = Math.round((budget / 10) * 18);
+  const costPerDay = (budget / (parseInt(duration) || 7)).toFixed(0);
+
+  return (
+    <div className="space-y-5">
+      {/* Active boosts */}
+      <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--ms-navy)]">Active boosts</h2>
+        <div className="rounded-[16px] bg-[var(--ms-soft-bg)] px-4 py-8 text-center">
+          <BarChart2 className="mx-auto h-8 w-8 text-[var(--ms-border)]" />
+          <p className="mt-2 text-sm text-[var(--ms-mauve)]">No active boosts. Create one below.</p>
+        </div>
+      </div>
+
+      {/* Create a boost wizard */}
+      <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--ms-navy)]">Create a boost</h2>
+        <p className="mb-4 text-xs text-[var(--ms-mauve)]">Step {step} of 5</p>
+        <div className="mb-5 flex gap-1.5">
+          {[1, 2, 3, 4, 5].map(s => (
+            <div key={s} className={cn("h-1.5 flex-1 rounded-full transition", s <= step ? "bg-[var(--ms-rose)]" : "bg-[var(--ms-border)]")} />
+          ))}
+        </div>
+
+        {step === 1 && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-[var(--ms-mauve)]">What do you want to boost?</p>
+            {[
+              { key: "profile" as const, label: "My full profile", sub: "Show your entire salon to more clients" },
+              { key: "service" as const, label: "A specific service", sub: "Highlight one service in search results" },
+            ].map(opt => (
+              <button key={opt.key} type="button" onClick={() => setBoostTarget(opt.key)}
+                className={cn("flex w-full items-start gap-3 rounded-[16px] border p-4 text-left transition",
+                  boostTarget === opt.key ? "border-[var(--ms-rose)] bg-[var(--ms-petal)]" : "border-[var(--ms-border)] hover:border-[var(--ms-rose)]/40")}>
+                <div>
+                  <p className="text-sm font-semibold text-[var(--ms-navy)]">{opt.label}</p>
+                  <p className="text-xs text-[var(--ms-mauve)]">{opt.sub}</p>
+                </div>
+              </button>
+            ))}
+            <button type="button" onClick={() => setStep(2)} className="mt-2 w-full rounded-full bg-[var(--ms-plum)] py-3 text-sm font-semibold text-white hover:opacity-90">Next →</button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-[var(--ms-mauve)]">Where do you want it to appear? (select all that apply)</p>
+            {PLACEMENTS.map(p => (
+              <button key={p} type="button" onClick={() => togglePlacement(p)}
+                className={cn("flex w-full items-center gap-3 rounded-[16px] border px-4 py-3 text-left text-sm transition",
+                  placements.includes(p) ? "border-[var(--ms-rose)] bg-[var(--ms-petal)] font-semibold text-[var(--ms-plum)]" : "border-[var(--ms-border)] text-[var(--ms-navy)] hover:border-[var(--ms-rose)]/40")}>
+                <span className={cn("h-4 w-4 shrink-0 rounded border-2 transition flex items-center justify-center",
+                  placements.includes(p) ? "border-[var(--ms-rose)] bg-[var(--ms-rose)]" : "border-[var(--ms-border)]")}>
+                  {placements.includes(p) && <Check className="h-2.5 w-2.5 text-white" />}
+                </span>
+                {p}
+              </button>
+            ))}
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setStep(1)} className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-sm font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">← Back</button>
+              <button type="button" onClick={() => setStep(3)} disabled={placements.length === 0} className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40">Next →</button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-[var(--ms-mauve)]">How long should it run?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {DURATIONS.map(d => (
+                <button key={d} type="button" onClick={() => setDuration(d)}
+                  className={cn("rounded-[16px] border py-3 text-sm font-medium transition",
+                    duration === d ? "border-[var(--ms-rose)] bg-[var(--ms-petal)] font-semibold text-[var(--ms-plum)]" : "border-[var(--ms-border)] text-[var(--ms-navy)] hover:border-[var(--ms-rose)]/40")}>
+                  {d}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setStep(2)} className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-sm font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">← Back</button>
+              <button type="button" onClick={() => setStep(4)} disabled={!duration} className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40">Next →</button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-[var(--ms-mauve)]">Set your daily budget</p>
+            <div className="rounded-[16px] bg-[var(--ms-soft-bg)] p-4 text-center">
+              <p className="text-3xl font-bold text-[var(--ms-navy)]">KES {budget.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-[var(--ms-mauve)]">KES {costPerDay} / day · Reaches ~{estimatedReach.toLocaleString()} people</p>
+            </div>
+            <input type="range" min={200} max={10000} step={100} value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))}
+              className="w-full accent-[var(--ms-rose)]" />
+            <div className="flex justify-between text-[10px] text-[var(--ms-mauve)]">
+              <span>KES 200</span><span>KES 10,000</span>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setStep(3)} className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-sm font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">← Back</button>
+              <button type="button" onClick={() => setStep(5)} className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-sm font-semibold text-white hover:opacity-90">Next →</button>
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-[var(--ms-mauve)]">Review and pay</p>
+            <div className="rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-4 space-y-2">
+              {[
+                ["Boost", boostTarget === "profile" ? "Full profile" : "Specific service"],
+                ["Placements", placements.join(", ") || "—"],
+                ["Duration", duration],
+                ["Total budget", `KES ${budget.toLocaleString()}`],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between py-1 border-b border-[var(--ms-border)] last:border-0">
+                  <p className="text-xs text-[var(--ms-mauve)]">{k}</p>
+                  <p className="text-xs font-semibold text-[var(--ms-navy)]">{v}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setStep(4)} className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-sm font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">← Back</button>
+              <button type="button" className="flex-1 rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3 text-sm font-semibold text-white hover:opacity-90">Pay via M-Pesa</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* History */}
+      <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--ms-navy)]">History</h2>
+        <div className="rounded-[16px] bg-[var(--ms-soft-bg)] px-4 py-6 text-center">
+          <p className="text-sm text-[var(--ms-mauve)]">No past boosts yet.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Settings tab ───────────────────────────────────────────────────────────
 
+function LogOutButton() {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => { clearAppSession(); router.push("/"); }}
+      className="flex w-full items-center justify-center gap-2 rounded-full border border-red-200 py-3 text-sm font-semibold text-red-500 hover:bg-red-50"
+    >
+      <LogOut className="h-4 w-4" /> Log out
+    </button>
+  );
+}
+
 function SettingsTab() {
+  const [reportOpen, setReportOpen] = useState(false);
+
   return (
     <div className="space-y-4">
       <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
@@ -562,21 +939,22 @@ function SettingsTab() {
         ))}
       </div>
 
-      <LogOutButton />
-    </div>
-  );
-}
+      <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--ms-navy)]">Monthly report</h2>
+        <p className="mb-3 text-xs text-[var(--ms-mauve)]">Download a full breakdown of bookings, revenue, and payouts for any month.</p>
+        <button
+          type="button"
+          onClick={() => setReportOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-full border border-[var(--ms-plum)] py-2.5 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]"
+        >
+          <FileText className="h-4 w-4" /> View monthly report
+        </button>
+      </div>
 
-function LogOutButton() {
-  const router = useRouter();
-  return (
-    <button
-      type="button"
-      onClick={() => { clearAppSession(); router.push("/"); }}
-      className="flex w-full items-center justify-center gap-2 rounded-full border border-red-200 py-3 text-sm font-semibold text-red-500 hover:bg-red-50"
-    >
-      <LogOut className="h-4 w-4" /> Log out
-    </button>
+      <LogOutButton />
+
+      {reportOpen && <MonthlyReportModal onClose={() => setReportOpen(false)} role="salon" />}
+    </div>
   );
 }
 
@@ -632,6 +1010,7 @@ function ClientPreviewModal({ onClose }: { onClose: () => void }) {
 export default function SalonDashboardPage() {
   const [tab, setTab] = useState<Tab>("home");
   const [previewOpen, setPreviewOpen] = useState(false);
+  const isVerified = false;
 
   const tabContent: Record<Tab, React.ReactNode> = {
     home: <HomeTab />,
@@ -639,6 +1018,7 @@ export default function SalonDashboardPage() {
     salon: <MySalonTab />,
     earnings: <EarningsTab />,
     settings: <SettingsTab />,
+    ads: <AdsTab />,
   };
 
   return (
@@ -659,6 +1039,21 @@ export default function SalonDashboardPage() {
           </button>
         </div>
       </header>
+
+      {/* Unverified banner */}
+      {!isVerified && (
+        <div className="border-b border-amber-200 bg-amber-50">
+          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 lg:px-6">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-amber-500" />
+            <p className="flex-1 text-xs text-amber-800">
+              Your account is not verified. Unverified accounts rank lower in search.{" "}
+              <button type="button" className="font-semibold underline hover:no-underline">
+                Verify now →
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Body */}
       <div className="mx-auto flex max-w-7xl gap-6 px-4 pb-32 pt-6 lg:px-6 lg:pb-12">
