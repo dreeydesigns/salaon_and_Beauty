@@ -8,7 +8,7 @@ import { ClientRatingFlow } from "@/components/service-session";
 
 export default function HomePage() {
   return (
-    <AppShell currentNav="home" requireSession>
+    <AppShell currentNav="home">
       <ClientRatingFlow />
       <Suspense fallback={<div className="loader-bloom mx-auto mt-16 h-14 w-14" />}>
         <SocialHome />

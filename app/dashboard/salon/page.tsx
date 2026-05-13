@@ -23,6 +23,7 @@ import {
   Plus,
   Settings,
   ShieldCheck,
+  Sparkles,
   Star,
   ToggleLeft,
   ToggleRight,
@@ -37,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { ImageUploadEditor } from "@/components/image-upload-editor";
 import { clearAppSession, readAppSession, APP_SESSION_EVENT } from "@/lib/client-session";
 import { ServiceTimerCard } from "@/components/service-session";
+import { SocialHome } from "@/components/social-home";
 import {
   getIncomingBookings,
   updateBookingStatus,
@@ -91,7 +93,7 @@ const OCCASION_TAGS = [
   "Holiday prep", "Photo shoot", "Everyday glam",
 ] as const;
 
-type Tab = "home" | "bookings" | "salon" | "earnings" | "settings" | "ads";
+type Tab = "home" | "bookings" | "salon" | "earnings" | "settings" | "ads" | "community";
 type SalonSection = "identity" | "services" | "team" | "portfolio" | "hours";
 
 // ── Status pill ────────────────────────────────────────────────────────────
@@ -115,6 +117,7 @@ function StatusPill({ status }: { status: string }) {
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "home", label: "Home", icon: <Home className="h-5 w-5" /> },
+    { key: "community", label: "Community", icon: <Sparkles className="h-5 w-5" /> },
     { key: "bookings", label: "Bookings", icon: <CalendarDays className="h-5 w-5" /> },
     { key: "salon", label: "My Salon", icon: <BriefcaseBusiness className="h-5 w-5" /> },
     { key: "earnings", label: "Earnings", icon: <Banknote className="h-5 w-5" /> },
@@ -1340,6 +1343,7 @@ export default function SalonDashboardPage() {
 
   const tabContent: Record<Tab, React.ReactNode> = {
     home: <HomeTab />,
+    community: <SocialHome />,
     bookings: <BookingsTab salonSlug={salonSlug} />,
     salon: <MySalonTab />,
     earnings: <EarningsTab />,
