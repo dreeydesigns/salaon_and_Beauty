@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -29,8 +29,14 @@ import {
 
 import { cn } from "@/lib/utils";
 import { ImageUploadEditor } from "@/components/image-upload-editor";
-import { clearAppSession } from "@/lib/client-session";
+import { clearAppSession, readAppSession, APP_SESSION_EVENT } from "@/lib/client-session";
 import { ServiceTimerCard } from "@/components/service-session";
+import {
+  getIncomingBookings,
+  updateBookingStatus,
+  SOCIAL_CHANGE_EVENT,
+  type BookingRequest,
+} from "@/lib/social-store";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -300,21 +306,44 @@ function HomeTab({ onNavigate }: { onNavigate?: (tab: Tab) => void }) {
 
 // ── Bookings tab ───────────────────────────────────────────────────────────
 
-function BookingsTab() {
-  const [incoming, setIncoming] = useState(INCOMING);
+function BookingsTab({ proSlug }: { proSlug: string }) {
+  const [realIncoming, setRealIncoming] = useState<BookingRequest[]>([]);
+  const [mockIncoming, setMockIncoming] = useState(INCOMING);
   const [upcoming, setUpcoming] = useState(UPCOMING);
   const [todaySchedule, setTodaySchedule] = useState(TODAY_SCHEDULE);
 
-  function acceptBooking(id: number) {
-    const req = incoming.find(r => r.id === id);
-    if (req) {
-      setUpcoming(prev => [...prev, { ...req, time: req.time, client: req.client, service: req.service, total: req.total }]);
+  // Sync real bookings from social store
+  useEffect(() => {
+    function sync() {
+      setRealIncoming(getIncomingBookings(proSlug));
     }
-    setIncoming(prev => prev.filter(r => r.id !== id));
+    sync();
+    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [proSlug]);
+
+  function acceptReal(id: string) {
+    updateBookingStatus(id, "accepted");
   }
 
-  function declineBooking(id: number) {
-    setIncoming(prev => prev.filter(r => r.id !== id));
+  function declineReal(id: string) {
+    updateBookingStatus(id, "declined");
+  }
+
+  function acceptMock(id: number) {
+    const req = mockIncoming.find(r => r.id === id);
+    if (req) {
+      setUpcoming(prev => [...prev, req]);
+    }
+    setMockIncoming(prev => prev.filter(r => r.id !== id));
+  }
+
+  function declineMock(id: number) {
+    setMockIncoming(prev => prev.filter(r => r.id !== id));
   }
 
   function markUpcomingComplete(id: number) {
@@ -325,28 +354,55 @@ function BookingsTab() {
     setTodaySchedule(prev => prev.map(b => b.id === id ? { ...b, status: "completed" } : b));
   }
 
+  const totalIncoming = realIncoming.length + mockIncoming.length;
+
   return (
     <div className="space-y-6">
       {/* Incoming */}
       <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
-        <h2 className="mb-4 text-sm font-semibold text-amber-800">Incoming requests ({incoming.length})</h2>
+        <h2 className="mb-4 text-sm font-semibold text-amber-800">Incoming requests ({totalIncoming})</h2>
         <div className="space-y-3">
-          {incoming.length === 0 && (
+          {totalIncoming === 0 && (
             <p className="rounded-[14px] bg-amber-100/50 px-4 py-5 text-center text-sm text-amber-700">
               All requests handled ✓
             </p>
           )}
-          {incoming.map((b) => (
+          {/* Real bookings from clients */}
+          {realIncoming.map((b) => (
+            <div key={b.id} className="flex items-start justify-between gap-3 rounded-[16px] bg-white p-4 shadow-[0_1px_4px_rgba(13,27,42,0.06)]">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-rose)]">NEW</span>
+                  <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{b.clientName}</p>
+                </div>
+                <p className="mt-0.5 truncate text-xs text-[var(--ms-mauve)]">{b.services.join(", ")}</p>
+                <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">
+                  {new Date(b.preferredDate).toLocaleDateString("en-KE", { weekday: "short", month: "short", day: "numeric" })} · {b.preferredTime} · Ksh {b.totalKES.toLocaleString()}
+                </p>
+                {b.notes && <p className="mt-1 text-xs italic text-[var(--ms-mauve)]">"{b.notes}"</p>}
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button type="button" onClick={() => acceptReal(b.id)} className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">
+                  Accept
+                </button>
+                <button type="button" onClick={() => declineReal(b.id)} className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-200">
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))}
+          {/* Demo mock bookings */}
+          {mockIncoming.map((b) => (
             <div key={b.id} className="flex items-center justify-between rounded-[16px] bg-white p-4 shadow-[0_1px_4px_rgba(13,27,42,0.06)]">
               <div>
                 <p className="text-sm font-medium text-[var(--ms-navy)]">{b.client} · {b.service}</p>
                 <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{b.time} · {b.total}</p>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => acceptBooking(b.id)} className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">
+                <button type="button" onClick={() => acceptMock(b.id)} className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">
                   Accept
                 </button>
-                <button type="button" onClick={() => declineBooking(b.id)} className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-200">
+                <button type="button" onClick={() => declineMock(b.id)} className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-200">
                   Decline
                 </button>
               </div>
@@ -1277,11 +1333,24 @@ function ClientPreviewModal({ onClose }: { onClose: () => void }) {
 export default function ProfessionalDashboardPage() {
   const [tab, setTab] = useState<Tab>("home");
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [proSlug, setProSlug] = useState("njeri-kamau"); // fallback to demo slug
   const isVerified = false;
+
+  useEffect(() => {
+    function syncSlug() {
+      const session = readAppSession();
+      if (session?.role === "professional" && session.publicSlug) {
+        setProSlug(session.publicSlug);
+      }
+    }
+    syncSlug();
+    window.addEventListener(APP_SESSION_EVENT, syncSlug);
+    return () => window.removeEventListener(APP_SESSION_EVENT, syncSlug);
+  }, []);
 
   const tabContent: Record<Tab, React.ReactNode> = {
     home: <HomeTab onNavigate={setTab} />,
-    bookings: <BookingsTab />,
+    bookings: <BookingsTab proSlug={proSlug} />,
     profile: <MyProfileTab />,
     earnings: <EarningsTab />,
     settings: <SettingsTab />,

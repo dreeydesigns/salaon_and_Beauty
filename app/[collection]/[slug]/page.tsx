@@ -25,6 +25,7 @@ import {
   testimonials,
 } from "@/lib/site-data";
 import { buildBookingHref } from "@/lib/utils";
+import { FollowButton } from "@/components/follow-button";
 
 export default async function DetailPage({
   params,
@@ -91,6 +92,7 @@ export default async function DetailPage({
                 <CTAButton className="bg-white text-[var(--ms-navy)] hover:bg-[var(--ms-ivory)]" href={bookingHref}>
                   {collection === "salons" ? "Book this salon" : "Request booking"}
                 </CTAButton>
+                <FollowButton type={collection} slug={item.slug} />
                 <WhatsAppButton className="border-white/20 bg-white/10 text-white hover:text-white" label={item.name} />
               </div>
             </div>

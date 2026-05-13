@@ -67,6 +67,12 @@ export interface ClientUserProfile {
   phone: string;
   email?: string;
   profilePhoto?: string;
+  /** Wide banner behind the profile avatar (data-URL or remote URL) */
+  coverPhoto?: string;
+  /** Short @handle visible on the profile page */
+  username?: string;
+  /** Instagram-style bio / beauty story */
+  bio?: string;
   theme: ThemeKey;
   tribeBadge: string;
   quizCompleted: boolean;

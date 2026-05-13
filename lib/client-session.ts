@@ -30,6 +30,7 @@ export interface SalonUserProfile {
   email?: string;
   profilePhoto?: string;
   location: string;
+  publicSlug: string;
   plan: "basic" | "growth" | "premium";
   subscriptionStatus: "draft" | "active" | "needs_payment";
   listingPublished: boolean;
@@ -289,6 +290,7 @@ export function createPreviewSalonSession(overrides?: Partial<SalonUserProfile>)
     email: overrides?.email ?? "hello@texturesalon.ke",
     profilePhoto: overrides?.profilePhoto ?? salon?.image?.url,
     location: overrides?.location ?? salon?.location ?? "Kilimani",
+    publicSlug: overrides?.publicSlug ?? salon?.slug ?? "kilimani-texture-house",
     plan: overrides?.plan ?? "growth",
     subscriptionStatus: overrides?.subscriptionStatus ?? "needs_payment",
     listingPublished: overrides?.listingPublished ?? false,

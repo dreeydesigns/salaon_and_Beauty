@@ -29,6 +29,8 @@ import {
 } from "@/components/marketplace-ui";
 import { PaymentDisclaimer, usePaymentDisclaimer } from "@/components/payment-disclaimer";
 import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
+import { readAppSession } from "@/lib/client-session";
+import { writeBooking } from "@/lib/social-store";
 
 export function BookingExperience() {
   const searchParams = useSearchParams();
@@ -130,6 +132,31 @@ export function BookingExperience() {
 
   function handleConfirm() {
     if (!disclaimerAccepted) return;
+
+    // Write the booking to the social store so the pro/salon dashboard can pick it up
+    const session = readAppSession();
+    if (session && targetType && targetId && selectedServiceIds.length > 0 && selectedDate && selectedTime) {
+      const targetName = targetEntity && "name" in targetEntity ? targetEntity.name : targetId;
+      writeBooking({
+        id: `bk_${Date.now()}`,
+        clientId: session.id,
+        clientName: session.role === "client" ? session.firstName : session.role === "professional" ? session.displayName : session.salonName,
+        clientPhone: session.phone,
+        clientAvatar: session.profilePhoto,
+        targetType,
+        targetSlug: targetId,
+        targetName,
+        services: selectedServices.map((s) => s.name),
+        preferredDate: selectedDate,
+        preferredTime: selectedTime,
+        totalKES: totalMin,
+        notes: contact.note,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
     setStatus("processing");
   }
 
