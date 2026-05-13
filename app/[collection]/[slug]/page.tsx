@@ -169,7 +169,7 @@ export default async function DetailPage({
               <ScrollSection
                 className="rounded-[32px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)]"
                 eyebrow="Available professionals"
-                href="/professionals"
+                href="/home"
                 hrefLabel="See all professionals"
                 title="The team behind this salon"
               >
