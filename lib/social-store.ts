@@ -93,6 +93,7 @@ export interface SocialPost {
   shareCount?: number;
   comments: SocialComment[];
   createdAt: string;
+  archived?: boolean;        // owner-archived — hidden from public feed
 }
 
 export interface SocialComment {
@@ -171,6 +172,23 @@ export function sharePost(postId: string) {
   const updated = posts.map((p) =>
     p.id === postId ? { ...p, shareCount: (p.shareCount ?? 0) + 1 } : p,
   );
+  localStorage.setItem(POSTS_KEY, JSON.stringify(updated));
+  dispatch();
+}
+
+export function deletePost(postId: string, ownerId: string) {
+  const posts = readPosts();
+  const updated = posts.filter((p) => !(p.id === postId && p.authorId === ownerId));
+  localStorage.setItem(POSTS_KEY, JSON.stringify(updated));
+  dispatch();
+}
+
+export function archivePost(postId: string, ownerId: string) {
+  const posts = readPosts();
+  const updated = posts.map((p) => {
+    if (p.id !== postId || p.authorId !== ownerId) return p;
+    return { ...p, archived: !p.archived };
+  });
   localStorage.setItem(POSTS_KEY, JSON.stringify(updated));
   dispatch();
 }
@@ -307,6 +325,28 @@ export function sendMessage(threadId: string, message: Message, participants?: O
 
 export function getOrCreateThreadId(idA: string, idB: string): string {
   return [idA, idB].sort().join("_");
+}
+
+// ─── Followed authors (in-feed follow, separate from profile saves) ──────────
+
+const FOLLOWED_AUTHORS_KEY = "ms_followed_authors";
+
+export function readFollowedAuthors(): string[] {
+  if (!canUse()) return [];
+  try {
+    return JSON.parse(localStorage.getItem(FOLLOWED_AUTHORS_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+export function toggleFollowAuthor(authorId: string): boolean {
+  const list = readFollowedAuthors();
+  const alreadyFollowing = list.includes(authorId);
+  const next = alreadyFollowing ? list.filter((id) => id !== authorId) : [...list, authorId];
+  localStorage.setItem(FOLLOWED_AUTHORS_KEY, JSON.stringify(next));
+  dispatch();
+  return !alreadyFollowing; // returns new following state
 }
 
 // ─── Seed posts ────────────────────────────────────────────────────────────
