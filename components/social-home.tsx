@@ -9,14 +9,21 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
+  Droplets,
   Flame,
+  Gem,
   Heart,
+  LayoutGrid,
+  Layers,
   MessageCircle,
   MoreHorizontal,
+  Play,
   Plus,
   Repeat2,
+  Scissors,
   Send,
   Sparkles,
+  Tag,
   Trash2,
   UserCheck,
   UserPlus,
@@ -55,48 +62,59 @@ import { cn } from "@/lib/utils";
 
 type FeedTab = "foryou" | "following";
 type CategoryKey = "all" | "portfolio" | "before_after" | "tip" | "inspo" | "promotion";
+type PostVariant = "hero" | "compact";
 
-// ─── Pulse cards (replaces generic story circles) ────────────────────────────
+// ─── Rooms ────────────────────────────────────────────────────────────────────
 
-const PULSE_CARDS = [
-  { id: "pc1", emoji: "🔥", label: "Box braids", sub: "2.4K posts", from: "from-purple-600", to: "to-pink-500", filter: "portfolio" as CategoryKey },
-  { id: "pc2", emoji: "✨", label: "Tutorials", sub: "New this week", from: "from-teal-600", to: "to-emerald-400", filter: "tip" as CategoryKey },
-  { id: "pc3", emoji: "🌿", label: "Natural hair", sub: "18K posts", from: "from-amber-500", to: "to-orange-400", filter: "portfolio" as CategoryKey },
-  { id: "pc4", emoji: "💫", label: "Transformations", sub: "846 this week", from: "from-rose-600", to: "to-red-400", filter: "before_after" as CategoryKey },
-  { id: "pc5", emoji: "💍", label: "Bridal inspo", sub: "Trending now", from: "from-indigo-600", to: "to-purple-400", filter: "inspo" as CategoryKey },
-  { id: "pc6", emoji: "💅", label: "Nail art", sub: "637 posts", from: "from-pink-500", to: "to-rose-400", filter: "portfolio" as CategoryKey },
-  { id: "pc7", emoji: "🌟", label: "Offers", sub: "Limited deals", from: "from-yellow-500", to: "to-amber-400", filter: "promotion" as CategoryKey },
-];
+type RoomId =
+  | "r_all"
+  | "r_looks"
+  | "r_glow"
+  | "r_nails"
+  | "r_tutorials"
+  | "r_transform"
+  | "r_inspo"
+  | "r_offers";
 
-const CATEGORIES: { key: CategoryKey; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "portfolio", label: "Looks" },
-  { key: "before_after", label: "Transformations" },
-  { key: "tip", label: "Tutorials" },
-  { key: "inspo", label: "Inspo" },
-  { key: "promotion", label: "Offers" },
+interface Room {
+  id: RoomId;
+  label: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: React.ElementType<any>;
+  filter: CategoryKey;
+}
+
+const ROOMS: Room[] = [
+  { id: "r_all",       label: "All",         icon: LayoutGrid, filter: "all"          },
+  { id: "r_looks",     label: "Looks",       icon: Scissors,   filter: "portfolio"    },
+  { id: "r_glow",      label: "Glow",        icon: Droplets,   filter: "portfolio"    },
+  { id: "r_nails",     label: "Nails",       icon: Gem,        filter: "portfolio"    },
+  { id: "r_tutorials", label: "Tutorials",   icon: Play,       filter: "tip"          },
+  { id: "r_transform", label: "Before·After",icon: Layers,     filter: "before_after" },
+  { id: "r_inspo",     label: "Inspo",       icon: Sparkles,   filter: "inspo"        },
+  { id: "r_offers",    label: "Offers",      icon: Tag,        filter: "promotion"    },
 ];
 
 const TRENDING_TAGS = [
-  { tag: "#boxbraids", posts: "2.4K posts" },
-  { tag: "#naturalhair", posts: "18K posts" },
-  { tag: "#nairobiglow", posts: "891 posts" },
-  { tag: "#locjourney", posts: "1.2K posts" },
-  { tag: "#bridalnairobi", posts: "547 posts" },
+  { tag: "#boxbraids",     posts: "2.4K posts"  },
+  { tag: "#naturalhair",   posts: "18K posts"   },
+  { tag: "#nairobiglow",   posts: "891 posts"   },
+  { tag: "#locjourney",    posts: "1.2K posts"  },
+  { tag: "#bridalnairobi", posts: "547 posts"   },
 ];
 
 const SUGGESTED = [
-  { id: "pro_amara", name: "Amara Styles", role: "professional" as const, sub: "Natural hair & braids · Westlands" },
-  { id: "salon_lux", name: "Lux Beauty Bar", role: "salon" as const, sub: "Nails & facials · Lavington" },
-  { id: "pro_zara", name: "Zara Omukhubi", role: "professional" as const, sub: "MUA · Kilimani" },
+  { id: "pro_amara",  name: "Amara Styles",    role: "professional" as const, sub: "Natural hair & braids · Westlands" },
+  { id: "salon_lux",  name: "Lux Beauty Bar",  role: "salon"         as const, sub: "Nails & facials · Lavington"       },
+  { id: "pro_zara",   name: "Zara Omukhubi",   role: "professional" as const, sub: "MUA · Kilimani"                    },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 60)    return "just now";
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   return `${Math.floor(diff / 86400)}d`;
 }
@@ -112,13 +130,13 @@ function roleLabel(role: SocialPost["authorRole"]): string {
 
 function roleColors(role: SocialPost["authorRole"]): string {
   if (role === "professional") return "bg-[#F0EBFF] text-[#8B5CF6]";
-  if (role === "salon") return "bg-[#FEF0F3] text-[#C8284A]";
+  if (role === "salon")        return "bg-[#FEF0F3] text-[#C8284A]";
   return "bg-[#E8F5F2] text-[#1A7A6B]";
 }
 
 function avatarGradient(role: SocialPost["authorRole"]): string {
   if (role === "professional") return "from-purple-500 to-purple-700";
-  if (role === "salon") return "from-rose-500 to-red-700";
+  if (role === "salon")        return "from-rose-500 to-red-700";
   return "from-teal-400 to-teal-600";
 }
 
@@ -132,9 +150,9 @@ function getSessionPhoto(session: AppUserSession | null): string | undefined {
 /** Safely extract display name from any session role */
 function getSessionName(session: AppUserSession | null): string {
   if (!session) return "Guest";
-  if (session.role === "client") return (session as { firstName: string }).firstName;
+  if (session.role === "client")       return (session as { firstName: string }).firstName;
   if (session.role === "professional") return (session as { displayName: string }).displayName;
-  if (session.role === "salon") return (session as { salonName: string }).salonName;
+  if (session.role === "salon")        return (session as { salonName: string }).salonName;
   return "Guest";
 }
 
@@ -159,7 +177,9 @@ function Avatar({
       className={`shrink-0 overflow-hidden rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white`}
       style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
-      {src ? <img src={src} alt={name} className="h-full w-full object-cover" /> : name[0]?.toUpperCase()}
+      {src
+        ? <img src={src} alt={name} className="h-full w-full object-cover" />
+        : name[0]?.toUpperCase()}
     </div>
   );
 
@@ -184,86 +204,39 @@ function Avatar({
   );
 }
 
-// ─── Pulse bar (trending topics — not stories circles) ────────────────────────
+// ─── Rooms bar ────────────────────────────────────────────────────────────────
 
-function PulseBar({
-  activeFilter,
-  onFilter,
-  onCompose,
-  canPost,
+function RoomsBar({
+  activeRoomId,
+  onSelect,
 }: {
-  activeFilter: CategoryKey;
-  onFilter: (k: CategoryKey) => void;
-  onCompose: () => void;
-  canPost: boolean;
+  activeRoomId: RoomId;
+  onSelect: (room: Room) => void;
 }) {
   return (
-    <div className="mb-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-webkit-overflow-scrolling:touch]">
-      <div className="flex items-stretch gap-2.5 px-4">
-        {/* Post card — first item */}
-        <button
-          type="button"
-          onClick={onCompose}
-          className="flex shrink-0 flex-col items-center justify-center gap-1.5 rounded-[18px] border-2 border-dashed border-[var(--ms-border)] bg-white px-4 py-3 text-center transition hover:border-[var(--ms-rose)] hover:text-[var(--ms-rose)]"
-          style={{ minWidth: 110, minHeight: 80 }}
-        >
-          <Plus className={cn("h-6 w-6", canPost ? "text-[var(--ms-rose)]" : "text-[var(--ms-mauve)]")} strokeWidth={2} />
-          <span className="text-[11px] font-bold text-[var(--ms-mauve)]">
-            {canPost ? "Share look" : "Join & post"}
-          </span>
-        </button>
-
-        {/* Pulse trend cards */}
-        {PULSE_CARDS.map((c) => {
-          const active = activeFilter === c.filter;
+    <div className="mb-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-webkit-overflow-scrolling:touch]">
+      <div className="flex items-stretch gap-2 px-4">
+        {ROOMS.map((room) => {
+          const active = activeRoomId === room.id;
+          const Icon = room.icon;
           return (
             <button
-              key={c.id}
+              key={room.id}
               type="button"
-              onClick={() => onFilter(active ? "all" : c.filter)}
+              onClick={() => onSelect(room)}
               className={cn(
-                "shrink-0 overflow-hidden rounded-[18px] bg-gradient-to-br transition-all duration-200",
-                c.from, c.to,
-                active ? "ring-2 ring-white ring-offset-2 scale-[0.97]" : "hover:scale-[0.98]",
+                "flex shrink-0 flex-col items-center justify-center gap-[5px] rounded-[14px] border px-3 py-2.5 transition-all duration-200",
+                active
+                  ? "border-[#0D1B2A] bg-[#0D1B2A] text-white shadow-[0_4px_14px_rgba(13,27,42,0.22)]"
+                  : "border-[var(--ms-border)] bg-white text-[#7A7580] hover:border-[#0D1B2A]/25 hover:text-[#0D1B2A]",
               )}
-              style={{ minWidth: 130, minHeight: 80 }}
+              style={{ minWidth: 64 }}
             >
-              <div className="flex h-full flex-col items-start justify-between p-3">
-                <span className="text-[22px] leading-none">{c.emoji}</span>
-                <div className="text-left">
-                  <p className="text-[12px] font-bold leading-tight text-white">{c.label}</p>
-                  <p className="text-[10px] text-white/75">{c.sub}</p>
-                </div>
-              </div>
+              <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.25 : 1.75} />
+              <span className="text-[9.5px] font-bold leading-none tracking-[0.03em]">{room.label}</span>
             </button>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Category chips ───────────────────────────────────────────────────────────
-
-function CategoryChips({ active, onChange }: { active: CategoryKey; onChange: (k: CategoryKey) => void }) {
-  return (
-    <div className="mb-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex items-center gap-2 px-4">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.key}
-            type="button"
-            onClick={() => onChange(c.key)}
-            className={cn(
-              "shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition-all",
-              active === c.key
-                ? "bg-[var(--ms-plum)] text-white shadow-[0_4px_12px_rgba(132,36,92,0.25)]"
-                : "bg-white text-[var(--ms-mauve)] border border-[var(--ms-border)] hover:text-[var(--ms-navy)]",
-            )}
-          >
-            {c.label}
-          </button>
-        ))}
       </div>
     </div>
   );
@@ -327,15 +300,14 @@ function PostMenu({
               >
                 {isFollowing
                   ? <><UserCheck className="h-5 w-5 text-[var(--ms-plum)]" /> Unfollow</>
-                  : <><UserPlus className="h-5 w-5 text-[var(--ms-mauve)]" /> Follow</>
-                }
+                  : <><UserPlus className="h-5 w-5 text-[var(--ms-mauve)]" /> Follow</>}
               </button>
               <button
                 type="button"
                 onClick={onClose}
                 className="flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-sm font-semibold text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)]"
               >
-                Not interested in this post
+                Not interested
               </button>
               <button
                 type="button"
@@ -372,7 +344,9 @@ function DeleteConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCance
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-bold text-[var(--ms-navy)]">Delete this post?</h3>
-        <p className="mt-1 text-sm text-[var(--ms-mauve)]">This cannot be undone. The post will be removed from everyone's feed.</p>
+        <p className="mt-1 text-sm text-[var(--ms-mauve)]">
+          This cannot be undone. The post will be removed from everyone&apos;s feed.
+        </p>
         <div className="mt-5 flex gap-3">
           <button
             type="button"
@@ -407,6 +381,8 @@ function PostCard({
   onFollowToggle,
   onDeleted,
   onArchived,
+  variant = "hero",
+  className,
 }: {
   post: SocialPost;
   sessionId: string;
@@ -418,22 +394,24 @@ function PostCard({
   onFollowToggle: (authorId: string) => void;
   onDeleted: (postId: string) => void;
   onArchived: (postId: string) => void;
+  variant?: PostVariant;
+  className?: string;
 }) {
-  const isGuest = sessionRole === "guest";
-  const isOwner = post.authorId === sessionId;
+  const isGuest   = sessionRole === "guest";
+  const isOwner   = post.authorId === sessionId;
   const isFollowing = followedAuthors.has(post.authorId);
 
-  const [localPost, setLocalPost] = useState(post);
-  const [imgIdx, setImgIdx] = useState(0);
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [captionExpanded, setCaptionExpanded] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [localPost,        setLocalPost]        = useState(post);
+  const [imgIdx,           setImgIdx]           = useState(0);
+  const [commentsOpen,     setCommentsOpen]     = useState(false);
+  const [commentText,      setCommentText]      = useState("");
+  const [captionExpanded,  setCaptionExpanded]  = useState(false);
+  const [menuOpen,         setMenuOpen]         = useState(false);
+  const [confirmDelete,    setConfirmDelete]    = useState(false);
 
-  const liked = localPost.savedBy.includes(sessionId);
+  const liked      = localPost.savedBy.includes(sessionId);
   const bookmarked = (localPost.bookmarkedBy ?? []).includes(sessionId);
-  const reposted = (localPost.repostedBy ?? []).includes(sessionId);
+  const reposted   = (localPost.repostedBy ?? []).includes(sessionId);
 
   function guard(action: () => void) {
     if (isGuest) { onToast("Join free to interact"); return; }
@@ -446,7 +424,9 @@ function PostCard({
       setLocalPost((p) => ({
         ...p,
         likes: liked ? p.likes - 1 : p.likes + 1,
-        savedBy: liked ? p.savedBy.filter((id) => id !== sessionId) : [...p.savedBy, sessionId],
+        savedBy: liked
+          ? p.savedBy.filter((id) => id !== sessionId)
+          : [...p.savedBy, sessionId],
       }));
     });
   }
@@ -473,7 +453,7 @@ function PostCard({
           ? (p.bookmarkedBy ?? []).filter((id) => id !== sessionId)
           : [...(p.bookmarkedBy ?? []), sessionId],
       }));
-      onToast(bookmarked ? "Removed from saved" : "Saved to your collection ✨");
+      onToast(bookmarked ? "Removed from saved" : "Saved to your collection");
     });
   }
 
@@ -507,7 +487,9 @@ function PostCard({
   function handleFollow() {
     guard(() => {
       onFollowToggle(localPost.authorId);
-      onToast(isFollowing ? `Unfollowed ${localPost.authorName}` : `Following ${localPost.authorName} ✓`);
+      onToast(isFollowing
+        ? `Unfollowed ${localPost.authorName}`
+        : `Following ${localPost.authorName}`);
       setMenuOpen(false);
     });
   }
@@ -526,24 +508,151 @@ function PostCard({
     setConfirmDelete(false);
   }
 
-  const caption = localPost.caption;
-  const SHORT = 120;
+  // ── Compact variant — pure image card with overlay ──────────────────────────
+  if (variant === "compact") {
+    return (
+      <>
+        <article
+          className={cn(
+            "relative overflow-hidden rounded-[16px] bg-[var(--ms-soft-bg)] shadow-[0_1px_6px_rgba(13,27,42,0.07)]",
+            className,
+          )}
+          style={{ aspectRatio: "1 / 1" }}
+        >
+          {localPost.images.length > 0 ? (
+            <img
+              src={localPost.images[0]}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center p-3">
+              <p className="line-clamp-5 text-center text-[11px] leading-4 text-[var(--ms-mauve)]">
+                {localPost.caption}
+              </p>
+            </div>
+          )}
+
+          {/* Dual-edge gradient — top for author legibility, bottom for actions */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(13,27,42,0.45)_0%,transparent_38%,transparent_54%,rgba(13,27,42,0.52)_100%)]" />
+
+          {/* Top row: avatar + name + menu */}
+          <div className="absolute left-2 right-2 top-2 flex items-center gap-1.5">
+            <Avatar
+              src={localPost.authorAvatar}
+              name={localPost.authorName}
+              role={localPost.authorRole}
+              size={22}
+            />
+            <span className="min-w-0 flex-1 truncate text-[10px] font-bold leading-none text-white drop-shadow-sm">
+              {localPost.authorName}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="shrink-0 rounded-full p-0.5"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5 text-white/90" />
+            </button>
+          </div>
+
+          {/* Before·After badge */}
+          {localPost.type === "before_after" && (
+            <span className="absolute left-2 top-8 rounded-full bg-black/50 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm">
+              B·A
+            </span>
+          )}
+          {localPost.type === "tip" && (
+            <span className="absolute left-2 top-8 flex items-center gap-0.5 rounded-full bg-[var(--ms-plum)]/80 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm">
+              <Play className="h-2.5 w-2.5 fill-white" /> Tutorial
+            </span>
+          )}
+
+          {/* Bottom row: like + comment + bookmark */}
+          <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2">
+            <button type="button" onClick={handleLike} className="flex items-center gap-1">
+              <Heart
+                className={cn(
+                  "h-[15px] w-[15px] transition-all",
+                  liked ? "fill-white text-white scale-110" : "text-white/80",
+                )}
+              />
+              <span className="text-[10px] font-semibold leading-none text-white">
+                {fmtCount(localPost.likes)}
+              </span>
+            </button>
+            <div className="flex items-center gap-1 text-white/70">
+              <MessageCircle className="h-[14px] w-[14px]" />
+              <span className="text-[10px] leading-none">{fmtCount(localPost.comments.length)}</span>
+            </div>
+            <span className="flex-1" />
+            <button type="button" onClick={handleBookmark}>
+              <Bookmark
+                className={cn(
+                  "h-[15px] w-[15px] transition-all",
+                  bookmarked ? "fill-white text-white" : "text-white/70",
+                )}
+              />
+            </button>
+          </div>
+        </article>
+
+        {menuOpen && (
+          <PostMenu
+            isOwner={isOwner}
+            isFollowing={isFollowing}
+            isArchived={localPost.archived}
+            onFollow={handleFollow}
+            onArchive={handleArchive}
+            onDelete={() => { setMenuOpen(false); setConfirmDelete(true); }}
+            onClose={() => setMenuOpen(false)}
+          />
+        )}
+        {confirmDelete && (
+          <DeleteConfirm onConfirm={handleDelete} onCancel={() => setConfirmDelete(false)} />
+        )}
+      </>
+    );
+  }
+
+  // ── Hero variant — full editorial card ──────────────────────────────────────
+  const caption   = localPost.caption;
+  const SHORT     = 130;
   const captionShort = caption.length > SHORT && !captionExpanded ? caption.slice(0, SHORT) : caption;
 
   return (
     <>
-      <article className="overflow-hidden rounded-[20px] bg-white shadow-[0_1px_8px_rgba(13,27,42,0.08)]">
+      <article className={cn(
+        "overflow-hidden rounded-[20px] bg-white shadow-[0_1px_10px_rgba(13,27,42,0.09)]",
+        className,
+      )}>
         {/* Author row */}
         <div className="flex items-center gap-2.5 px-4 py-3">
-          <Avatar src={localPost.authorAvatar} name={localPost.authorName} role={localPost.authorRole} size={40} ring />
+          <Avatar
+            src={localPost.authorAvatar}
+            name={localPost.authorName}
+            role={localPost.authorRole}
+            size={40}
+            ring
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <span className="truncate text-sm font-bold text-[var(--ms-navy)]">{localPost.authorName}</span>
-              <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]", roleColors(localPost.authorRole))}>
+              <span className={cn(
+                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]",
+                roleColors(localPost.authorRole),
+              )}>
                 {roleLabel(localPost.authorRole)}
               </span>
-              {localPost.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#1A7A6B]" />}
-              {localPost.archived && <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Archived</span>}
+              {localPost.verified && (
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#1A7A6B]" />
+              )}
+              {localPost.archived && (
+                <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                  Archived
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-[var(--ms-mauve)]">
               {localPost.location ? `${localPost.location} · ` : ""}
@@ -551,15 +660,15 @@ function PostCard({
             </p>
           </div>
 
-          {/* Follow / Unfollow pill (only on others' posts) */}
+          {/* Follow pill */}
           {!isOwner && (
             <button
               type="button"
               onClick={handleFollow}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1 text-xs font-bold border transition",
+                "shrink-0 rounded-full border px-3 py-1 text-xs font-bold transition",
                 isFollowing
-                  ? "border-[var(--ms-plum)] text-[var(--ms-plum)] bg-[var(--ms-petal)]"
+                  ? "border-[var(--ms-plum)] bg-[var(--ms-petal)] text-[var(--ms-plum)]"
                   : "border-[var(--ms-border)] text-[var(--ms-mauve)] hover:border-[var(--ms-plum)] hover:text-[var(--ms-plum)]",
               )}
             >
@@ -567,7 +676,6 @@ function PostCard({
             </button>
           )}
 
-          {/* ··· menu */}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -577,16 +685,16 @@ function PostCard({
           </button>
         </div>
 
-        {/* Media */}
+        {/* Media — landscape in hero */}
         {localPost.images.length > 0 && (
-          <div className="relative aspect-[4/5] overflow-hidden bg-[var(--ms-soft-bg)]">
+          <div className="relative aspect-[3/2] overflow-hidden bg-[var(--ms-soft-bg)]">
             <img
               src={localPost.images[imgIdx]}
               alt={localPost.caption}
               className="h-full w-full object-cover"
               loading="lazy"
             />
-            {/* Type badge */}
+            {/* Type badges */}
             {localPost.type === "before_after" && (
               <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
                 Before / After
@@ -597,7 +705,7 @@ function PostCard({
                 <Sparkles className="h-3 w-3" /> Tutorial
               </span>
             )}
-            {/* Carousel */}
+            {/* Carousel controls */}
             {localPost.images.length > 1 && (
               <>
                 {imgIdx > 0 && (
@@ -624,7 +732,10 @@ function PostCard({
                       key={i}
                       type="button"
                       onClick={() => setImgIdx(i)}
-                      className={cn("h-1.5 rounded-full transition-all", i === imgIdx ? "w-5 bg-white" : "w-1.5 bg-white/50")}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all",
+                        i === imgIdx ? "w-5 bg-white" : "w-1.5 bg-white/50",
+                      )}
                     />
                   ))}
                 </div>
@@ -640,8 +751,14 @@ function PostCard({
             onClick={handleLike}
             className="flex items-center gap-1.5 rounded-full p-2 transition hover:bg-[var(--ms-soft-bg)]"
           >
-            <Heart className={cn("h-[22px] w-[22px] transition-all", liked ? "fill-[#C8284A] text-[#C8284A] scale-110" : "text-[var(--ms-navy)]")} />
-            <span className={cn("text-[13px] font-semibold", liked ? "text-[#C8284A]" : "text-[var(--ms-navy)]")}>
+            <Heart className={cn(
+              "h-[22px] w-[22px] transition-all",
+              liked ? "fill-[#B91C1C] text-[#B91C1C] scale-110" : "text-[var(--ms-navy)]",
+            )} />
+            <span className={cn(
+              "text-[13px] font-semibold",
+              liked ? "text-[#B91C1C]" : "text-[var(--ms-navy)]",
+            )}>
               {fmtCount(localPost.likes)}
             </span>
           </button>
@@ -653,7 +770,9 @@ function PostCard({
           >
             <MessageCircle className="h-[22px] w-[22px] text-[var(--ms-navy)]" />
             {localPost.comments.length > 0 && (
-              <span className="text-[13px] font-semibold text-[var(--ms-navy)]">{fmtCount(localPost.comments.length)}</span>
+              <span className="text-[13px] font-semibold text-[var(--ms-navy)]">
+                {fmtCount(localPost.comments.length)}
+              </span>
             )}
           </button>
 
@@ -662,9 +781,15 @@ function PostCard({
             onClick={handleRepost}
             className="flex items-center gap-1.5 rounded-full p-2 transition hover:bg-[var(--ms-soft-bg)]"
           >
-            <Repeat2 className={cn("h-[22px] w-[22px] transition-all", reposted ? "text-emerald-500" : "text-[var(--ms-navy)]")} />
+            <Repeat2 className={cn(
+              "h-[22px] w-[22px] transition-all",
+              reposted ? "text-emerald-500" : "text-[var(--ms-navy)]",
+            )} />
             {(localPost.repostedBy?.length ?? 0) > 0 && (
-              <span className={cn("text-[13px] font-semibold", reposted ? "text-emerald-500" : "text-[var(--ms-navy)]")}>
+              <span className={cn(
+                "text-[13px] font-semibold",
+                reposted ? "text-emerald-500" : "text-[var(--ms-navy)]",
+              )}>
                 {fmtCount(localPost.repostedBy!.length)}
               </span>
             )}
@@ -685,7 +810,10 @@ function PostCard({
             onClick={handleBookmark}
             className="flex items-center gap-1.5 rounded-full p-2 transition hover:bg-[var(--ms-soft-bg)]"
           >
-            <Bookmark className={cn("h-[22px] w-[22px] transition-all", bookmarked ? "fill-[var(--ms-plum)] text-[var(--ms-plum)]" : "text-[var(--ms-navy)]")} />
+            <Bookmark className={cn(
+              "h-[22px] w-[22px] transition-all",
+              bookmarked ? "fill-[var(--ms-plum)] text-[var(--ms-plum)]" : "text-[var(--ms-navy)]",
+            )} />
           </button>
         </div>
 
@@ -695,7 +823,11 @@ function PostCard({
             <span className="font-bold text-[var(--ms-navy)]">{localPost.authorName}</span>{" "}
             {captionShort}
             {caption.length > SHORT && !captionExpanded && (
-              <button type="button" onClick={() => setCaptionExpanded(true)} className="ml-1 font-semibold text-[var(--ms-mauve)]">
+              <button
+                type="button"
+                onClick={() => setCaptionExpanded(true)}
+                className="ml-1 font-semibold text-[var(--ms-mauve)]"
+              >
                 more
               </button>
             )}
@@ -713,7 +845,11 @@ function PostCard({
         {localPost.comments.length > 0 && (
           <div className="px-4 pb-2">
             {!commentsOpen ? (
-              <button type="button" onClick={() => setCommentsOpen(true)} className="text-[12px] font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">
+              <button
+                type="button"
+                onClick={() => setCommentsOpen(true)}
+                className="text-[12px] font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]"
+              >
                 View all {localPost.comments.length} comment{localPost.comments.length !== 1 ? "s" : ""}
               </button>
             ) : (
@@ -723,7 +859,11 @@ function PostCard({
                     <span className="font-bold text-[var(--ms-navy)]">{c.authorName}</span>{" "}{c.text}
                   </p>
                 ))}
-                <button type="button" onClick={() => setCommentsOpen(false)} className="text-[11px] font-semibold text-[var(--ms-mauve)]">
+                <button
+                  type="button"
+                  onClick={() => setCommentsOpen(false)}
+                  className="text-[11px] font-semibold text-[var(--ms-mauve)]"
+                >
                   Collapse
                 </button>
               </div>
@@ -734,7 +874,12 @@ function PostCard({
         {/* Comment input */}
         <div className="flex items-center gap-2 border-t border-[var(--ms-border)]/60 px-3 py-2.5">
           {sessionRole !== "guest" ? (
-            <Avatar src={sessionPhoto} name={sessionName} role={sessionRole === "client" ? "client" : sessionRole === "professional" ? "professional" : "salon"} size={28} />
+            <Avatar
+              src={sessionPhoto}
+              name={sessionName}
+              role={sessionRole === "client" ? "client" : sessionRole === "professional" ? "professional" : "salon"}
+              size={28}
+            />
           ) : (
             <div className="h-7 w-7 shrink-0 rounded-full bg-[var(--ms-soft-bg)]" />
           )}
@@ -749,14 +894,17 @@ function PostCard({
             className="flex-1 bg-transparent text-[13px] text-[var(--ms-charcoal)] placeholder:text-[var(--ms-border)] outline-none"
           />
           {commentText.trim() && (
-            <button type="button" onClick={handleComment} className="text-[13px] font-bold text-[var(--ms-rose)]">
+            <button
+              type="button"
+              onClick={handleComment}
+              className="text-[13px] font-bold text-[var(--ms-rose)]"
+            >
               Post
             </button>
           )}
         </div>
       </article>
 
-      {/* Menus */}
       {menuOpen && (
         <PostMenu
           isOwner={isOwner}
@@ -796,7 +944,12 @@ function TrendingSidebar({
           </div>
           <div className="space-y-3">
             {TRENDING_TAGS.map((t, i) => (
-              <button key={t.tag} type="button" onClick={() => onToast("Showing " + t.tag)} className="flex w-full items-center gap-3 group">
+              <button
+                key={t.tag}
+                type="button"
+                onClick={() => onToast("Showing " + t.tag)}
+                className="flex w-full items-center gap-3 group"
+              >
                 <span className="w-4 text-right text-[11px] font-bold text-[var(--ms-mauve)]">{i + 1}</span>
                 <div className="text-left">
                   <p className="text-[13px] font-bold text-[var(--ms-navy)] group-hover:text-[var(--ms-plum)]">{t.tag}</p>
@@ -813,8 +966,11 @@ function TrendingSidebar({
             {SUGGESTED.map((s) => {
               const following = followedAuthors.has(s.id);
               return (
-                <div key={s.name} className="flex items-center gap-3">
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white bg-gradient-to-br", avatarGradient(s.role))}>
+                <div key={s.id} className="flex items-center gap-3">
+                  <div className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white bg-gradient-to-br",
+                    avatarGradient(s.role),
+                  )}>
                     {s.name[0]}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -823,10 +979,15 @@ function TrendingSidebar({
                   </div>
                   <button
                     type="button"
-                    onClick={() => { onFollowToggle(s.id); onToast(following ? `Unfollowed ${s.name}` : `Following ${s.name} ✓`); }}
+                    onClick={() => {
+                      onFollowToggle(s.id);
+                      onToast(following ? `Unfollowed ${s.name}` : `Following ${s.name}`);
+                    }}
                     className={cn(
                       "shrink-0 rounded-full border px-3 py-1 text-[12px] font-bold transition",
-                      following ? "border-[var(--ms-plum)] bg-[var(--ms-petal)] text-[var(--ms-plum)]" : "border-[var(--ms-border)] text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]",
+                      following
+                        ? "border-[var(--ms-plum)] bg-[var(--ms-petal)] text-[var(--ms-plum)]"
+                        : "border-[var(--ms-border)] text-[var(--ms-plum)] hover:bg-[var(--ms-petal)]",
                     )}
                   >
                     {following ? "Following" : "Follow"}
@@ -838,7 +999,7 @@ function TrendingSidebar({
         </div>
 
         <p className="px-1 text-[11px] text-[var(--ms-mauve)] leading-5">
-          Mobile Salon · Beauty, softly handled · For women, by women · Kenya 🇰🇪
+          Mobile Salon · Beauty, softly handled · For women, by women · Kenya
         </p>
       </div>
     </aside>
@@ -862,16 +1023,16 @@ function ComposeSheet({
   onClose: () => void;
   onPublished: () => void;
 }) {
-  const [images, setImages] = useState<string[]>([]);
+  const [images,  setImages]  = useState<string[]>([]);
   const [caption, setCaption] = useState("");
-  const [tag, setTag] = useState<"portfolio" | "before_after" | "inspo" | "tip" | "promotion">("portfolio");
+  const [tag,     setTag]     = useState<"portfolio" | "before_after" | "inspo" | "tip" | "promotion">("portfolio");
 
   const POST_TYPES: { key: typeof tag; label: string }[] = [
-    { key: "portfolio", label: "My Look" },
-    { key: "before_after", label: "Before / After" },
-    { key: "tip", label: "Tutorial / Tip" },
-    { key: "inspo", label: "Inspiration" },
-    { key: "promotion", label: "Offer" },
+    { key: "portfolio",    label: "My Look"         },
+    { key: "before_after", label: "Before / After"  },
+    { key: "tip",          label: "Tutorial / Tip"  },
+    { key: "inspo",        label: "Inspiration"     },
+    { key: "promotion",    label: "Offer"           },
   ];
 
   const authorRole: SocialPost["authorRole"] =
@@ -902,8 +1063,14 @@ function ComposeSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-lg overflow-hidden rounded-t-[32px] bg-white shadow-[0_-20px_60px_rgba(13,27,42,0.22)] sm:rounded-[32px]" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-t-[32px] bg-white shadow-[0_-20px_60px_rgba(13,27,42,0.22)] sm:rounded-[32px]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--ms-border)]" />
         <div className="p-5">
           <div className="mb-4 flex items-center gap-3">
@@ -912,7 +1079,11 @@ function ComposeSheet({
               <p className="text-sm font-bold text-[var(--ms-navy)]">{sessionName}</p>
               <p className="text-xs text-[var(--ms-mauve)]">Sharing to everyone</p>
             </div>
-            <button type="button" onClick={onClose} className="ml-auto rounded-full bg-[var(--ms-soft-bg)] p-2 text-[var(--ms-mauve)]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-auto rounded-full bg-[var(--ms-soft-bg)] p-2 text-[var(--ms-mauve)]"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -923,21 +1094,34 @@ function ComposeSheet({
                 key={t.key}
                 type="button"
                 onClick={() => setTag(t.key)}
-                className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition", tag === t.key ? "bg-[var(--ms-plum)] text-white" : "bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)]")}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition",
+                  tag === t.key
+                    ? "bg-[var(--ms-plum)] text-white"
+                    : "bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)]",
+                )}
               >
                 {t.label}
               </button>
             ))}
           </div>
 
-          <ImageUploadEditor onSave={(url) => setImages((prev) => [...prev, url])} aspectHint="1/1" className="mb-3" />
+          <ImageUploadEditor
+            onSave={(url) => setImages((prev) => [...prev, url])}
+            aspectHint="1/1"
+            className="mb-3"
+          />
 
           {images.length > 0 && (
             <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
               {images.map((img, i) => (
                 <div key={i} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[12px]">
                   <img src={img} alt="" className="h-full w-full object-cover" />
-                  <button type="button" onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white">
+                  <button
+                    type="button"
+                    onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                    className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
                     <X className="h-2.5 w-2.5" />
                   </button>
                 </div>
@@ -987,17 +1171,19 @@ export function SocialHome() {
   const searchParams = useSearchParams();
   const initTab = (searchParams.get("tab") as FeedTab | null) ?? "foryou";
 
-  const [session, setSession] = useState<AppUserSession | null>(null);
-  const [realPosts, setRealPosts] = useState<SocialPost[]>([]);
-  const [saves, setSaves] = useState<SocialSaves>({ professionals: [], salons: [] });
-  const [followedAuthors, setFollowedAuthors] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<FeedTab>(["foryou", "following"].includes(initTab) ? initTab : "foryou");
-  const [activeCategory, setActiveCategory] = useState<CategoryKey>("all");
-  const [showCompose, setShowCompose] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
-  const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [session,        setSession]        = useState<AppUserSession | null>(null);
+  const [realPosts,      setRealPosts]      = useState<SocialPost[]>([]);
+  const [saves,          setSaves]          = useState<SocialSaves>({ professionals: [], salons: [] });
+  const [followedAuthors,setFollowedAuthors]= useState<Set<string>>(new Set());
+  const [activeTab,      setActiveTab]      = useState<FeedTab>(
+    ["foryou", "following"].includes(initTab) ? initTab : "foryou",
+  );
+  const [activeRoomId,   setActiveRoomId]   = useState<RoomId>("r_all");
+  const [showCompose,    setShowCompose]    = useState(false);
+  const [toast,          setToast]          = useState<string | null>(null);
+  const [deletedIds,     setDeletedIds]     = useState<Set<string>>(new Set());
+  const [archivedIds,    setArchivedIds]    = useState<Set<string>>(new Set());
+  const [refreshKey,     setRefreshKey]     = useState(0);
 
   const showToast = useCallback((msg: string) => setToast(msg), []);
 
@@ -1010,13 +1196,13 @@ export function SocialHome() {
       setFollowedAuthors(new Set(readFollowedAuthors()));
     }
     sync();
-    window.addEventListener(APP_SESSION_EVENT, sync);
-    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
-    window.addEventListener("storage", sync);
+    window.addEventListener(APP_SESSION_EVENT,    sync);
+    window.addEventListener(SOCIAL_CHANGE_EVENT,  sync);
+    window.addEventListener("storage",            sync);
     return () => {
-      window.removeEventListener(APP_SESSION_EVENT, sync);
+      window.removeEventListener(APP_SESSION_EVENT,   sync);
       window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
-      window.removeEventListener("storage", sync);
+      window.removeEventListener("storage",           sync);
     };
   }, []);
 
@@ -1032,12 +1218,16 @@ export function SocialHome() {
 
   if (!session) return null;
 
-  const isGuest = session.role === "guest";
-  const sessionId = session.id;
+  const isGuest     = session.role === "guest";
+  const sessionId   = session.id;
   const sessionRole = session.role;
   const sessionName = getSessionName(session);
-  const sessionPhoto = getSessionPhoto(session);
-  const canPost = !isGuest;
+  const sessionPhoto= getSessionPhoto(session);
+  const canPost     = !isGuest;
+
+  // Derive active category from active room
+  const activeRoom     = ROOMS.find((r) => r.id === activeRoomId) ?? ROOMS[0];
+  const activeCategory = activeRoom.filter;
 
   // Merge real + seed posts, deduplicate
   const realIds = new Set(realPosts.map((p) => p.id));
@@ -1046,7 +1236,7 @@ export function SocialHome() {
     ...SEED_POSTS.filter((sp) => !realIds.has(sp.id)),
   ];
 
-  // Following tab: seed author IDs + profile saves
+  // Following tab
   const followedIds = new Set([
     ...followedAuthors,
     ...saves.professionals,
@@ -1068,13 +1258,12 @@ export function SocialHome() {
       <div className="mx-auto flex max-w-[960px] items-start gap-6 px-4 pb-28 pt-3 lg:px-6">
         {/* ── Feed column ───────────────────────────────────────────── */}
         <div className="min-w-0 flex-1">
-          {/* Pulse bar */}
+
+          {/* Rooms navigation bar */}
           <div className="-mx-4 lg:-mx-6">
-            <PulseBar
-              activeFilter={activeCategory}
-              onFilter={setActiveCategory}
-              onCompose={() => canPost ? setShowCompose(true) : showToast("Create a free account to post")}
-              canPost={canPost}
+            <RoomsBar
+              activeRoomId={activeRoomId}
+              onSelect={(room) => setActiveRoomId(room.id)}
             />
           </div>
 
@@ -1083,15 +1272,20 @@ export function SocialHome() {
             <div className="mb-3 flex items-center gap-3 rounded-[18px] bg-[var(--ms-petal)] px-4 py-3.5">
               <div className="flex-1">
                 <p className="text-[13px] font-bold text-[var(--ms-plum)]">Browsing as a guest</p>
-                <p className="text-[11px] text-[var(--ms-mauve)]">Create a free account to like, post, follow, save, and book.</p>
-                <Link href="/signup/client" className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[var(--ms-plum)] px-4 py-1.5 text-[12px] font-bold text-white">
+                <p className="text-[11px] text-[var(--ms-mauve)]">
+                  Create a free account to like, post, follow, save, and book.
+                </p>
+                <Link
+                  href="/signup/client"
+                  className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[var(--ms-plum)] px-4 py-1.5 text-[12px] font-bold text-white"
+                >
                   Join free
                 </Link>
               </div>
             </div>
           )}
 
-          {/* Feed / Following tabs */}
+          {/* For You / Following tabs */}
           <div className="mb-3 flex rounded-[18px] border border-[var(--ms-border)] bg-white p-1 shadow-[0_1px_6px_rgba(13,27,42,0.05)]">
             {(["foryou", "following"] as FeedTab[]).map((t) => (
               <button
@@ -1100,17 +1294,16 @@ export function SocialHome() {
                 onClick={() => setActiveTab(t)}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-2 rounded-[14px] py-2 text-[13px] font-bold transition",
-                  activeTab === t ? "bg-[var(--ms-navy)] text-white" : "text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
+                  activeTab === t
+                    ? "bg-[var(--ms-navy)] text-white"
+                    : "text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
                 )}
               >
-                {t === "foryou" ? <><Sparkles className="h-4 w-4" /> For You</> : <><Users className="h-4 w-4" /> Following</>}
+                {t === "foryou"
+                  ? <><Sparkles className="h-4 w-4" /> For You</>
+                  : <><Users className="h-4 w-4" /> Following</>}
               </button>
             ))}
-          </div>
-
-          {/* Category chips */}
-          <div className="-mx-4 lg:-mx-6">
-            <CategoryChips active={activeCategory} onChange={setActiveCategory} />
           </div>
 
           {/* Empty state */}
@@ -1118,51 +1311,70 @@ export function SocialHome() {
             <div className="rounded-[20px] bg-white py-14 text-center shadow-[0_1px_8px_rgba(13,27,42,0.08)]">
               <Users className="mx-auto h-10 w-10 text-[var(--ms-mauve)] opacity-30" />
               <p className="mt-3 text-[14px] font-bold text-[var(--ms-navy)]">
-                {activeTab === "following" ? "Nothing here yet" : "No posts in this category"}
+                {activeTab === "following" ? "Nothing here yet" : "No posts in this room"}
               </p>
               <p className="mt-1 text-[12px] text-[var(--ms-mauve)]">
-                {activeTab === "following" ? "Follow creators to build your feed." : "Be the first to post here!"}
+                {activeTab === "following"
+                  ? "Follow creators to build your feed."
+                  : "Be the first to post here!"}
               </p>
-              <button type="button" onClick={() => setActiveTab("foryou")} className="mt-4 rounded-full bg-[var(--ms-petal)] px-5 py-2 text-[13px] font-bold text-[var(--ms-plum)]">
-                Explore everyone
+              <button
+                type="button"
+                onClick={() => { setActiveTab("foryou"); setActiveRoomId("r_all"); }}
+                className="mt-4 rounded-full bg-[var(--ms-petal)] px-5 py-2 text-[13px] font-bold text-[var(--ms-plum)]"
+              >
+                See everything
               </button>
             </div>
           )}
 
-          {/* Posts */}
-          <div className="space-y-4">
-            {filteredPosts.map((post) => (
-              <PostCard
-                key={`${post.id}_${refreshKey}`}
-                post={post}
-                sessionId={sessionId}
-                sessionRole={sessionRole}
-                sessionPhoto={sessionPhoto}
-                sessionName={sessionName}
-                onToast={showToast}
-                followedAuthors={followedAuthors}
-                onFollowToggle={handleFollowToggle}
-                onDeleted={(id) => {
-                  setDeletedIds((prev) => new Set([...prev, id]));
-                  showToast("Post deleted");
-                }}
-                onArchived={(id) => {
-                  setArchivedIds((prev) => new Set([...prev, id]));
-                  setRefreshKey((k) => k + 1);
-                }}
-              />
-            ))}
+          {/* Canvas editorial grid */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {filteredPosts.map((post, i) => {
+              const isHero = i % 3 === 0;
+              return (
+                <PostCard
+                  key={`${post.id}_${refreshKey}`}
+                  post={post}
+                  variant={isHero ? "hero" : "compact"}
+                  className={isHero ? "col-span-2" : "col-span-1"}
+                  sessionId={sessionId}
+                  sessionRole={sessionRole}
+                  sessionPhoto={sessionPhoto}
+                  sessionName={sessionName}
+                  onToast={showToast}
+                  followedAuthors={followedAuthors}
+                  onFollowToggle={handleFollowToggle}
+                  onDeleted={(id) => {
+                    setDeletedIds((prev) => new Set([...prev, id]));
+                    showToast("Post deleted");
+                  }}
+                  onArchived={(id) => {
+                    setArchivedIds((prev) => new Set([...prev, id]));
+                    setRefreshKey((k) => k + 1);
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
 
         {/* ── Desktop sidebar ───────────────────────────────────────── */}
-        <TrendingSidebar followedAuthors={followedAuthors} onFollowToggle={handleFollowToggle} onToast={showToast} />
+        <TrendingSidebar
+          followedAuthors={followedAuthors}
+          onFollowToggle={handleFollowToggle}
+          onToast={showToast}
+        />
       </div>
 
-      {/* FAB */}
+      {/* FAB — compose */}
       <button
         type="button"
-        onClick={() => canPost ? setShowCompose(true) : showToast("Create a free account to post")}
+        onClick={() =>
+          canPost
+            ? setShowCompose(true)
+            : showToast("Create a free account to post")
+        }
         className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white shadow-[0_8px_28px_rgba(212,83,126,0.4)] transition hover:scale-105 hover:brightness-110 lg:bottom-8 lg:right-8"
         aria-label="Create post"
       >

@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowRight,
-  Flag,
+  Bookmark,
+  Diamond,
+  Droplets,
+  Gem,
+  Heart,
+  LayoutGrid,
+  Leaf,
+  Scissors,
   Search,
   ShieldCheck,
   ShoppingBag,
@@ -13,22 +20,32 @@ import {
   Store,
   Tag,
   Truck,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/cart-store";
 
 // ─── Category data ─────────────────────────────────────────────────────────────
-const categories = [
-  { id: "all", label: "All", emoji: "✦" },
-  { id: "hair", label: "Hair", emoji: "💇" },
-  { id: "nails", label: "Nails", emoji: "💅" },
-  { id: "skincare", label: "Skincare", emoji: "🌿" },
-  { id: "tools", label: "Tools", emoji: "✂️" },
-  { id: "accessories", label: "Accessories", emoji: "💎" },
-  { id: "wellness", label: "Wellness", emoji: "🌸" },
+
+interface Category {
+  id: string;
+  label: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: React.ElementType<any>;
+}
+
+const categories: Category[] = [
+  { id: "all",         label: "All",          icon: LayoutGrid },
+  { id: "hair",        label: "Hair",         icon: Scissors   },
+  { id: "nails",       label: "Nails",        icon: Gem        },
+  { id: "skincare",    label: "Skincare",     icon: Droplets   },
+  { id: "tools",       label: "Tools",        icon: Wrench     },
+  { id: "accessories", label: "Accessories",  icon: Diamond    },
+  { id: "wellness",    label: "Wellness",     icon: Heart      },
 ];
 
 // ─── Placeholder product data ───────────────────────────────────────────────────
+
 const placeholderProducts = [
   {
     id: "1",
@@ -105,24 +122,25 @@ const placeholderProducts = [
 ];
 
 // ─── Trust signals ──────────────────────────────────────────────────────────────
+
 const trustSignals = [
   {
-    icon: <ShieldCheck className="h-5 w-5" />,
+    icon: ShieldCheck,
     title: "Verified sellers only",
     copy: "Every shop has a KRA PIN and business registration on file.",
   },
   {
-    icon: <Tag className="h-5 w-5" />,
+    icon: Tag,
     title: "Genuine products",
     copy: "Sellers attest to product authenticity on every listing. Report a counterfeit in 3 taps.",
   },
   {
-    icon: <ShoppingBag className="h-5 w-5" />,
+    icon: ShoppingBag,
     title: "Escrow protection",
     copy: "Your money is held safely. Released only when you confirm receipt.",
   },
   {
-    icon: <Truck className="h-5 w-5" />,
+    icon: Truck,
     title: "Delivery available",
     copy: "Shop+ sellers offer Nairobi-wide delivery through verified delivery partners.",
   },
@@ -133,9 +151,10 @@ function formatKES(amount: number) {
 }
 
 // ─── Product card ───────────────────────────────────────────────────────────────
+
 function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
-  const [added, setAdded] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [added,    setAdded]    = useState(false);
+  const [saved,    setSaved]    = useState(false);
   const [reported, setReported] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
 
@@ -155,10 +174,10 @@ function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
   }
 
   return (
-    <article className="group min-w-0 overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
-      {/* Photo — clickable → product detail */}
+    <article className="group min-w-0 overflow-hidden rounded-[20px] border border-[var(--ms-border)] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)]">
+      {/* Photo */}
       <Link href={`/counter/product/${product.id}`} className="block">
-        <div className="relative h-[180px] overflow-hidden bg-[var(--ms-soft-bg)] sm:h-[180px]">
+        <div className="relative h-[200px] overflow-hidden bg-[var(--ms-soft-bg)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt={product.name}
@@ -166,72 +185,83 @@ function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
             loading="lazy"
             src={product.image}
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,rgba(13,27,42,0.35))]" />
+
           {/* Badge */}
           {product.badge && (
-            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-[var(--ms-navy)]">
+            <span className="absolute left-3 top-3 rounded-full bg-white/92 px-2.5 py-0.5 text-[10px] font-semibold text-[var(--ms-navy)] shadow-sm">
               {product.badge}
             </span>
           )}
-          {/* Bookmark / Save */}
+
+          {/* Save */}
           <button
             aria-label={saved ? "Unsave product" : "Save product"}
             className={cn(
-              "absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full transition",
+              "absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border transition",
               saved
-                ? "bg-[var(--ms-rose)] text-white"
-                : "bg-white/80 text-[var(--ms-mauve)] hover:bg-white hover:text-[var(--ms-rose)]",
+                ? "border-[var(--ms-plum)] bg-[var(--ms-plum)] text-white"
+                : "border-white/60 bg-white/80 text-[var(--ms-mauve)] hover:bg-white hover:text-[var(--ms-plum)]",
             )}
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSaved((v) => !v); }}
           >
-            <Flag className={cn("h-3.5 w-3.5", saved && "fill-white")} />
+            <Bookmark className={cn("h-3.5 w-3.5", saved && "fill-white")} />
           </button>
         </div>
       </Link>
 
       <div className="p-4">
-        <p className="text-[11px] text-[var(--ms-mauve)]">{product.brand}</p>
-        {/* Product name — clickable */}
+        <p className="text-[11px] font-medium tracking-[0.04em] text-[var(--ms-mauve)]">{product.brand}</p>
+
         <Link href={`/counter/product/${product.id}`}>
-          <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-[var(--ms-navy)] hover:underline">
+          <h3 className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--ms-navy)] hover:text-[var(--ms-plum)] transition-colors">
             {product.name}
           </h3>
         </Link>
 
-        <div className="mt-1.5 flex items-center gap-1 text-xs text-[var(--ms-mauve)]">
+        <div className="mt-1.5 flex items-center gap-1">
           <Star className="h-3.5 w-3.5 fill-[var(--ms-gold)] text-[var(--ms-gold)]" />
-          <span className="font-semibold text-[var(--ms-charcoal)]">{product.rating}</span>
-          <span>({product.reviewCount})</span>
+          <span className="text-[12px] font-semibold text-[var(--ms-charcoal)]">{product.rating}</span>
+          <span className="text-[11px] text-[var(--ms-mauve)]">({product.reviewCount})</span>
         </div>
 
-        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--ms-mauve)]">
-          <Store className="h-3 w-3 shrink-0" />
-          <span className="truncate">{product.shopName}</span>
+        <div className="mt-1 flex items-center gap-1.5">
+          <Store className="h-3 w-3 shrink-0 text-[var(--ms-mauve)]" />
+          <span className="truncate text-[11px] text-[var(--ms-mauve)]">{product.shopName}</span>
         </div>
 
         {/* Price + Add */}
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <p className="text-base font-semibold text-[var(--ms-navy)]">{formatKES(product.price)}</p>
+        <div className="mt-3.5 flex items-center justify-between gap-2">
+          <p className="text-[15px] font-bold text-[var(--ms-navy)]">{formatKES(product.price)}</p>
           <button
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ms-rose)] px-4 py-2 text-xs font-semibold text-white transition hover:brightness-110"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-semibold text-white transition",
+              added
+                ? "bg-[#1A7A6B]"
+                : "bg-[var(--ms-plum)] hover:brightness-110",
+            )}
             type="button"
             onClick={handleAdd}
           >
             <ShoppingBag className="h-3.5 w-3.5" />
-            {added ? "Added ✓" : "Add"}
+            {added ? "Added" : "Add"}
           </button>
         </div>
 
-        {/* Buyer duty notice */}
-        <p className="mt-2 rounded-[10px] bg-[var(--ms-soft-bg)] px-3 py-2 text-[10px] leading-4 text-[var(--ms-mauve)]">
+        {/* Report link */}
+        <p className="mt-2.5 rounded-[10px] bg-[var(--ms-soft-bg)] px-3 py-2 text-[10px] leading-4 text-[var(--ms-mauve)]">
           Expect the real thing.{" "}
           <button
             className="text-[var(--ms-rose)] underline"
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setReported(true); setTimeout(() => setReported(false), 3000); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setReported(true);
+              setTimeout(() => setReported(false), 3000);
+            }}
           >
-            {reported ? "Report sent ✓" : "Report this product"}
+            {reported ? "Report sent" : "Report this product"}
           </button>
         </p>
       </div>
@@ -240,13 +270,14 @@ function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
 }
 
 // ─── Main Counter UI ────────────────────────────────────────────────────────────
+
 export function CounterUI() {
   const [activeCategory, setActiveCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery,    setSearchQuery]    = useState("");
   const cartCount = useCartStore((s) => s.count());
 
   const filtered = placeholderProducts.filter((p) => {
-    const matchesCat = activeCategory === "all" || p.category === activeCategory;
+    const matchesCat    = activeCategory === "all" || p.category === activeCategory;
     const matchesSearch =
       !searchQuery ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -254,8 +285,11 @@ export function CounterUI() {
     return matchesCat && matchesSearch;
   });
 
+  const activeCat = categories.find((c) => c.id === activeCategory);
+
   return (
     <div className="section-grid">
+
       {/* Hero header */}
       <div className="overflow-hidden rounded-[36px] bg-[linear-gradient(135deg,var(--ms-plum),#512548_55%,var(--ms-rose))] px-6 py-8 text-white shadow-[0_24px_80px_rgba(58,24,58,0.28)] sm:px-8 sm:py-10">
         <div className="flex items-start justify-between gap-4">
@@ -270,9 +304,11 @@ export function CounterUI() {
               Genuine beauty products from verified Kenyan sellers. Escrow-protected. Delivered across Nairobi.
             </p>
           </div>
+
+          {/* Cart */}
           <Link
             href="/counter/cart"
-            className="relative shrink-0 rounded-full bg-white/15 p-3 text-white hover:bg-white/25 transition"
+            className="relative shrink-0 rounded-full bg-white/15 p-3 text-white transition hover:bg-white/25"
             aria-label="View cart"
           >
             <ShoppingBag className="h-6 w-6" />
@@ -295,7 +331,7 @@ export function CounterUI() {
           />
         </div>
 
-        {/* Sell CTA */}
+        {/* CTAs */}
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/auth/sign-up"
@@ -314,42 +350,49 @@ export function CounterUI() {
         </div>
       </div>
 
-      {/* Category pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {categories.map((cat) => (
-          <button
-            className={cn(
-              "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition",
-              activeCategory === cat.id
-                ? "border-[var(--ms-rose)] bg-[var(--ms-rose)] text-white"
-                : "border-[var(--ms-border)] bg-white text-[var(--ms-mauve)] hover:border-[var(--ms-rose)]/40 hover:text-[var(--ms-navy)]",
-            )}
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
-            type="button"
-          >
-            <span>{cat.emoji}</span>
-            {cat.label}
-          </button>
-        ))}
+      {/* Category pills — icon + label, no emojis */}
+      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {categories.map((cat) => {
+          const Icon = cat.icon;
+          const active = activeCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition",
+                active
+                  ? "border-[var(--ms-plum)] bg-[var(--ms-plum)] text-white shadow-[0_4px_12px_rgba(132,36,92,0.22)]"
+                  : "border-[var(--ms-border)] bg-white text-[var(--ms-mauve)] hover:border-[var(--ms-plum)]/40 hover:text-[var(--ms-navy)]",
+              )}
+            >
+              <Icon className="h-4 w-4" strokeWidth={active ? 2.25 : 1.75} />
+              {cat.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Trust signals */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {trustSignals.map((signal) => (
-          <div
-            className="flex items-start gap-3 rounded-[22px] border border-[var(--ms-border)] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(13,27,42,0.05)]"
-            key={signal.title}
-          >
-            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ms-rose)]/10 text-[var(--ms-rose)]">
-              {signal.icon}
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-[var(--ms-navy)]">{signal.title}</p>
-              <p className="mt-1 text-xs leading-5 text-[var(--ms-mauve)]">{signal.copy}</p>
+        {trustSignals.map((signal) => {
+          const Icon = signal.icon;
+          return (
+            <div
+              key={signal.title}
+              className="flex items-start gap-3 rounded-[22px] border border-[var(--ms-border)] bg-white px-4 py-4 shadow-[0_2px_8px_rgba(13,27,42,0.04)]"
+            >
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ms-plum)]/8 text-[var(--ms-plum)]">
+                <Icon className="h-5 w-5" strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-[13px] font-semibold text-[var(--ms-navy)]">{signal.title}</p>
+                <p className="mt-0.5 text-[11px] leading-5 text-[var(--ms-mauve)]">{signal.copy}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Products grid */}
@@ -357,14 +400,14 @@ export function CounterUI() {
         <div className="mb-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">
-              {activeCategory === "all" ? "All Products" : categories.find((c) => c.id === activeCategory)?.label}
+              {activeCat?.label ?? "All Products"}
             </p>
             <h2 className="mt-1 text-2xl font-semibold text-[var(--ms-plum)]">
               {filtered.length} product{filtered.length !== 1 ? "s" : ""} found
             </h2>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--ms-soft-bg)] px-4 py-2 text-xs font-medium text-[var(--ms-mauve)]">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--ms-rose)]" />
+          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--ms-soft-bg)] px-4 py-2 text-[12px] font-medium text-[var(--ms-mauve)]">
+            <Sparkles className="h-3.5 w-3.5 text-[var(--ms-plum)]" strokeWidth={1.75} />
             Verified sellers
           </span>
         </div>
@@ -377,13 +420,13 @@ export function CounterUI() {
           </div>
         ) : (
           <div className="rounded-[28px] border border-dashed border-[var(--ms-border)] bg-white px-5 py-12 text-center">
-            <ShoppingBag className="mx-auto h-8 w-8 text-[var(--ms-mauve)]" />
+            <ShoppingBag className="mx-auto h-8 w-8 text-[var(--ms-mauve)] opacity-40" />
             <h3 className="mt-4 text-lg font-semibold text-[var(--ms-navy)]">No products found</h3>
             <p className="mt-2 text-sm leading-6 text-[var(--ms-mauve)]">
               Try a different category or search term.
             </p>
             <button
-              className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--ms-border)] px-5 py-2.5 text-sm font-semibold text-[var(--ms-mauve)] transition hover:border-[var(--ms-rose)] hover:text-[var(--ms-navy)]"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--ms-border)] px-5 py-2.5 text-sm font-semibold text-[var(--ms-mauve)] transition hover:border-[var(--ms-plum)] hover:text-[var(--ms-navy)]"
               onClick={() => { setActiveCategory("all"); setSearchQuery(""); }}
               type="button"
             >
@@ -400,33 +443,34 @@ export function CounterUI() {
           Sell your beauty products here.
         </h2>
         <p className="mt-3 text-sm leading-7 text-white/72">
-          Register a Shop account. List up to 50 products on the Basic plan. Reach thousands of clients across Nairobi. 5% commission only when you sell.
+          Register a Shop account. List up to 50 products on the Basic plan.
+          Reach thousands of clients across Nairobi. 5% commission only when you sell.
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {[
-            { label: "5% commission", sub: "Deducted from payout only" },
-            { label: "Escrow protection", sub: "Get paid after delivery confirmed" },
-            { label: "Promoted listings", sub: "Growth & Shop+ plans available" },
-            { label: "Delivery integration", sub: "Shop+ includes rider network" },
+            { label: "5% commission",        sub: "Deducted from payout only"           },
+            { label: "Escrow protection",     sub: "Get paid after delivery confirmed"   },
+            { label: "Promoted listings",     sub: "Growth & Shop+ plans available"      },
+            { label: "Delivery integration",  sub: "Shop+ includes rider network"        },
           ].map((item) => (
-            <div className="rounded-[18px] bg-white/8 px-4 py-3" key={item.label}>
-              <p className="text-sm font-semibold text-[var(--ms-gold)]">{item.label}</p>
-              <p className="mt-1 text-xs text-white/60">{item.sub}</p>
+            <div key={item.label} className="rounded-[18px] bg-white/8 px-4 py-3">
+              <p className="text-[13px] font-semibold text-[var(--ms-gold)]">{item.label}</p>
+              <p className="mt-0.5 text-[11px] text-white/60">{item.sub}</p>
             </div>
           ))}
         </div>
         <Link
-          className="mt-6 inline-flex items-center gap-2 rounded-full bg-[var(--ms-rose)] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110"
           href="/auth/sign-up"
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-[var(--ms-rose)] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110"
         >
           Register a Shop account
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 
-      {/* Age-gated products notice */}
+      {/* Age-gated notice */}
       <div className="rounded-[22px] border border-[var(--ms-border)] bg-white px-5 py-4">
-        <p className="text-sm text-[var(--ms-mauve)]">
+        <p className="text-[13px] text-[var(--ms-mauve)]">
           <span className="font-semibold text-[var(--ms-navy)]">18+ products</span> are hidden by default.
           To view adult products, go to{" "}
           <span className="font-semibold text-[var(--ms-navy)]">Settings → Counter → View 18+ products</span>{" "}
