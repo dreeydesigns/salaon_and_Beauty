@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Camera,
   Grid3X3,
   Heart,
   MessageCircle,
@@ -12,7 +11,6 @@ import {
   Send,
   Users,
   X,
-  Bookmark,
 } from "lucide-react";
 
 import { ImageUploadEditor } from "@/components/image-upload-editor";
@@ -35,13 +33,13 @@ import {
 import { getProfessional, getSalon } from "@/lib/site-data";
 import { cn } from "@/lib/utils";
 
-type HomeTab = "my-posts" | "community";
+type HomeTab = "feed" | "community";
 
 export function SocialHome() {
   const searchParams = useSearchParams();
-  const initTab = (searchParams.get("tab") as HomeTab | null) ?? "my-posts";
+  const initTab = (searchParams.get("tab") as HomeTab | null) ?? "feed";
   const [activeTab, setActiveTab] = useState<HomeTab>(
-    ["my-posts", "community"].includes(initTab) ? initTab : "my-posts",
+    ["feed", "community"].includes(initTab) ? initTab : "feed",
   );
   const [session, setSession] = useState<AppUserSession | null>(null);
   const [myPosts, setMyPosts] = useState<SocialPost[]>([]);
@@ -133,7 +131,7 @@ export function SocialHome() {
   );
   const communityPosts = allPosts;
 
-  const displayPosts = activeTab === "my-posts" ? myPosts : communityPosts;
+  const displayPosts = activeTab === "feed" ? feedPosts : communityPosts;
 
   return (
     <div className="mx-auto max-w-2xl pb-28 pt-2">
@@ -169,26 +167,10 @@ export function SocialHome() {
         )}
       </div>
 
-      {/* ── Quick actions ─────────────────────────────────────────── */}
-      <div className="mb-4 grid grid-cols-3 gap-3">
-        <Link href="/discover" className="flex flex-col items-center gap-1.5 rounded-[20px] bg-white p-4 text-center shadow-[0_2px_8px_rgba(13,27,42,0.04)] hover:shadow-[0_4px_16px_rgba(13,27,42,0.08)]">
-          <Users className="h-6 w-6 text-[var(--ms-rose)]" />
-          <span className="text-xs font-semibold text-[var(--ms-navy)]">Discover</span>
-        </Link>
-        <Link href="/book" className="flex flex-col items-center gap-1.5 rounded-[20px] bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] p-4 text-center shadow-[0_6px_18px_rgba(212,83,126,0.3)]">
-          <Camera className="h-6 w-6 text-white" />
-          <span className="text-xs font-bold text-white">Book Now</span>
-        </Link>
-        <Link href="/explore" className="flex flex-col items-center gap-1.5 rounded-[20px] bg-white p-4 text-center shadow-[0_2px_8px_rgba(13,27,42,0.04)] hover:shadow-[0_4px_16px_rgba(13,27,42,0.08)]">
-          <Bookmark className="h-6 w-6 text-[var(--ms-rose)]" />
-          <span className="text-xs font-semibold text-[var(--ms-navy)]">Explore</span>
-        </Link>
-      </div>
-
       {/* ── Tabs ──────────────────────────────────────────────────── */}
       <div className="mb-4 flex rounded-[20px] border border-[var(--ms-border)] bg-white p-1 shadow-[0_2px_8px_rgba(13,27,42,0.04)]">
         {([
-          { key: "my-posts", label: "My Posts", icon: <Grid3X3 className="h-4 w-4" /> },
+          { key: "feed", label: "For You", icon: <Grid3X3 className="h-4 w-4" /> },
           { key: "community", label: "Community", icon: <Users className="h-4 w-4" /> },
         ] as { key: HomeTab; label: string; icon: React.ReactNode }[]).map((t) => (
           <button
@@ -209,7 +191,7 @@ export function SocialHome() {
       </div>
 
       {/* ── Guest restriction banner ───────────────────────────────── */}
-      {isGuest && activeTab === "my-posts" && (
+      {isGuest && activeTab === "feed" && (
         <div className="mb-4 rounded-[20px] border border-[var(--ms-rose)]/20 bg-[var(--ms-petal)] p-5 text-center">
           <p className="text-sm font-semibold text-[var(--ms-plum)]">You're browsing as a guest.</p>
           <p className="mt-1 text-xs text-[var(--ms-mauve)]">Create an account to post, follow, comment, and book.</p>
@@ -224,14 +206,14 @@ export function SocialHome() {
         <div className="rounded-[24px] border border-[var(--ms-border)] bg-white py-12 text-center shadow-[0_4px_16px_rgba(13,27,42,0.04)]">
           <Grid3X3 className="mx-auto h-10 w-10 text-[var(--ms-mauve)] opacity-30" />
           <p className="mt-4 text-sm font-semibold text-[var(--ms-navy)]">
-            {activeTab === "my-posts" ? "Nothing shared yet" : "The community feed is empty"}
+            {activeTab === "feed" ? "Your feed is just getting started" : "The community feed is empty"}
           </p>
           <p className="mt-1 text-xs text-[var(--ms-mauve)]">
-            {activeTab === "my-posts"
-              ? "Share your first beauty moment to get started."
-              : "Follow professionals or salons to see their posts here."}
+            {activeTab === "feed"
+              ? "Follow professionals, salons, and clients to shape what appears here."
+              : "Shared beauty moments, tips, and inspiration will appear here."}
           </p>
-          {!isGuest && activeTab === "my-posts" && (
+          {!isGuest && activeTab === "feed" && (
             <button
               type="button"
               onClick={() => setShowNewPost(true)}
