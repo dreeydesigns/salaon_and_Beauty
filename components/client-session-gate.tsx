@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { LockKeyhole, Sparkles } from "lucide-react";
 
 import { APP_SESSION_EVENT, readAppSession } from "@/lib/client-session";
 
 export function ClientSessionGate({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [hasSession, setHasSession] = useState(false);
 
@@ -63,7 +65,7 @@ export function ClientSessionGate({ children }: { children: ReactNode }) {
         </Link>
         <Link
           className="inline-flex min-h-12 items-center justify-center rounded-full border border-[var(--ms-border)] bg-white px-5 text-sm font-semibold text-[var(--ms-plum)]"
-          href="/auth/sign-in?returnTo=/home"
+          href={`/auth/sign-in?returnTo=${encodeURIComponent(pathname ?? "/home")}`}
         >
           Sign in
         </Link>

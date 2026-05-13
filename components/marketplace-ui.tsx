@@ -40,7 +40,7 @@ import {
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { openGuestGate } from "@/lib/guest-session";
-import { readAppSession } from "@/lib/client-session";
+import { APP_SESSION_EVENT, clearAppSession, readAppSession, type AppUserSession } from "@/lib/client-session";
 
 import type {
   NavKey,
@@ -369,6 +369,51 @@ export function SplitBrandHeader({
   currentNav: NavKey;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [session, setSession] = useState<AppUserSession | null>(null);
+
+  useEffect(() => {
+    function sync() { setSession(readAppSession()); }
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener(APP_SESSION_EVENT, sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener(APP_SESSION_EVENT, sync);
+    };
+  }, []);
+
+  // Derive dashboard href and display name from session role
+  const dashboardHref =
+    session?.role === "salon" ? "/salon/dashboard" :
+    session?.role === "professional" ? "/pro/dashboard" :
+    null;
+
+  const displayName = session
+    ? session.role === "salon"
+      ? (session as Extract<AppUserSession, { role: "salon" }>).salonName
+      : session.role === "professional"
+        ? (session as Extract<AppUserSession, { role: "professional" }>).displayName
+        : (session as Extract<AppUserSession, { role: "client" }>).firstName
+    : null;
+
+  function handleSignOut() {
+    clearAppSession();
+    setMenuOpen(false);
+  }
+
+  // Mobile menu links — show dashboard/sign-out when logged in, auth links when not
+  const mobileLinks: [string, string][] = [
+    ["Home", "/home"],
+    ["Explore", "/explore"],
+    ["Counter", "/counter"],
+    ["Guide", "/guide"],
+    ["Book now", "/book?rush=true"],
+    ["Profile", "/profile"],
+    ...(session ? [] : [["Sign in", "/auth/sign-in"] as [string, string]]),
+    ...(session ? [] : [["Create account", "/auth/sign-up"] as [string, string]]),
+    ["Terms & Conditions", "/terms"],
+    ["Help", "/help"],
+  ];
 
   return (
     <>
@@ -405,17 +450,75 @@ export function SplitBrandHeader({
               <DesktopNavLink href="/book" current={currentNav === "book"}>
                 Book
               </DesktopNavLink>
-              <DesktopNavLink href="/profile" current={currentNav === "profile"}>
-                Profile
-              </DesktopNavLink>
-              <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href="/book?rush=true">
-                <span className="hidden xl:inline">Start Booking</span>
-                <span className="xl:hidden">Book</span>
-                <ArrowRight className="h-4 w-4" />
-              </CTAButton>
+
+              {/* Session-aware right section */}
+              {session ? (
+                <>
+                  {dashboardHref && (
+                    <DesktopNavLink href={dashboardHref}>
+                      Dashboard
+                    </DesktopNavLink>
+                  )}
+                  <Link
+                    href="/profile"
+                    className={cn(
+                      "flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition",
+                      currentNav === "profile"
+                        ? "bg-[var(--ms-soft-bg)] text-[var(--ms-navy)]"
+                        : "text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)] hover:text-[var(--ms-navy)]",
+                    )}
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-[10px] font-bold text-white">
+                      {(displayName ?? "U").slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="max-w-[100px] truncate">{displayName}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="ml-1 rounded-full border border-[var(--ms-border)] px-3 py-2 text-sm font-medium text-[var(--ms-mauve)] transition hover:border-[var(--ms-rose)] hover:text-[var(--ms-rose)]"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <DesktopNavLink href="/profile" current={currentNav === "profile"}>
+                    Profile
+                  </DesktopNavLink>
+                  <Link
+                    href="/auth/sign-in?returnTo=/home"
+                    className="rounded-full px-4 py-2 text-sm font-medium text-[var(--ms-mauve)] transition hover:bg-[var(--ms-soft-bg)] hover:text-[var(--ms-navy)]"
+                  >
+                    Sign in
+                  </Link>
+                  <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href="/book?rush=true">
+                    <span className="hidden xl:inline">Start Booking</span>
+                    <span className="xl:hidden">Book</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </CTAButton>
+                </>
+              )}
+              {session && (
+                <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href="/book?rush=true">
+                  <span className="hidden xl:inline">Start Booking</span>
+                  <span className="xl:hidden">Book</span>
+                  <ArrowRight className="h-4 w-4" />
+                </CTAButton>
+              )}
             </nav>
 
             <div className="ml-auto flex items-center gap-2 lg:hidden">
+              {/* Session avatar dot on mobile */}
+              {session && (
+                <Link
+                  href={dashboardHref ?? "/profile"}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(232,62,140,0.28)]"
+                  title="My account"
+                >
+                  {(displayName ?? "U").slice(0, 1).toUpperCase()}
+                </Link>
+              )}
               <button
                 aria-controls="mobile-menu"
                 aria-expanded={menuOpen}
@@ -435,19 +538,28 @@ export function SplitBrandHeader({
       </header>
       <MobileSheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu">
         <nav id="mobile-menu" className="grid gap-2">
-          {[
-            ["Home", "/home"],
-            ["Explore", "/explore"],
-            ["Counter", "/counter"],
-            ["Guide", "/guide"],
-            ["Services", "/services"],
-            ["Book now", "/book?rush=true"],
-            ["Profile", "/profile"],
-            ["Sign in", "/auth/sign-in"],
-            ["Create account", "/auth/sign-up"],
-            ["Terms & Conditions", "/terms"],
-            ["Help", "/help"],
-          ].map(([label, href]) => (
+          {/* Session banner in mobile menu */}
+          {session && (
+            <div className="mb-1 flex items-center gap-3 rounded-[20px] bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] px-4 py-3 text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
+                {(displayName ?? "U").slice(0, 1).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{displayName}</p>
+                <p className="text-[11px] font-medium capitalize text-white/75">{session.role} account</p>
+              </div>
+            </div>
+          )}
+          {dashboardHref && (
+            <Link
+              className="rounded-[20px] bg-[var(--ms-plum)] px-4 py-3 text-sm font-semibold text-white"
+              href={dashboardHref}
+              onClick={() => setMenuOpen(false)}
+            >
+              My Dashboard
+            </Link>
+          )}
+          {mobileLinks.map(([label, href]) => (
             <Link
               className="rounded-[20px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm font-semibold text-[var(--ms-navy)]"
               href={href}
@@ -457,6 +569,15 @@ export function SplitBrandHeader({
               {label}
             </Link>
           ))}
+          {session && (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="rounded-[20px] bg-[var(--ms-soft-bg)] px-4 py-3 text-left text-sm font-semibold text-[var(--ms-rose)]"
+            >
+              Sign out
+            </button>
+          )}
         </nav>
       </MobileSheet>
     </>

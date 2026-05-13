@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
+import { ClientRatingFlow } from "@/components/service-session";
 import { cn } from "@/lib/utils";
 
 // ─── Service categories ───────────────────────────────────────────────────────
@@ -235,6 +236,8 @@ export default function ExplorePage() {
 
   return (
     <AppShell currentNav="explore" roleMode="salons" requireSession>
+      {/* Rating flow — floats above when a session has just completed */}
+      <ClientRatingFlow />
       <div className="mx-auto max-w-7xl space-y-6 px-4 pb-24 pt-4">
 
         {/* Header */}
