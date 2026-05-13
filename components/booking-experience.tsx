@@ -31,6 +31,7 @@ import { PaymentDisclaimer, usePaymentDisclaimer } from "@/components/payment-di
 import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
 import { readAppSession } from "@/lib/client-session";
 import { writeBooking } from "@/lib/social-store";
+import { openGuestGate } from "@/lib/guest-session";
 
 export function BookingExperience() {
   const searchParams = useSearchParams();
@@ -135,14 +136,20 @@ export function BookingExperience() {
 
     // Write the booking to the social store so the pro/salon dashboard can pick it up
     const session = readAppSession();
+    if (!session || session.role === "guest") {
+      saveBookingDraft();
+      openGuestGate("booking", "/book?resume=booking");
+      return;
+    }
+
     if (session && targetType && targetId && selectedServiceIds.length > 0 && selectedDate && selectedTime) {
       const targetName = targetEntity && "name" in targetEntity ? targetEntity.name : targetId;
       writeBooking({
         id: `bk_${Date.now()}`,
         clientId: session.id,
         clientName: session.role === "client" ? session.firstName : session.role === "professional" ? session.displayName : session.role === "salon" ? session.salonName : "Guest",
-        clientPhone: session.role !== "guest" ? session.phone : undefined,
-        clientAvatar: session.role !== "guest" ? session.profilePhoto : undefined,
+        clientPhone: session.phone,
+        clientAvatar: session.profilePhoto,
         targetType,
         targetSlug: targetId,
         targetName,

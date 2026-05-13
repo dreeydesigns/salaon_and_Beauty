@@ -101,8 +101,7 @@ export function RoleProfileWorkspace() {
   }
 
   if (session.role !== "professional") {
-    // guest session — shouldn't land on profile workspace but guard anyway
-    return null;
+    return <GuestProfilePrompt />;
   }
 
   return (
@@ -1031,6 +1030,13 @@ function SalonProfileWorkspace({
           ))}
         </div>
       </SectionReveal>
+
+      <ProviderMessagesPanel
+        avatar={session.profilePhoto}
+        displayName={session.salonName}
+        messagingId={session.publicSlug}
+        roleLabel="Salon"
+      />
     </div>
   );
 }
@@ -1165,7 +1171,196 @@ function ProfessionalProfileWorkspace({
           ))}
         </div>
       </SectionReveal>
+
+      <ProviderMessagesPanel
+        avatar={session.profilePhoto}
+        displayName={session.displayName}
+        messagingId={session.publicSlug}
+        roleLabel="Professional"
+      />
     </div>
+  );
+}
+
+function GuestProfilePrompt() {
+  return (
+    <section className="mx-auto max-w-2xl rounded-[32px] border border-[var(--ms-rose)]/20 bg-white p-6 text-center shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
+      <Sparkles className="mx-auto h-9 w-9 text-[var(--ms-rose)]" />
+      <h1 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Create your beauty profile.</h1>
+      <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ms-mauve)]">
+        Guest mode is for browsing. Create an account to post, message, save profiles, and shape your beauty world.
+      </p>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <CTAButton href="/signup/client">Create client account</CTAButton>
+        <CTAButton href="/home" variant="outline">Keep browsing</CTAButton>
+      </div>
+    </section>
+  );
+}
+
+function ProviderMessagesPanel({
+  avatar,
+  displayName,
+  messagingId,
+  roleLabel,
+}: {
+  avatar?: string;
+  displayName: string;
+  messagingId: string;
+  roleLabel: string;
+}) {
+  const [threads, setThreads] = useState<MessageThread[]>([]);
+  const [activeThread, setActiveThread] = useState<MessageThread | null>(null);
+  const [dmText, setDmText] = useState("");
+
+  useEffect(() => {
+    function sync() {
+      const nextThreads = readThreads().filter((thread) => thread.participantIds.includes(messagingId));
+      setThreads(nextThreads);
+      setActiveThread((current) => {
+        if (!current) return null;
+        return nextThreads.find((thread) => thread.id === current.id) ?? null;
+      });
+    }
+
+    sync();
+    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+
+    return () => {
+      window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [messagingId]);
+
+  function sendReply() {
+    if (!activeThread || !dmText.trim()) return;
+    sendMessage(activeThread.id, {
+      id: `msg_${Date.now()}`,
+      text: dmText.trim(),
+      senderId: messagingId,
+      senderName: displayName,
+      senderAvatar: avatar,
+      createdAt: new Date().toISOString(),
+      read: false,
+    });
+    setDmText("");
+  }
+
+  const sortedThreads = [...threads].sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+
+  return (
+    <SectionReveal className="beauty-card rounded-[32px] p-6">
+      <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">{roleLabel} inbox</p>
+      <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Client messages stay inside Mobile Salon.</h2>
+      <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
+        Conversations started from your public profile appear here so clients do not need to leave the platform.
+      </p>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(220px,0.38fr)_minmax(0,0.62fr)]">
+        <div className="space-y-2">
+          {sortedThreads.length === 0 ? (
+            <div className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-5 text-sm leading-6 text-[var(--ms-mauve)]">
+              No client messages yet.
+            </div>
+          ) : (
+            sortedThreads.map((thread) => {
+              const otherIdx = thread.participantIds.findIndex((id) => id !== messagingId);
+              const otherName = thread.participantNames[otherIdx] ?? "Client";
+              const lastMsg = thread.messages.at(-1);
+              const unread = thread.messages.filter((msg) => !msg.read && msg.senderId !== messagingId).length;
+
+              return (
+                <button
+                  className={cn(
+                    "w-full rounded-[20px] border p-4 text-left transition",
+                    activeThread?.id === thread.id
+                      ? "border-[var(--ms-rose)] bg-[var(--ms-petal)]"
+                      : "border-[var(--ms-border)] bg-white hover:border-[var(--ms-rose)]/40",
+                  )}
+                  key={thread.id}
+                  onClick={() => {
+                    markThreadRead(thread.id, messagingId);
+                    setActiveThread(thread);
+                  }}
+                  type="button"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{otherName}</p>
+                    {unread > 0 && (
+                      <span className="rounded-full bg-[var(--ms-rose)] px-2 py-0.5 text-[10px] font-bold text-white">{unread}</span>
+                    )}
+                  </div>
+                  <p className="mt-1 truncate text-xs text-[var(--ms-mauve)]">{lastMsg?.text ?? "No messages yet"}</p>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <div className="min-h-[320px] rounded-[24px] border border-[var(--ms-border)] bg-white">
+          {activeThread ? (
+            <div className="flex h-full min-h-[320px] flex-col">
+              <div className="border-b border-[var(--ms-border)] p-4">
+                <p className="text-sm font-semibold text-[var(--ms-navy)]">
+                  {activeThread.participantNames.find((name, index) => activeThread.participantIds[index] !== messagingId) ?? "Client"}
+                </p>
+                <p className="text-xs text-[var(--ms-mauve)]">Protected platform chat</p>
+              </div>
+              <div className="flex max-h-[360px] flex-1 flex-col-reverse gap-2 overflow-y-auto p-4">
+                {[...activeThread.messages].reverse().map((msg) => {
+                  const isMe = msg.senderId === messagingId;
+                  return (
+                    <div className={cn("flex", isMe ? "justify-end" : "justify-start")} key={msg.id}>
+                      <div
+                        className={cn(
+                          "max-w-[78%] rounded-[18px] px-4 py-2.5 text-sm leading-6",
+                          isMe
+                            ? "bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white"
+                            : "bg-[var(--ms-soft-bg)] text-[var(--ms-charcoal)]",
+                        )}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-end gap-2 border-t border-[var(--ms-border)] p-3">
+                <textarea
+                  className="flex-1 resize-none rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-2.5 text-sm leading-6 outline-none focus:border-[var(--ms-rose)]"
+                  onChange={(event) => setDmText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      sendReply();
+                    }
+                  }}
+                  placeholder="Reply without leaving the platform..."
+                  rows={1}
+                  value={dmText}
+                />
+                <button
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ms-rose)] text-white"
+                  onClick={sendReply}
+                  type="button"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid min-h-[320px] place-items-center p-6 text-center">
+              <div>
+                <MessageCircle className="mx-auto h-10 w-10 text-[var(--ms-mauve)] opacity-40" />
+                <p className="mt-3 text-sm font-semibold text-[var(--ms-navy)]">Select a conversation</p>
+                <p className="mt-1 text-xs leading-6 text-[var(--ms-mauve)]">New client messages will appear in the inbox list.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </SectionReveal>
   );
 }
 

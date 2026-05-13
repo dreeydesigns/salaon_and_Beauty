@@ -9,6 +9,7 @@ import {
   readThreads,
 } from "@/lib/social-store";
 import { readAppSession } from "@/lib/client-session";
+import { saveGuestReturn } from "@/lib/guest-session";
 
 interface MessageButtonProps {
   targetId: string;
@@ -27,6 +28,12 @@ export function MessageButton({ targetId, targetName, className }: MessageButton
       return;
     }
 
+    if (session.role === "guest") {
+      saveGuestReturn("/profile?tab=messages");
+      router.push("/signup/client?returnTo=/profile%3Ftab%3Dmessages");
+      return;
+    }
+
     const threadId = getOrCreateThreadId(session.id, targetId);
 
     // Create thread if it doesn't exist yet
@@ -37,8 +44,8 @@ export function MessageButton({ targetId, targetName, className }: MessageButton
         session.role === "client" ? session.firstName
         : session.role === "professional" ? session.displayName
         : session.role === "salon" ? session.salonName
-        : "Guest";
-      const senderAvatar = session.role !== "guest" ? session.profilePhoto : undefined;
+        : "Mobile Salon user";
+      const senderAvatar = session.profilePhoto;
 
       sendMessage(
         threadId,
