@@ -3,6 +3,7 @@ import type { ThemeKey } from "@/lib/personalization";
 export type RoleMode = "salons" | "professionals";
 export type NavKey =
   | "home"
+  | "discover"
   | "explore"
   | "counter"
   | "book"

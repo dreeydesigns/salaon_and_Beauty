@@ -140,9 +140,9 @@ export function BookingExperience() {
       writeBooking({
         id: `bk_${Date.now()}`,
         clientId: session.id,
-        clientName: session.role === "client" ? session.firstName : session.role === "professional" ? session.displayName : session.salonName,
-        clientPhone: session.phone,
-        clientAvatar: session.profilePhoto,
+        clientName: session.role === "client" ? session.firstName : session.role === "professional" ? session.displayName : session.role === "salon" ? session.salonName : "Guest",
+        clientPhone: session.role !== "guest" ? session.phone : undefined,
+        clientAvatar: session.role !== "guest" ? session.profilePhoto : undefined,
         targetType,
         targetSlug: targetId,
         targetName,

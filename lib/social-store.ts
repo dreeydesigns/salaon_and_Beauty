@@ -143,7 +143,7 @@ export interface BookingRequest {
   id: string;
   clientId: string;
   clientName: string;
-  clientPhone: string;
+  clientPhone?: string;
   clientAvatar?: string;
   targetType: "professionals" | "salons";
   targetSlug: string;

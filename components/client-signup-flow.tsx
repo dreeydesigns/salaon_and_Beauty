@@ -25,10 +25,12 @@ import {
 } from "react";
 
 import {
+  createGuestSession,
   dismissPhotoNudge,
   isPhotoNudgeDismissed,
   readQuizTheme,
   readSignupDraft,
+  writeAppSession,
   writeClientSession,
   writeSignupDraft,
 } from "@/lib/client-session";
@@ -365,6 +367,8 @@ export function ClientSignupFlow() {
                   copy="Connect with women who share your world and your sense of beauty."
                 />
               </div>
+
+              {/* B2 — Create account (primary) */}
               <button
                 className="mt-7 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition hover:brightness-110"
                 onClick={() => setStep(2)}
@@ -374,6 +378,23 @@ export function ClientSignupFlow() {
                 Create my account
                 <ArrowRight className="h-4 w-4" />
               </button>
+
+              {/* B1 — Continue as guest (secondary) */}
+              <button
+                className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-6 text-sm font-semibold text-[var(--ms-mauve)] transition hover:bg-white hover:text-[var(--ms-navy)]"
+                onClick={() => {
+                  const guest = createGuestSession();
+                  writeAppSession(guest);
+                  router.push(safeReturnTo);
+                }}
+                type="button"
+              >
+                Continue without signing in
+              </button>
+              <p className="mt-2 text-center text-xs leading-5 text-[var(--ms-mauve)]">
+                Guest mode: view-only for 24 hours. You won&apos;t be able to book, post, or interact until you create an account.
+              </p>
+
               <p className="mt-4 text-center text-xs leading-6 text-[var(--ms-mauve)]">
                 By continuing, you agree to Mobile Salon&apos;s privacy expectations, booking rules, and protected marketplace terms.
               </p>

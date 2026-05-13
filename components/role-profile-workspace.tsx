@@ -100,6 +100,11 @@ export function RoleProfileWorkspace() {
     return <SalonProfileWorkspace session={session} onSave={save} />;
   }
 
+  if (session.role !== "professional") {
+    // guest session — shouldn't land on profile workspace but guard anyway
+    return null;
+  }
+
   return (
     <ProfessionalProfileWorkspace
       onDeleteDraft={() => {

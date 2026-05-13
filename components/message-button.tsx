@@ -33,25 +33,29 @@ export function MessageButton({ targetId, targetName, className }: MessageButton
     const existing = readThreads().find((t) => t.id === threadId);
     if (!existing) {
       // Seed the thread with a greeting so it appears in the list
+      const senderName =
+        session.role === "client" ? session.firstName
+        : session.role === "professional" ? session.displayName
+        : session.role === "salon" ? session.salonName
+        : "Guest";
+      const senderAvatar = session.role !== "guest" ? session.profilePhoto : undefined;
+
       sendMessage(
         threadId,
         {
           id: `msg_${Date.now()}`,
           text: `Hi ${targetName}! I found your profile on Mobile Salon and would love to connect.`,
           senderId: session.id,
-          senderName: session.role === "client" ? session.firstName : session.role === "professional" ? session.displayName : session.salonName,
-          senderAvatar: session.profilePhoto,
+          senderName,
+          senderAvatar,
           createdAt: new Date().toISOString(),
           read: false,
         },
         {
           id: threadId,
           participantIds: [session.id, targetId],
-          participantNames: [
-            session.role === "client" ? session.firstName : session.role === "professional" ? session.displayName : session.salonName,
-            targetName,
-          ],
-          participantAvatars: [session.profilePhoto, undefined],
+          participantNames: [senderName, targetName],
+          participantAvatars: [senderAvatar, undefined],
         },
       );
     }

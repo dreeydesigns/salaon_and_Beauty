@@ -92,10 +92,10 @@ const navItems: Array<{
   icon: typeof Home;
 }> = [
   { key: "home", label: "Home", href: "/home", icon: Home },
-  { key: "explore", label: "Explore", href: "/explore", icon: LayoutGrid },
-  { key: "counter", label: "Counter", href: "/counter", icon: ShoppingBag },
+  { key: "discover", label: "Discover", href: "/discover", icon: LayoutGrid },
+  { key: "counter", label: "Shop", href: "/counter", icon: ShoppingBag },
   { key: "book", label: "Book", href: "/book", icon: CalendarDays },
-  { key: "profile", label: "Profile", href: "/profile", icon: UserRound },
+  { key: "profile", label: "Me", href: "/profile", icon: UserRound },
 ];
 
 export function SectionReveal({
@@ -438,14 +438,14 @@ export function SplitBrandHeader({
               <DesktopNavLink href="/home" current={currentNav === "home"}>
                 Home
               </DesktopNavLink>
+              <DesktopNavLink href="/discover" current={currentNav === "discover"}>
+                Discover
+              </DesktopNavLink>
               <DesktopNavLink href="/explore" current={currentNav === "explore"}>
                 Explore
               </DesktopNavLink>
-              <DesktopNavLink href="/guide">
-                Guide
-              </DesktopNavLink>
               <DesktopNavLink href="/counter" current={currentNav === "counter"}>
-                Counter
+                Shop
               </DesktopNavLink>
               <DesktopNavLink href="/book" current={currentNav === "book"}>
                 Book

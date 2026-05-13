@@ -12,7 +12,17 @@ import {
 } from "@/lib/personalization";
 import { getProfessional, getSalon, type ServiceMode } from "@/lib/site-data";
 
-export type AppUserRole = "client" | "salon" | "professional";
+export type AppUserRole = "client" | "salon" | "professional" | "guest";
+
+export interface GuestUserProfile {
+  id: string;
+  role: "guest";
+  theme: ThemeKey;
+  tribeBadge: string;
+  sessionStartedAt: string;
+  /** 24h window — after this the gate shows a sign-up nudge */
+  sessionExpiresAt: string;
+}
 
 export interface ProfileCardPreference {
   id: string;
@@ -59,7 +69,28 @@ export interface ProfessionalUserProfile {
   createdAt: string;
 }
 
-export type AppUserSession = ClientUserProfile | SalonUserProfile | ProfessionalUserProfile;
+export type AppUserSession = ClientUserProfile | SalonUserProfile | ProfessionalUserProfile | GuestUserProfile;
+
+export function createGuestSession(): GuestUserProfile {
+  const quizTheme = typeof window !== "undefined"
+    ? normalizeThemeKey(window.sessionStorage.getItem(QUIZ_THEME_STORAGE_KEY))
+    : "not_set";
+  const config = getThemeConfig(quizTheme);
+  const now = new Date();
+  const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  return {
+    id: `guest_${Date.now()}`,
+    role: "guest",
+    theme: quizTheme,
+    tribeBadge: config.tribeBadge,
+    sessionStartedAt: now.toISOString(),
+    sessionExpiresAt: expires.toISOString(),
+  };
+}
+
+export function isGuestExpired(session: GuestUserProfile): boolean {
+  return new Date() > new Date(session.sessionExpiresAt);
+}
 
 export const APP_SESSION_EVENT = "mobile-salon.client-session-change";
 export const APP_VISIT_EVENT = "mobile-salon.app-visit-change";
