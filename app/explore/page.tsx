@@ -363,84 +363,116 @@ export default function ExplorePage() {
         {/* ── Packages tab ───────────────────────────────────────────── */}
         {activeTab === "packages" && (
           view === "grid" ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {PACKAGES.map((pkg) => {
                 const Icon = pkg.icon;
                 return (
-                  <article key={pkg.id} className="group overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_4px_12px_rgba(13,27,42,0.06)] transition hover:shadow-[0_8px_24px_rgba(13,27,42,0.10)]">
-                    <div className="relative h-[140px] overflow-hidden">
+                  <article key={pkg.id} className="group flex flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_6px_24px_rgba(13,27,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(13,27,42,0.14)]">
+                    {/* Hero image — tall enough to be emotional */}
+                    <div className="relative h-[220px] overflow-hidden">
                       <img
                         src={pkg.image}
                         alt={pkg.name}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.06]"
                       />
-                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.02)_40%,rgba(13,27,42,0.5)_100%)]" />
+                      {/* Dark gradient for text legibility */}
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_30%,rgba(13,27,42,0.72)_100%)]" />
+                      {/* Badge */}
                       {pkg.badge && (
-                        <span className="absolute right-3 top-3 rounded-full bg-[var(--ms-rose)] px-2.5 py-0.5 text-[10px] font-semibold text-white">
+                        <span className="absolute left-3 top-3 rounded-full bg-[var(--ms-rose)] px-3 py-1 text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(212,83,126,0.4)]">
                           {pkg.badge}
                         </span>
                       )}
+                      {/* Icon circle */}
+                      <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+                        <Icon className="h-4 w-4 text-white" />
+                      </div>
+                      {/* Price overlay at bottom of image */}
+                      <div className="absolute bottom-3 left-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">From</p>
+                        <p className="text-xl font-bold leading-none text-white">{pkg.price}</p>
+                      </div>
                     </div>
-                    <div className="p-4">
-                      <p className="font-semibold text-[var(--ms-navy)]">{pkg.name}</p>
-                      <p className="mt-0.5 text-xs leading-5 text-[var(--ms-mauve)]">{pkg.description}</p>
-                      {/* Occasion chips */}
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {pkg.occasions.slice(0, 2).map((o) => (
-                          <span key={o} className="inline-flex items-center gap-1 rounded-full border border-[var(--ms-rose)]/25 bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-plum)]">
-                            ✦ {o}
+
+                    {/* Card body */}
+                    <div className="flex flex-1 flex-col p-5">
+                      <h3 className="text-base font-bold text-[var(--ms-navy)]">{pkg.name}</h3>
+                      <p className="mt-1.5 text-sm leading-6 text-[var(--ms-mauve)]">{pkg.description}</p>
+
+                      {/* Services included */}
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {pkg.services.map((s) => (
+                          <span key={s} className="rounded-full bg-[var(--ms-soft-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--ms-charcoal)]">
+                            {s}
                           </span>
                         ))}
                       </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ms-mauve)]">From</p>
-                          <p className="text-sm font-semibold text-[var(--ms-navy)]">{pkg.price}</p>
-                        </div>
-                        <Link
-                          href={`/explore/packages/${pkg.id}`}
-                          className="rounded-full bg-[var(--ms-rose)] px-4 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
-                        >
-                          Explore package
-                        </Link>
+
+                      {/* Duration + occasions */}
+                      <div className="mt-3 flex items-center gap-2 text-[11px] text-[var(--ms-mauve)]">
+                        <span className="font-semibold">{pkg.duration}</span>
+                        <span className="text-[var(--ms-border)]">·</span>
+                        <span className="truncate">{pkg.occasions[0]}</span>
                       </div>
+
+                      {/* CTA */}
+                      <Link
+                        href={`/explore/packages/${pkg.id}`}
+                        className="mt-4 flex items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-2.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(212,83,126,0.22)] transition hover:brightness-110"
+                      >
+                        Explore package
+                      </Link>
                     </div>
                   </article>
                 );
               })}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {PACKAGES.map((pkg) => {
                 const Icon = pkg.icon;
                 return (
-                  <article key={pkg.id} className="flex min-w-0 overflow-hidden rounded-[16px] border border-[var(--ms-border)] bg-white">
-                    <img
-                      src={pkg.image}
-                      alt={pkg.name}
-                      className="h-24 w-28 shrink-0 object-cover sm:h-28 sm:w-36"
-                    />
+                  <article key={pkg.id} className="group flex min-w-0 overflow-hidden rounded-[20px] bg-white shadow-[0_4px_16px_rgba(13,27,42,0.06)] transition hover:shadow-[0_8px_30px_rgba(13,27,42,0.12)]">
+                    {/* Tall image in list view too */}
+                    <div className="relative h-36 w-36 shrink-0 overflow-hidden sm:h-40 sm:w-44">
+                      <img
+                        src={pkg.image}
+                        alt={pkg.name}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+                      />
+                      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(13,27,42,0.22)_0%,transparent_60%)]" />
+                      <div className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+                        <Icon className="h-3.5 w-3.5 text-white" />
+                      </div>
+                    </div>
+
                     <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-[var(--ms-navy)]">{pkg.name}</p>
+                          <h3 className="truncate font-bold text-[var(--ms-navy)]">{pkg.name}</h3>
                           {pkg.badge && (
-                            <span className="rounded-full bg-[var(--ms-rose)] px-2 py-0.5 text-[10px] font-semibold text-white">{pkg.badge}</span>
+                            <span className="shrink-0 rounded-full bg-[var(--ms-rose)] px-2 py-0.5 text-[10px] font-bold text-white">{pkg.badge}</span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-xs leading-5 text-[var(--ms-mauve)]">{pkg.description}</p>
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {pkg.occasions.slice(0, 2).map((o) => (
-                            <span key={o} className="inline-flex items-center gap-1 rounded-full border border-[var(--ms-rose)]/25 bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-plum)]">
-                              ✦ {o}
+                        <p className="mt-1 text-sm leading-5 text-[var(--ms-mauve)]">{pkg.description}</p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {pkg.services.slice(0, 3).map((s) => (
+                            <span key={s} className="rounded-full bg-[var(--ms-soft-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--ms-charcoal)]">
+                              {s}
                             </span>
                           ))}
                         </div>
                       </div>
-                      <div className="mt-2 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[var(--ms-navy)]">{pkg.price}</p>
-                        <Link href={`/explore/packages/${pkg.id}`} className="rounded-full bg-[var(--ms-rose)] px-4 py-1.5 text-xs font-semibold text-white">
-                          Explore package
+                      <div className="mt-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-[var(--ms-navy)]">{pkg.price}</p>
+                          <p className="text-[11px] text-[var(--ms-mauve)]">{pkg.duration}</p>
+                        </div>
+                        <Link
+                          href={`/explore/packages/${pkg.id}`}
+                          className="rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(212,83,126,0.24)] transition hover:brightness-110"
+                        >
+                          Explore
                         </Link>
                       </div>
                     </div>

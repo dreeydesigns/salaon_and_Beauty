@@ -51,10 +51,15 @@ import {
   writePost,
   likePost,
   addComment,
+  readThreads,
+  markThreadRead,
+  sendMessage,
+  getOrCreateThreadId,
   SOCIAL_CHANGE_EVENT,
   type SocialPost,
   type SocialSaves,
   type SocialComment,
+  type MessageThread,
 } from "@/lib/social-store";
 import { getProfessional, getSalon } from "@/lib/site-data";
 import { cn } from "@/lib/utils";
@@ -109,7 +114,7 @@ export function RoleProfileWorkspace() {
 
 // ── Client social profile ─────────────────────────────────────────────────────
 
-type ClientTab = "posts" | "following" | "settings";
+type ClientTab = "posts" | "following" | "messages" | "settings";
 
 function ClientProfileWorkspace({
   session,
@@ -135,12 +140,16 @@ function ClientProfileWorkspace({
   const [editLocation, setEditLocation] = useState(session.location?.label ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [threads, setThreads] = useState<MessageThread[]>([]);
+  const [activeThread, setActiveThread] = useState<MessageThread | null>(null);
+  const [dmText, setDmText] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function sync() {
       setPosts(readPosts().filter((p) => p.authorId === session.id));
       setSaves(readSaves());
+      setThreads(readThreads().filter((t) => t.participantIds.includes(session.id)));
     }
     sync();
     window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
@@ -352,6 +361,7 @@ function ClientProfileWorkspace({
             [
               { key: "posts", label: "Posts", icon: <Grid3X3 className="h-4 w-4" /> },
               { key: "following", label: "Following", icon: <Users className="h-4 w-4" /> },
+              { key: "messages", label: "Messages", icon: <MessageCircle className="h-4 w-4" /> },
               { key: "settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
             ] as { key: ClientTab; label: string; icon: ReactNode }[]
           ).map((tab) => (
@@ -366,7 +376,12 @@ function ClientProfileWorkspace({
                   : "border-transparent text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
               )}
             >
-              {tab.icon}
+              <span className="relative">
+                {tab.icon}
+                {tab.key === "messages" && threads.some((t) => t.messages.some((m) => !m.read && m.senderId !== session.id)) && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[var(--ms-rose)]" />
+                )}
+              </span>
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
@@ -492,6 +507,155 @@ function ClientProfileWorkspace({
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* ── Messages tab ─────────────────────────────────────────────────── */}
+        {activeTab === "messages" && (
+          <div className="mt-5">
+            {activeThread ? (
+              /* Thread view */
+              <div className="flex flex-col rounded-[24px] border border-[var(--ms-border)] bg-white shadow-[0_4px_16px_rgba(13,27,42,0.06)]">
+                {/* Thread header */}
+                <div className="flex items-center gap-3 border-b border-[var(--ms-border)] p-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveThread(null)}
+                    className="rounded-full p-1.5 text-[var(--ms-mauve)] hover:text-[var(--ms-rose)]"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ms-petal)] text-sm font-bold text-[var(--ms-rose)]">
+                    {activeThread.participantNames.find((n, i) => activeThread.participantIds[i] !== session.id)?.[0] ?? "?"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--ms-navy)]">
+                      {activeThread.participantNames.find((n, i) => activeThread.participantIds[i] !== session.id) ?? "Unknown"}
+                    </p>
+                    <p className="text-xs text-[var(--ms-mauve)]">Beauty professional</p>
+                  </div>
+                </div>
+
+                {/* Messages list */}
+                <div className="flex max-h-[360px] flex-col-reverse gap-2 overflow-y-auto p-4">
+                  {[...activeThread.messages].reverse().map((msg) => {
+                    const isMe = msg.senderId === session.id;
+                    return (
+                      <div key={msg.id} className={cn("flex gap-2", isMe ? "justify-end" : "justify-start")}>
+                        <div className={cn(
+                          "max-w-[78%] rounded-[18px] px-4 py-2.5 text-sm leading-6",
+                          isMe
+                            ? "bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white"
+                            : "bg-[var(--ms-soft-bg)] text-[var(--ms-charcoal)]",
+                        )}>
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Compose */}
+                <div className="flex items-end gap-2 border-t border-[var(--ms-border)] p-3">
+                  <textarea
+                    className="flex-1 resize-none rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-2.5 text-sm leading-6 text-[var(--ms-charcoal)] outline-none placeholder:text-[var(--ms-border)] focus:border-[var(--ms-rose)]"
+                    rows={1}
+                    placeholder="Write a message…"
+                    value={dmText}
+                    onChange={(e) => setDmText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (!dmText.trim()) return;
+                        const msg = {
+                          id: `msg_${Date.now()}`,
+                          text: dmText.trim(),
+                          senderId: session.id,
+                          senderName: session.firstName,
+                          senderAvatar: session.profilePhoto,
+                          createdAt: new Date().toISOString(),
+                          read: false,
+                        };
+                        sendMessage(activeThread.id, msg);
+                        setDmText("");
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!dmText.trim()) return;
+                      const msg = {
+                        id: `msg_${Date.now()}`,
+                        text: dmText.trim(),
+                        senderId: session.id,
+                        senderName: session.firstName,
+                        senderAvatar: session.profilePhoto,
+                        createdAt: new Date().toISOString(),
+                        read: false,
+                      };
+                      sendMessage(activeThread.id, msg);
+                      setDmText("");
+                    }}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white shadow-[0_4px_12px_rgba(212,83,126,0.3)] hover:brightness-110"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Thread list */
+              <div className="space-y-2">
+                {threads.length === 0 ? (
+                  <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-8 text-center shadow-[0_4px_16px_rgba(13,27,42,0.04)]">
+                    <MessageCircle className="mx-auto h-10 w-10 text-[var(--ms-mauve)] opacity-40" />
+                    <p className="mt-4 text-sm font-semibold text-[var(--ms-navy)]">No messages yet</p>
+                    <p className="mt-1 text-xs leading-6 text-[var(--ms-mauve)]">Book a service or follow a professional to start a conversation.</p>
+                    <Link href="/book" className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--ms-petal)] px-5 py-2 text-sm font-semibold text-[var(--ms-rose)] hover:opacity-90">
+                      Find a professional
+                    </Link>
+                  </div>
+                ) : (
+                  threads.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()).map((thread) => {
+                    const otherIdx = thread.participantIds.findIndex((id) => id !== session.id);
+                    const otherName = thread.participantNames[otherIdx] ?? "Unknown";
+                    const lastMsg = thread.messages[thread.messages.length - 1];
+                    const unread = thread.messages.filter((m) => !m.read && m.senderId !== session.id).length;
+                    return (
+                      <button
+                        key={thread.id}
+                        type="button"
+                        onClick={() => {
+                          markThreadRead(thread.id, session.id);
+                          setActiveThread(thread);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-[20px] border border-[var(--ms-border)] bg-white p-4 text-left shadow-[0_2px_8px_rgba(13,27,42,0.04)] transition hover:border-[var(--ms-rose)]/30 hover:shadow-[0_4px_16px_rgba(13,27,42,0.08)]"
+                      >
+                        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--ms-petal)] text-base font-bold text-[var(--ms-rose)]">
+                          {otherName[0]}
+                          {unread > 0 && (
+                            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[9px] font-bold text-white">
+                              {unread}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <p className={cn("text-sm font-semibold", unread > 0 ? "text-[var(--ms-navy)]" : "text-[var(--ms-charcoal)]")}>{otherName}</p>
+                            <p className="shrink-0 text-[10px] text-[var(--ms-mauve)]">
+                              {lastMsg ? new Date(lastMsg.createdAt).toLocaleDateString("en-KE", { month: "short", day: "numeric" }) : ""}
+                            </p>
+                          </div>
+                          <p className={cn("mt-0.5 truncate text-xs", unread > 0 ? "font-semibold text-[var(--ms-charcoal)]" : "text-[var(--ms-mauve)]")}>
+                            {lastMsg ? `${lastMsg.senderId === session.id ? "You: " : ""}${lastMsg.text}` : "No messages yet"}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
         )}
