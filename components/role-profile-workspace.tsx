@@ -671,6 +671,21 @@ function ClientProfileWorkspace({
         {/* ── Settings tab ─────────────────────────────────────────────────── */}
         {activeTab === "settings" && (
           <div className="mt-5 space-y-4">
+            {/* Full settings card */}
+            <Link
+              href="/settings"
+              className="flex items-center gap-4 rounded-[22px] bg-[linear-gradient(135deg,var(--ms-plum),#7C3A6F)] px-5 py-4 text-white shadow-[0_6px_24px_rgba(132,36,92,0.2)] transition hover:brightness-105"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white/20">
+                <Settings className="h-5 w-5" />
+              </span>
+              <div className="flex-1">
+                <p className="text-[14px] font-bold">Full Settings</p>
+                <p className="text-[11px] text-white/70">Privacy, notifications, Counter, security &amp; more</p>
+              </div>
+              <svg className="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+            </Link>
+
             <div className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_4px_16px_rgba(13,27,42,0.06)]">
               <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ms-mauve)]">Profile</p>
               <div className="space-y-3">

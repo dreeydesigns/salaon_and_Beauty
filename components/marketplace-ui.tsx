@@ -20,6 +20,7 @@ import {
   MapPin,
   Menu,
   Search,
+  Settings,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
@@ -472,6 +473,13 @@ export function SplitBrandHeader({
                     </span>
                     <span className="max-w-[100px] truncate">{displayName}</span>
                   </Link>
+                  <Link
+                    href="/settings"
+                    className="ml-1 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ms-border)] text-[var(--ms-mauve)] transition hover:border-[var(--ms-plum)] hover:text-[var(--ms-plum)]"
+                    title="Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Link>
                   <button
                     type="button"
                     onClick={handleSignOut}
@@ -568,6 +576,13 @@ export function SplitBrandHeader({
               {label}
             </Link>
           ))}
+          <Link
+            className="rounded-[20px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm font-semibold text-[var(--ms-navy)]"
+            href="/settings"
+            onClick={() => setMenuOpen(false)}
+          >
+            Settings
+          </Link>
           {session && (
             <button
               type="button"
