@@ -1,10 +1,16 @@
+"use client";
+
 import { AppShell } from "@/components/app-shell";
 import { CTAButton, SectionReveal } from "@/components/marketplace-ui";
 import { activityItems } from "@/lib/site-data";
+import { ClientRatingFlow } from "@/components/service-session";
 
 export default function ActivityPage() {
   return (
     <AppShell currentNav="activity" roleMode="salons" requireSession>
+      {/* Rating flow — floats above when a session has just completed */}
+      <ClientRatingFlow />
+
       <div className="section-grid">
         <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Activity</p>

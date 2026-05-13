@@ -13,6 +13,7 @@ import {
 import { professionals, salons } from "@/lib/site-data";
 import { rankProfessionals, rankSalons } from "@/lib/discovery-ranking";
 import { cn } from "@/lib/utils";
+import { ClientRatingFlow } from "@/components/service-session";
 
 const PAGE_SIZE = 12;
 
@@ -191,6 +192,9 @@ export default function Home() {
 
   return (
     <AppShell currentNav="home" showFooter>
+      {/* Rating flow — floats above the page when a session is completed */}
+      <ClientRatingFlow />
+
       <div className="mx-auto max-w-7xl px-4 pb-24 pt-4 lg:px-6">
 
         {/* ── Toggle (ONE, centered, pill style) ────────────────────────── */}

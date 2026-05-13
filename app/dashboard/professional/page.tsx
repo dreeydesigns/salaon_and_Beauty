@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ImageUploadEditor } from "@/components/image-upload-editor";
 import { clearAppSession } from "@/lib/client-session";
+import { ServiceTimerCard } from "@/components/service-session";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -180,6 +181,9 @@ function HomeTab({ onNavigate }: { onNavigate?: (tab: Tab) => void }) {
 
   return (
     <div className="space-y-6">
+      {/* ── Active session timer ── */}
+      <ServiceTimerCard />
+
       {/* Profile nudge pills */}
       <div className="flex flex-wrap gap-2">
         {nudges.map((n) => (

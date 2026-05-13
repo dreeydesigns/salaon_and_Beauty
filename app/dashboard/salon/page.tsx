@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ImageUploadEditor } from "@/components/image-upload-editor";
 import { clearAppSession } from "@/lib/client-session";
+import { ServiceTimerCard } from "@/components/service-session";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -242,6 +243,9 @@ function BookingsTab() {
 
   return (
     <div className="space-y-6">
+      {/* ── Active session timer ── */}
+      <ServiceTimerCard />
+
       {/* Pending */}
       <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
         <h2 className="mb-4 text-sm font-semibold text-amber-800">Pending requests ({pendingRequests.length})</h2>
