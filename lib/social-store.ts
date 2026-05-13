@@ -36,7 +36,12 @@ function dispatch() {
 export function readSaves(): SocialSaves {
   if (!canUse()) return { professionals: [], salons: [] };
   try {
-    return JSON.parse(localStorage.getItem(SAVES_KEY) ?? "{}") as SocialSaves;
+    const parsed = JSON.parse(localStorage.getItem(SAVES_KEY) ?? "{}") as Partial<SocialSaves>;
+
+    return {
+      professionals: Array.isArray(parsed.professionals) ? parsed.professionals : [],
+      salons: Array.isArray(parsed.salons) ? parsed.salons : [],
+    };
   } catch {
     return { professionals: [], salons: [] };
   }

@@ -393,7 +393,9 @@ export function SplitBrandHeader({
       ? (session as Extract<AppUserSession, { role: "salon" }>).salonName
       : session.role === "professional"
         ? (session as Extract<AppUserSession, { role: "professional" }>).displayName
-        : (session as Extract<AppUserSession, { role: "client" }>).firstName
+        : session.role === "client"
+          ? (session as Extract<AppUserSession, { role: "client" }>).firstName
+          : "Guest"
     : null;
 
   function handleSignOut() {
