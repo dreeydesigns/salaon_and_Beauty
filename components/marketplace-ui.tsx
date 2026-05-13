@@ -609,6 +609,30 @@ function DesktopNavLink({
 }
 
 export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    function syncUnread() {
+      try {
+        const session = readAppSession();
+        if (!session) { setUnreadCount(0); return; }
+        const threads: Array<{ participantIds: string[]; messages: Array<{ read: boolean; senderId: string }> }> =
+          JSON.parse(localStorage.getItem("ms_messages") ?? "[]");
+        const count = threads
+          .filter((t) => t.participantIds.includes(session.id))
+          .reduce((sum, t) => sum + t.messages.filter((m) => !m.read && m.senderId !== session.id).length, 0);
+        setUnreadCount(count);
+      } catch { setUnreadCount(0); }
+    }
+    syncUnread();
+    window.addEventListener("ms-social-change", syncUnread);
+    window.addEventListener("storage", syncUnread);
+    return () => {
+      window.removeEventListener("ms-social-change", syncUnread);
+      window.removeEventListener("storage", syncUnread);
+    };
+  }, []);
+
   return (
     <nav
       className="mobile-bottom-nav fixed bottom-3 z-40 overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(135deg,rgba(58,24,58,0.96),rgba(132,36,92,0.94))] px-1.5 py-1.5 shadow-[0_18px_50px_rgba(132,36,92,0.32)] backdrop-blur lg:hidden"
@@ -621,9 +645,8 @@ export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = item.key === currentNav;
-          // Counter active state uses rose per spec; book uses the special circle CTA style
           const isCounter = item.key === "counter";
-          const isBook = item.key === "book";
+          const hasNotif = item.key === "profile" && unreadCount > 0;
 
           return (
             <li className="min-w-0" key={item.key}>
@@ -636,7 +659,14 @@ export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
                 )}
                 href={item.href}
               >
-                <Icon className="h-4 w-4" />
+                <span className="relative">
+                  <Icon className="h-4 w-4" />
+                  {hasNotif && (
+                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[8px] font-bold text-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </span>
                 {item.label}
               </Link>
             </li>
