@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
@@ -123,7 +123,11 @@ function ClientProfileWorkspace({
   session: Extract<AppUserSession, { role: "client" }>;
   onSave: (session: AppUserSession) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<ClientTab>("posts");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as ClientTab | null) ?? "posts";
+  const [activeTab, setActiveTab] = useState<ClientTab>(
+    (["posts", "following", "messages", "settings"] as ClientTab[]).includes(initialTab) ? initialTab : "posts"
+  );
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [saves, setSaves] = useState<SocialSaves>({ professionals: [], salons: [] });
   const [showNewPost, setShowNewPost] = useState(false);
