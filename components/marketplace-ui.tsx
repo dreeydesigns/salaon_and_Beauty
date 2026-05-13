@@ -404,8 +404,8 @@ export function SplitBrandHeader({
   // Mobile menu links — show dashboard/sign-out when logged in, auth links when not
   const mobileLinks: [string, string][] = [
     ["Home", "/home"],
-    ["Explore", "/explore"],
-    ["Counter", "/counter"],
+    ["Discover", "/discover"],
+    ["Shop", "/counter"],
     ["Guide", "/guide"],
     ["Book now", "/book?rush=true"],
     ["Profile", "/profile"],
@@ -438,11 +438,8 @@ export function SplitBrandHeader({
               <DesktopNavLink href="/home" current={currentNav === "home"}>
                 Home
               </DesktopNavLink>
-              <DesktopNavLink href="/discover" current={currentNav === "discover"}>
+              <DesktopNavLink href="/discover" current={currentNav === "discover" || currentNav === "explore"}>
                 Discover
-              </DesktopNavLink>
-              <DesktopNavLink href="/explore" current={currentNav === "explore"}>
-                Explore
               </DesktopNavLink>
               <DesktopNavLink href="/counter" current={currentNav === "counter"}>
                 Shop
