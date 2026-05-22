@@ -478,6 +478,7 @@ export function SettingsUI() {
   }, []);
 
   const isGuest = !session || session.role === "guest";
+  const isProvider = session?.role === "professional" || session?.role === "salon";
 
   function patch<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
     setSettings(setSetting(key, value));
@@ -674,21 +675,21 @@ export function SettingsUI() {
     {
       kind: "toggle",
       icon: Package,
-      label: "Booking reminders",
-      sub: "Upcoming appointment alerts",
+      label: isProvider ? "New booking alerts" : "Booking reminders",
+      sub: isProvider ? "Incoming booking requests from clients" : "Upcoming appointment alerts",
       on: settings.notifyBookings,
       onChange: (v) => patch("notifyBookings", v),
       disabled: !settings.pushNotifications,
     },
-    {
-      kind: "toggle",
+    ...(!isProvider ? [{
+      kind: "toggle" as const,
       icon: ShoppingBag,
       label: "Offers & promotions",
       sub: "Deals from salons and pros you follow",
       on: settings.notifyOffers,
-      onChange: (v) => patch("notifyOffers", v),
+      onChange: (v: boolean) => patch("notifyOffers", v),
       disabled: !settings.pushNotifications,
-    },
+    }] : []),
     {
       kind: "toggle",
       icon: Bell,
@@ -1005,23 +1006,25 @@ export function SettingsUI() {
         <RowGroup rows={notificationRows} />
       </Section>
 
-      {/* ── Counter (Shop) — 18+ section ────────────────────────────────── */}
-      <Section title="Counter — Shop">
-        {/* Prominent 18+ callout card */}
-        <div className="border-b border-[var(--ms-border)]/60 px-4 py-4">
-          <div className="flex items-start gap-3 rounded-[14px] bg-amber-50 p-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" strokeWidth={1.85} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-bold text-amber-800">18+ products hidden by default</p>
-              <p className="mt-0.5 text-[11px] leading-4 text-amber-700">
-                Adult products on Counter are hidden unless you verify your age below.
-                Products are intended for adults aged 18 and above only.
-              </p>
+      {/* ── Counter (Shop) — client only ────────────────────────────────── */}
+      {!isProvider && (
+        <Section title="Counter — Shop">
+          {/* Prominent 18+ callout card */}
+          <div className="border-b border-[var(--ms-border)]/60 px-4 py-4">
+            <div className="flex items-start gap-3 rounded-[14px] bg-amber-50 p-3">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" strokeWidth={1.85} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-bold text-amber-800">18+ products hidden by default</p>
+                <p className="mt-0.5 text-[11px] leading-4 text-amber-700">
+                  Adult products on Counter are hidden unless you verify your age below.
+                  Products are intended for adults aged 18 and above only.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-        <RowGroup rows={counterRows} />
-      </Section>
+          <RowGroup rows={counterRows} />
+        </Section>
+      )}
 
       {/* ── Feed & Content ───────────────────────────────────────────────── */}
       <Section title="Feed & Content">
