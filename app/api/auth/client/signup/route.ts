@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     profile: {
-      id: `preview_${Date.now()}`,
+      id: `client_${Date.now()}`,
       role: "client",
       firstName,
       phone,

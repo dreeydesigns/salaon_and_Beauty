@@ -97,10 +97,12 @@ export function AccountProfile() {
     session.role === "client" ? session.firstName
       : session.role === "professional" ? session.displayName
       : session.role === "salon" ? session.salonName
+      : session.role === "shop" ? session.shopName
+      : session.role === "delivery" || session.role === "super_admin" ? session.displayName
       : "Guest";
   const username = isClient ? session.username : undefined;
   const bio = isClient ? session.bio : undefined;
-  const avatar = session.role !== "guest" ? session.profilePhoto : undefined;
+  const avatar = "profilePhoto" in session ? session.profilePhoto : undefined;
   const theme = isClient ? session.theme : "not_set";
   const tribeBadge = isClient ? session.tribeBadge : "Guest";
   const themeConfig = getThemeConfig(theme);
@@ -126,7 +128,7 @@ export function AccountProfile() {
   }
 
   function handleAvatarSave(dataUrl: string) {
-    if (!session || isGuest) return;
+    if (!session || isGuest || !("profilePhoto" in session)) return;
     writeAppSession({ ...session, profilePhoto: dataUrl } as typeof session);
   }
 

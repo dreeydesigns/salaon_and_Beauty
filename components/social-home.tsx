@@ -51,7 +51,6 @@ import {
   toggleFollowAuthor,
   readSaves,
   SOCIAL_CHANGE_EVENT,
-  SEED_POSTS,
   type SocialPost,
   type SocialSaves,
   type SocialComment,
@@ -101,12 +100,6 @@ const TRENDING_TAGS = [
   { tag: "#nairobiglow",   posts: "891 posts"   },
   { tag: "#locjourney",    posts: "1.2K posts"  },
   { tag: "#bridalnairobi", posts: "547 posts"   },
-];
-
-const SUGGESTED = [
-  { id: "pro_amara",  name: "Amara Styles",    role: "professional" as const, sub: "Natural hair & braids · Westlands" },
-  { id: "salon_lux",  name: "Lux Beauty Bar",  role: "salon"         as const, sub: "Nails & facials · Lavington"       },
-  { id: "pro_zara",   name: "Zara Omukhubi",   role: "professional" as const, sub: "MUA · Kilimani"                    },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -929,10 +922,17 @@ function TrendingSidebar({
   followedAuthors,
   onFollowToggle,
   onToast,
+  suggestedCreators,
 }: {
   followedAuthors: Set<string>;
   onFollowToggle: (id: string) => void;
   onToast: (msg: string) => void;
+  suggestedCreators: Array<{
+    id: string;
+    name: string;
+    role: SocialPost["authorRole"];
+    sub: string;
+  }>;
 }) {
   return (
     <aside className="hidden w-72 shrink-0 xl:block">
@@ -963,7 +963,11 @@ function TrendingSidebar({
         <div className="rounded-[20px] bg-white p-5 shadow-[0_1px_8px_rgba(13,27,42,0.08)]">
           <p className="mb-3 text-sm font-bold text-[var(--ms-navy)]">Suggested for you</p>
           <div className="space-y-3">
-            {SUGGESTED.map((s) => {
+            {suggestedCreators.length === 0 ? (
+              <p className="rounded-[16px] bg-[var(--ms-soft-bg)] px-4 py-5 text-xs leading-5 text-[var(--ms-mauve)]">
+                Suggestions will appear after real clients, pros, and salons start posting.
+              </p>
+            ) : suggestedCreators.map((s) => {
               const following = followedAuthors.has(s.id);
               return (
                 <div key={s.id} className="flex items-center gap-3">
@@ -1229,12 +1233,20 @@ export function SocialHome() {
   const activeRoom     = ROOMS.find((r) => r.id === activeRoomId) ?? ROOMS[0];
   const activeCategory = activeRoom.filter;
 
-  // Merge real + seed posts, deduplicate
-  const realIds = new Set(realPosts.map((p) => p.id));
-  const allPosts = [
-    ...realPosts.filter((p) => !deletedIds.has(p.id) && !archivedIds.has(p.id)),
-    ...SEED_POSTS.filter((sp) => !realIds.has(sp.id)),
-  ];
+  const allPosts = realPosts.filter((p) => !deletedIds.has(p.id) && !archivedIds.has(p.id));
+  const suggestedCreators = Array.from(
+    allPosts.reduce((map, post) => {
+      if (!map.has(post.authorId) && post.authorId !== sessionId) {
+        map.set(post.authorId, {
+          id: post.authorId,
+          name: post.authorName,
+          role: post.authorRole,
+          sub: [roleLabel(post.authorRole), post.location].filter(Boolean).join(" · "),
+        });
+      }
+      return map;
+    }, new Map<string, { id: string; name: string; role: SocialPost["authorRole"]; sub: string }>()),
+  ).map(([, creator]) => creator).slice(0, 4);
 
   // Following tab
   const followedIds = new Set([
@@ -1364,6 +1376,7 @@ export function SocialHome() {
           followedAuthors={followedAuthors}
           onFollowToggle={handleFollowToggle}
           onToast={showToast}
+          suggestedCreators={suggestedCreators}
         />
       </div>
 

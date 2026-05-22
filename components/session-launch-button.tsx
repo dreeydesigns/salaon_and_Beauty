@@ -5,9 +5,7 @@ import type { ReactNode } from "react";
 
 import { CTAButton } from "@/components/marketplace-ui";
 import {
-  createPreviewClientSession,
-  createPreviewProfessionalSession,
-  createPreviewSalonSession,
+  createSessionForRole,
   readAppSession,
   writeAppSession,
   type AppUserRole,
@@ -33,12 +31,8 @@ export function SessionLaunchButton({
 
     if (existing?.role === role) {
       writeAppSession(existing);
-    } else if (role === "client") {
-      writeAppSession(createPreviewClientSession());
-    } else if (role === "salon") {
-      writeAppSession(createPreviewSalonSession());
-    } else {
-      writeAppSession(createPreviewProfessionalSession());
+    } else if (role !== "guest") {
+      writeAppSession(createSessionForRole(role));
     }
 
     router.push(destination);

@@ -29,9 +29,96 @@ import {
 } from "@/components/marketplace-ui";
 import { PaymentDisclaimer, usePaymentDisclaimer } from "@/components/payment-disclaimer";
 import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
-import { readAppSession } from "@/lib/client-session";
+import { readAppSession, readRegisteredProviders, type BookableProviderProfile } from "@/lib/client-session";
 import { writeBooking } from "@/lib/social-store";
 import { openGuestGate } from "@/lib/guest-session";
+
+type ProviderSort = "nearest" | "rating" | "response" | "available" | "booked" | "verified";
+
+const PROVIDER_SORTS: { key: ProviderSort; label: string }[] = [
+  { key: "nearest", label: "Nearest first" },
+  { key: "rating", label: "Top rated" },
+  { key: "response", label: "Fastest response" },
+  { key: "available", label: "Soonest available" },
+  { key: "booked", label: "Most booked" },
+  { key: "verified", label: "Verified only" },
+];
+
+function normalizeArea(value?: string) {
+  return (value ?? "").toLowerCase().trim();
+}
+
+function providerDistanceScore(provider: BookableProviderProfile, clientArea?: string) {
+  const area = normalizeArea(clientArea);
+  if (!area) {
+    return provider.location ? 1 : 2;
+  }
+
+  const providerAreas = [provider.location, ...provider.areasServed].map(normalizeArea);
+  if (providerAreas.includes(area)) {
+    return 0;
+  }
+
+  if (providerAreas.some((item) => item && (item.includes(area) || area.includes(item)))) {
+    return 1;
+  }
+
+  return 2;
+}
+
+function sortProviders(providers: BookableProviderProfile[], sort: ProviderSort, clientArea?: string) {
+  const ranked = [...providers];
+
+  if (sort === "verified") {
+    return ranked.filter((provider) => provider.verified);
+  }
+
+  return ranked.sort((a, b) => {
+    if (sort === "rating") {
+      return b.rating - a.rating || providerDistanceScore(a, clientArea) - providerDistanceScore(b, clientArea);
+    }
+
+    if (sort === "response") {
+      return (a.responseSpeedMinutes || 999) - (b.responseSpeedMinutes || 999);
+    }
+
+    if (sort === "booked") {
+      return b.reviewCount - a.reviewCount;
+    }
+
+    if (sort === "available") {
+      return a.nextAvailable.localeCompare(b.nextAvailable);
+    }
+
+    return providerDistanceScore(a, clientArea) - providerDistanceScore(b, clientArea);
+  });
+}
+
+function toBookableProvider(
+  entity: ReturnType<typeof getSalon> | ReturnType<typeof getProfessional> | null,
+  targetType: "salons" | "professionals",
+): BookableProviderProfile | null {
+  if (!entity) {
+    return null;
+  }
+
+  return {
+    slug: entity.slug,
+    name: entity.name,
+    role: targetType === "salons" ? "salon" : "professional",
+    targetType,
+    location: entity.location,
+    areasServed: entity.areasServed,
+    rating: entity.rating,
+    reviewCount: entity.reviewCount,
+    responseSpeedMinutes: entity.responseSpeedMinutes,
+    nextAvailable: entity.nextAvailable,
+    verified: entity.verified,
+    serviceIds: entity.serviceIds,
+    image: entity.image ? { url: entity.image.url, alt: entity.image.alt } : undefined,
+    description: "specialty" in entity ? entity.bio : entity.about,
+  };
+}
 
 export function BookingExperience() {
   const searchParams = useSearchParams();
@@ -61,6 +148,7 @@ export function BookingExperience() {
     toggleNotification,
     toggleService,
   } = useBookingStore();
+  const [providerSort, setProviderSort] = useState<ProviderSort>("nearest");
 
   useEffect(() => {
     if (searchParams.get("resume") !== "booking") {
@@ -111,10 +199,22 @@ export function BookingExperience() {
     return () => window.clearTimeout(timer);
   }, [setStatus, status]);
 
-  const targetEntity =
+  const registeredProviders = readRegisteredProviders(targetType);
+  const staticEntity =
     targetType === "salons" ? (targetId ? getSalon(targetId) : null) : targetId ? getProfessional(targetId) : null;
+  const targetEntity =
+    registeredProviders.find((provider) => provider.slug === targetId) ??
+    toBookableProvider(staticEntity, targetType);
+  const currentSession = readAppSession();
+  const clientArea =
+    currentSession?.role === "client" && currentSession.location?.label
+      ? currentSession.location.label
+      : undefined;
+  const rankedProviders = sortProviders(registeredProviders, providerSort, clientArea);
   const targetServices = targetEntity
-    ? getServicesByIds(targetEntity.serviceIds)
+    ? getServicesByIds(targetEntity.serviceIds).length > 0
+      ? getServicesByIds(targetEntity.serviceIds)
+      : services.filter((service) => service.popular).slice(0, 6)
     : services.filter((service) => service.popular).concat(services.filter((service) => !service.popular).slice(0, 6));
   const selectedServices = getServicesByIds(selectedServiceIds);
   const totalMin = selectedServices.reduce((sum, service) => sum + service.minPrice, 0);
@@ -125,7 +225,7 @@ export function BookingExperience() {
   const { accepted: disclaimerAccepted, setAccepted: setDisclaimerAccepted } = usePaymentDisclaimer();
 
   const canContinue =
-    (step === 1 && Boolean(targetType)) ||
+    (step === 1 && Boolean(targetType && targetId)) ||
     (step === 2 && selectedServiceIds.length > 0) ||
     (step === 3 && Boolean(selectedDate && selectedTime)) ||
     step === 4 ||
@@ -134,7 +234,7 @@ export function BookingExperience() {
   function handleConfirm() {
     if (!disclaimerAccepted) return;
 
-    // Write the booking to the social store so the pro/salon dashboard can pick it up
+    // Write the booking to the shared store so the selected pro/salon sees it instantly.
     const session = readAppSession();
     if (!session || session.role === "guest") {
       saveBookingDraft();
@@ -142,14 +242,18 @@ export function BookingExperience() {
       return;
     }
 
+    if (session.role !== "client" && session.role !== "super_admin") {
+      return;
+    }
+
     if (session && targetType && targetId && selectedServiceIds.length > 0 && selectedDate && selectedTime) {
-      const targetName = targetEntity && "name" in targetEntity ? targetEntity.name : targetId;
+      const targetName = targetEntity?.name ?? targetId;
       writeBooking({
-        id: `bk_${Date.now()}`,
+        id: globalThis.crypto?.randomUUID?.() ?? `bk_${new Date().getTime()}`,
         clientId: session.id,
-        clientName: session.role === "client" ? session.firstName : session.role === "professional" ? session.displayName : session.role === "salon" ? session.salonName : "Guest",
+        clientName: session.role === "client" ? session.firstName : "Mobile Salon Admin",
         clientPhone: session.phone,
-        clientAvatar: session.profilePhoto,
+        clientAvatar: session.role === "client" ? session.profilePhoto : undefined,
         targetType,
         targetSlug: targetId,
         targetName,
@@ -269,39 +373,116 @@ export function BookingExperience() {
 
         <div className="mt-8 space-y-6">
           {step === 1 ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              <button
-                className={cn(
-                  "rounded-[28px] border px-5 py-6 text-left transition",
-                  targetType === "salons"
-                    ? "border-[var(--ms-navy)] bg-[var(--ms-navy)] text-white"
-                    : "border-[var(--ms-border)] bg-[var(--ms-soft-bg)] text-[var(--ms-navy)]",
+            <div className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <button
+                  className={cn(
+                    "rounded-[28px] border px-5 py-6 text-left transition",
+                    targetType === "salons"
+                      ? "border-[var(--ms-navy)] bg-[var(--ms-navy)] text-white"
+                      : "border-[var(--ms-border)] bg-[var(--ms-soft-bg)] text-[var(--ms-navy)]",
+                  )}
+                  onClick={() => setTarget("salons", null)}
+                  type="button"
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] opacity-70">Book a</p>
+                  <h2 className="mt-3 text-2xl font-semibold">Salon</h2>
+                  <p className="mt-2 text-sm leading-6 opacity-80">
+                    Best for a salon setting, team support, and a wider menu.
+                  </p>
+                </button>
+                <button
+                  className={cn(
+                    "rounded-[28px] border px-5 py-6 text-left transition",
+                    targetType === "professionals"
+                      ? "border-[var(--ms-magenta)] bg-[var(--ms-magenta)] text-white"
+                      : "border-[var(--ms-border)] bg-[var(--ms-soft-bg)] text-[var(--ms-navy)]",
+                  )}
+                  onClick={() => setTarget("professionals", null)}
+                  type="button"
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] opacity-70">Book a</p>
+                  <h2 className="mt-3 text-2xl font-semibold">Professional</h2>
+                  <p className="mt-2 text-sm leading-6 opacity-80">
+                    Best for specialist-led mobile or independent service.
+                  </p>
+                </button>
+              </div>
+
+              <div className="rounded-[28px] border border-[var(--ms-border)] bg-white p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Choose provider</p>
+                    <h2 className="mt-1 text-xl font-semibold text-[var(--ms-navy)]">
+                      {targetType === "salons" ? "Salons near you" : "Professionals near you"}
+                    </h2>
+                  </div>
+                  <select
+                    className="rounded-full border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-2 text-sm font-semibold text-[var(--ms-navy)] outline-none"
+                    onChange={(event) => setProviderSort(event.target.value as ProviderSort)}
+                    value={providerSort}
+                  >
+                    {PROVIDER_SORTS.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {rankedProviders.length === 0 ? (
+                  <div className="mt-5 rounded-[24px] border border-dashed border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-6 text-center">
+                    <p className="text-sm font-semibold text-[var(--ms-navy)]">
+                      No {targetType === "salons" ? "salons" : "professionals"} have created an account yet.
+                    </p>
+                    <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-[var(--ms-mauve)]">
+                      Once the first real provider signs up, they will appear here and receive booking requests directly.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-5 grid gap-3">
+                    {rankedProviders.map((provider) => {
+                      const active = targetId === provider.slug;
+                      return (
+                        <button
+                          className={cn(
+                            "flex items-start gap-4 rounded-[24px] border p-4 text-left transition",
+                            active
+                              ? "border-[var(--ms-rose)] bg-[var(--ms-petal)]"
+                              : "border-[var(--ms-border)] bg-white hover:border-[var(--ms-rose)]/40",
+                          )}
+                          key={provider.slug}
+                          onClick={() => setTarget(provider.targetType, provider.slug)}
+                          type="button"
+                        >
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ms-soft-bg)] text-base font-bold text-[var(--ms-plum)]">
+                            {provider.image?.url ? (
+                              <img src={provider.image.url} alt={provider.image.alt} className="h-full w-full object-cover" />
+                            ) : (
+                              provider.name.slice(0, 1).toUpperCase()
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{provider.name}</p>
+                              <span className="rounded-full bg-[var(--ms-soft-bg)] px-2 py-0.5 text-[10px] font-semibold capitalize text-[var(--ms-mauve)]">
+                                {provider.role}
+                              </span>
+                              {provider.verified ? (
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Verified</span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--ms-mauve)]">{provider.description}</p>
+                            <p className="mt-2 text-xs font-semibold text-[var(--ms-charcoal)]">
+                              {provider.location || "Location setup pending"} · {provider.rating ? `${provider.rating.toFixed(1)} rating` : "New"} · {provider.responseSpeedMinutes ? `${provider.responseSpeedMinutes} min response` : "Response time pending"}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-                onClick={() => setTarget("salons", targetId)}
-                type="button"
-              >
-                <p className="text-xs uppercase tracking-[0.22em] opacity-70">Target</p>
-                <h2 className="mt-3 text-2xl font-semibold">Salon</h2>
-                <p className="mt-2 text-sm leading-6 opacity-80">
-                  Best when you want a salon setting, a team, or a wider service menu.
-                </p>
-              </button>
-              <button
-                className={cn(
-                  "rounded-[28px] border px-5 py-6 text-left transition",
-                  targetType === "professionals"
-                    ? "border-[var(--ms-magenta)] bg-[var(--ms-magenta)] text-white"
-                    : "border-[var(--ms-border)] bg-[var(--ms-soft-bg)] text-[var(--ms-navy)]",
-                )}
-                onClick={() => setTarget("professionals", targetId)}
-                type="button"
-              >
-                <p className="text-xs uppercase tracking-[0.22em] opacity-70">Target</p>
-                <h2 className="mt-3 text-2xl font-semibold">Professional</h2>
-                <p className="mt-2 text-sm leading-6 opacity-80">
-                  Best when you already know the pro you want or need mobile, specialist-led service.
-                </p>
-              </button>
+              </div>
             </div>
           ) : null}
 

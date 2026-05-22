@@ -100,20 +100,6 @@ function writeRating(r: SessionRating | null) {
   window.dispatchEvent(new Event("ms-session-change"));
 }
 
-// ─── Demo seed ──────────────────────────────────────────────────────────────
-// Pre-loaded into the pro dashboard so there's always an active booking to demo.
-
-export const DEMO_SESSION: ActiveSession = {
-  bookingId: "bk-demo-001",
-  proName:   "Njeri Kamau",
-  clientName:"Aisha Mwenda",
-  services: [
-    { id: "knotless-braids", name: "Knotless Braids", price: 3500 },
-    { id: "wash-and-go",     name: "Wash & Go",        price: 1500 },
-  ],
-  status: "en_route",
-};
-
 // ─── Sync hook ──────────────────────────────────────────────────────────────
 
 function useSessionSync() {
@@ -143,6 +129,7 @@ function useSessionSync() {
 function useTimer(startedAt: number | undefined, active: boolean) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!active || !startedAt) { setElapsed(0); return; }
     const tick = () => setElapsed(Math.floor((Date.now() - startedAt) / 1000));
     tick();
@@ -229,19 +216,15 @@ export function ServiceTimerCard() {
   const [photos, setPhotos]         = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Seed demo session on mount if nothing exists
   useEffect(() => {
     const existing = readSession();
-    if (!existing) {
-      writeSession(DEMO_SESSION);
-      setSessionLocal(DEMO_SESSION);
-    } else {
-      setSessionLocal(existing);
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSessionLocal(existing);
   }, []);
 
   // Stay in sync with external changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setSessionLocal(stored);
   }, [stored]);
 
@@ -601,6 +584,7 @@ export function ClientRatingFlow() {
   // Show rating flow when session moves to "completed"
   useEffect(() => {
     if (stored?.status === "completed" && !readRating()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSession(stored);
       setVisible(true);
       setStep("services");

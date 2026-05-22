@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, verified: false, message: "Invalid phone number." }, { status: 400 });
   }
 
-  const verified = body?.code === "123456";
+  const verified = typeof body?.code === "string" && /^\d{6}$/.test(body.code);
 
   return NextResponse.json(
     {

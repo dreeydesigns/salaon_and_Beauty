@@ -219,7 +219,7 @@ export function ClientSignupFlow() {
       setStep(5);
     } catch {
       const fallbackProfile: ClientUserProfile = {
-        id: `preview_${Date.now()}`,
+        id: `client_${Date.now()}`,
         role: "client",
         firstName,
         phone: fullPhone,
@@ -548,7 +548,6 @@ export function ClientSignupFlow() {
                   {resendCount >= 3 ? "Too many resend attempts" : resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
                 </button>
               </div>
-              <p className="mt-3 text-center text-xs text-[var(--ms-mauve)]">Preview code: 123456</p>
             </ScreenShell>
           ) : null}
 

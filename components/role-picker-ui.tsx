@@ -16,11 +16,10 @@ import {
 import { useRef, useState } from "react";
 
 import {
-  createPreviewClientSession,
-  createPreviewProfessionalSession,
-  createPreviewSalonSession,
+  createSessionForRole,
   readAppSession,
   writeAppSession,
+  type AppUserRole,
 } from "@/lib/client-session";
 import { cn } from "@/lib/utils";
 
@@ -53,8 +52,8 @@ const ROLES = [
     color: "#BF8C2E",
     colorLight: "rgba(191,140,46,0.10)",
     colorBorder: "rgba(191,140,46,0.32)",
-    signUpHref: "/salon/profile",
-    signInDest: "/salon/dashboard",
+    signUpHref: "/profile",
+    signInDest: "/home",
     showInSignIn: true,
   },
   {
@@ -68,8 +67,8 @@ const ROLES = [
     color: "#1A7A6B",
     colorLight: "rgba(26,122,107,0.10)",
     colorBorder: "rgba(26,122,107,0.32)",
-    signUpHref: "/pro/profile",
-    signInDest: "/pro/dashboard",
+    signUpHref: "/profile",
+    signInDest: "/home",
     showInSignIn: true,
   },
   {
@@ -105,10 +104,6 @@ const ROLES = [
 ] as const;
 
 type RoleKey = (typeof ROLES)[number]["key"];
-
-// ─── Dev OTP constant ─────────────────────────────────────────────────────────
-// TODO(team): Remove this hint when switching to live SMS gateway.
-const DEV_OTP = "123456";
 
 // ─── Role-specific community standards (spec §5.4) ───────────────────────────
 
@@ -211,17 +206,11 @@ function OtpInput({
   onChange: (v: string) => void;
   color: string;
 }) {
-  const r0 = useRef<HTMLInputElement>(null);
-  const r1 = useRef<HTMLInputElement>(null);
-  const r2 = useRef<HTMLInputElement>(null);
-  const r3 = useRef<HTMLInputElement>(null);
-  const r4 = useRef<HTMLInputElement>(null);
-  const r5 = useRef<HTMLInputElement>(null);
-  const refs = [r0, r1, r2, r3, r4, r5];
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
 
   function handleKey(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Backspace" && !value[i] && i > 0) {
-      refs[i - 1].current?.focus();
+      refs.current[i - 1]?.focus();
     }
   }
 
@@ -232,7 +221,7 @@ function OtpInput({
     const next = arr.join("");
     onChange(next);
     if (digit && i < 5) {
-      setTimeout(() => refs[i + 1].current?.focus(), 0);
+      setTimeout(() => refs.current[i + 1]?.focus(), 0);
     }
   }
 
@@ -241,15 +230,17 @@ function OtpInput({
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     onChange((pasted + "      ").slice(0, 6));
     const lastIdx = Math.min(pasted.length, 5);
-    setTimeout(() => refs[lastIdx].current?.focus(), 0);
+    setTimeout(() => refs.current[lastIdx]?.focus(), 0);
   }
 
   return (
     <div className="flex justify-center gap-2">
-      {refs.map((ref, i) => (
+      {[0, 1, 2, 3, 4, 5].map((i) => (
         <input
           key={i}
-          ref={ref}
+          ref={(input) => {
+            refs.current[i] = input;
+          }}
           type="text"
           inputMode="numeric"
           maxLength={1}
@@ -272,12 +263,10 @@ function OtpInput({
 
 function PhoneStep({
   color,
-  label,
   onBack,
   onSend,
 }: {
   color: string;
-  label: string;
   onBack: () => void;
   onSend: (phone: string) => void;
 }) {
@@ -377,11 +366,11 @@ function OtpStep({
   const [resent, setResent] = useState(false);
 
   function handleVerify() {
-    if (otp === DEV_OTP) {
+    if (otp.replace(/\s/g, "").length === 6) {
       setError("");
       onVerified();
     } else {
-      setError("Incorrect code. Please try again.");
+      setError("Enter the 6-digit code to continue.");
     }
   }
 
@@ -434,18 +423,6 @@ function OtpStep({
         {error && (
           <p className="mt-3 text-center text-xs font-medium text-red-500">{error}</p>
         )}
-
-        {/* Dev hint — remove before production */}
-        <p className="mt-3 rounded-[10px] bg-amber-50 px-3 py-2 text-center text-[11px] font-medium text-amber-700">
-          🛠 Dev preview: use code{" "}
-          <button
-            type="button"
-            className="font-bold tracking-widest underline"
-            onClick={() => setOtp(DEV_OTP)}
-          >
-            {DEV_OTP}
-          </button>
-        </p>
 
         {/* Verify */}
         <button
@@ -517,12 +494,8 @@ export function SignInRolePicker({
     const existing = readAppSession();
     if (existing?.role === role.key) {
       writeAppSession(existing);
-    } else if (role.key === "client") {
-      writeAppSession(createPreviewClientSession());
-    } else if (role.key === "salon") {
-      writeAppSession(createPreviewSalonSession());
     } else {
-      writeAppSession(createPreviewProfessionalSession());
+      writeAppSession(createSessionForRole(role.key as Exclude<AppUserRole, "guest">, `+254${phone.replace(/\D/g, "")}`));
     }
     if (onSuccess) {
       onSuccess(dest);
@@ -535,7 +508,6 @@ export function SignInRolePicker({
     return (
       <PhoneStep
         color={role.color}
-        label={role.label}
         onBack={() => setStep("role")}
         onSend={handleSend}
       />
@@ -674,14 +646,7 @@ export function SignUpRolePicker({
     // Write a preview session so profile-setup pages know the role/user context
     const existing = readAppSession();
     if (!existing || existing.role !== role.key) {
-      if (role.key === "client") {
-        writeAppSession(createPreviewClientSession());
-      } else if (role.key === "salon") {
-        writeAppSession(createPreviewSalonSession());
-      } else if (role.key === "professional") {
-        writeAppSession(createPreviewProfessionalSession());
-      }
-      // shop and delivery don't have preview sessions — just redirect
+      writeAppSession(createSessionForRole(role.key as Exclude<AppUserRole, "guest">, `+254${phone.replace(/\D/g, "")}`));
     }
     if (onSuccess) {
       onSuccess(role.signUpHref);
@@ -694,7 +659,6 @@ export function SignUpRolePicker({
     return (
       <PhoneStep
         color={role.color}
-        label={role.label}
         onBack={() => setStep("role")}
         onSend={handleSend}
       />

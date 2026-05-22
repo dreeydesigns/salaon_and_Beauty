@@ -42,6 +42,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 
 import { openGuestGate } from "@/lib/guest-session";
 import { APP_SESSION_EVENT, clearAppSession, readAppSession, type AppUserSession } from "@/lib/client-session";
+import { getRoleHomeHref, getRolePrimaryAction } from "@/lib/role-permissions";
 
 import type {
   NavKey,
@@ -383,11 +384,8 @@ export function SplitBrandHeader({
     };
   }, []);
 
-  // Derive dashboard href and display name from session role
-  const dashboardHref =
-    session?.role === "salon" ? "/salon/dashboard" :
-    session?.role === "professional" ? "/pro/dashboard" :
-    null;
+  const roleHomeHref = getRoleHomeHref(session?.role);
+  const primaryAction = getRolePrimaryAction(session?.role);
 
   const displayName = session
     ? session.role === "salon"
@@ -396,7 +394,11 @@ export function SplitBrandHeader({
         ? (session as Extract<AppUserSession, { role: "professional" }>).displayName
         : session.role === "client"
           ? (session as Extract<AppUserSession, { role: "client" }>).firstName
-          : "Guest"
+          : session.role === "shop"
+            ? (session as Extract<AppUserSession, { role: "shop" }>).shopName
+            : session.role === "delivery" || session.role === "super_admin"
+              ? (session as Extract<AppUserSession, { role: "delivery" | "super_admin" }>).displayName
+              : "Guest"
     : null;
 
   function handleSignOut() {
@@ -406,7 +408,7 @@ export function SplitBrandHeader({
 
   // Mobile menu links — show dashboard/sign-out when logged in, auth links when not
   const mobileLinks: [string, string][] = [
-    ["Home", "/home"],
+    ["Home", roleHomeHref],
     ["Discover", "/discover"],
     ["Shop", "/counter"],
     ["Guide", "/guide"],
@@ -454,9 +456,9 @@ export function SplitBrandHeader({
               {/* Session-aware right section */}
               {session ? (
                 <>
-                  {dashboardHref && (
-                    <DesktopNavLink href={dashboardHref}>
-                      Dashboard
+                  {(session.role === "professional" || session.role === "salon") && (
+                    <DesktopNavLink href="/profile?tab=requests">
+                      Requests
                     </DesktopNavLink>
                   )}
                   <Link
@@ -499,17 +501,17 @@ export function SplitBrandHeader({
                   >
                     Sign in
                   </Link>
-                  <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href="/book?rush=true">
-                    <span className="hidden xl:inline">Start Booking</span>
-                    <span className="xl:hidden">Book</span>
+                  <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href={primaryAction.href}>
+                    <span className="hidden xl:inline">{primaryAction.label === "Book" ? "Start Booking" : primaryAction.label}</span>
+                    <span className="xl:hidden">{primaryAction.label}</span>
                     <ArrowRight className="h-4 w-4" />
                   </CTAButton>
                 </>
               )}
               {session && (
-                <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href="/book?rush=true">
-                  <span className="hidden xl:inline">Start Booking</span>
-                  <span className="xl:hidden">Book</span>
+                <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href={primaryAction.href}>
+                  <span className="hidden xl:inline">{primaryAction.label === "Book" ? "Start Booking" : primaryAction.label}</span>
+                  <span className="xl:hidden">{primaryAction.label}</span>
                   <ArrowRight className="h-4 w-4" />
                 </CTAButton>
               )}
@@ -519,7 +521,7 @@ export function SplitBrandHeader({
               {/* Session avatar dot on mobile */}
               {session && (
                 <Link
-                  href={dashboardHref ?? "/profile"}
+                  href="/profile"
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(232,62,140,0.28)]"
                   title="My account"
                 >
@@ -557,13 +559,13 @@ export function SplitBrandHeader({
               </div>
             </div>
           )}
-          {dashboardHref && (
+          {(session?.role === "professional" || session?.role === "salon") && (
             <Link
               className="rounded-[20px] bg-[var(--ms-plum)] px-4 py-3 text-sm font-semibold text-white"
-              href={dashboardHref}
+              href="/profile?tab=requests"
               onClick={() => setMenuOpen(false)}
             >
-              My Dashboard
+              Requests
             </Link>
           )}
           {mobileLinks.map(([label, href]) => (

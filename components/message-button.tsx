@@ -44,8 +44,10 @@ export function MessageButton({ targetId, targetName, className }: MessageButton
         session.role === "client" ? session.firstName
         : session.role === "professional" ? session.displayName
         : session.role === "salon" ? session.salonName
+        : session.role === "shop" ? session.shopName
+        : session.role === "delivery" || session.role === "super_admin" ? session.displayName
         : "Mobile Salon user";
-      const senderAvatar = session.profilePhoto;
+      const senderAvatar = "profilePhoto" in session ? session.profilePhoto : undefined;
 
       sendMessage(
         threadId,

@@ -7,7 +7,10 @@ import {
   BadgeCheck,
   Bell,
   BriefcaseBusiness,
+  CalendarDays,
   Camera,
+  Check,
+  Clock,
   Crown,
   Globe2,
   Grid3X3,
@@ -55,11 +58,15 @@ import {
   markThreadRead,
   sendMessage,
   getOrCreateThreadId,
+  getClientBookings,
+  getIncomingBookings,
+  updateBookingStatus,
   SOCIAL_CHANGE_EVENT,
   type SocialPost,
   type SocialSaves,
   type SocialComment,
   type MessageThread,
+  type BookingRequest,
 } from "@/lib/social-store";
 import { getProfessional, getSalon } from "@/lib/site-data";
 import { cn } from "@/lib/utils";
@@ -100,6 +107,14 @@ export function RoleProfileWorkspace() {
     return <SalonProfileWorkspace session={session} onSave={save} />;
   }
 
+  if (session.role === "super_admin") {
+    return <SuperAdminWorkspace />;
+  }
+
+  if (session.role === "shop" || session.role === "delivery") {
+    return <OperationsProfilePrompt role={session.role} />;
+  }
+
   if (session.role !== "professional") {
     return <GuestProfilePrompt />;
   }
@@ -118,7 +133,7 @@ export function RoleProfileWorkspace() {
 
 // ── Client social profile ─────────────────────────────────────────────────────
 
-type ClientTab = "posts" | "following" | "messages" | "settings";
+type ClientTab = "posts" | "bookings" | "following" | "messages" | "settings";
 
 function ClientProfileWorkspace({
   session,
@@ -130,7 +145,7 @@ function ClientProfileWorkspace({
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as ClientTab | null) ?? "posts";
   const [activeTab, setActiveTab] = useState<ClientTab>(
-    (["posts", "following", "messages", "settings"] as ClientTab[]).includes(initialTab) ? initialTab : "posts"
+    (["posts", "bookings", "following", "messages", "settings"] as ClientTab[]).includes(initialTab) ? initialTab : "posts"
   );
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [saves, setSaves] = useState<SocialSaves>({ professionals: [], salons: [] });
@@ -149,6 +164,7 @@ function ClientProfileWorkspace({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [threads, setThreads] = useState<MessageThread[]>([]);
+  const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [activeThread, setActiveThread] = useState<MessageThread | null>(null);
   const [dmText, setDmText] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -158,6 +174,7 @@ function ClientProfileWorkspace({
       setPosts(readPosts().filter((p) => p.authorId === session.id));
       setSaves(readSaves());
       setThreads(readThreads().filter((t) => t.participantIds.includes(session.id)));
+      setBookings(getClientBookings(session.id));
     }
     sync();
     window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
@@ -368,6 +385,7 @@ function ClientProfileWorkspace({
           {(
             [
               { key: "posts", label: "Posts", icon: <Grid3X3 className="h-4 w-4" /> },
+              { key: "bookings", label: "Bookings", icon: <CalendarDays className="h-4 w-4" /> },
               { key: "following", label: "Following", icon: <Users className="h-4 w-4" /> },
               { key: "messages", label: "Messages", icon: <MessageCircle className="h-4 w-4" /> },
               { key: "settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
@@ -452,6 +470,40 @@ function ClientProfileWorkspace({
                   </button>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Bookings tab ────────────────────────────────────────────────── */}
+        {activeTab === "bookings" && (
+          <div className="mt-5 space-y-3">
+            {bookings.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ms-soft-bg)]">
+                  <CalendarDays className="h-8 w-8 text-[var(--ms-mauve)] opacity-50" />
+                </div>
+                <p className="mt-4 text-base font-semibold text-[var(--ms-navy)]">No bookings yet</p>
+                <p className="mt-2 text-sm text-[var(--ms-mauve)]">Choose a nearby pro or salon and your request will appear here.</p>
+                <CTAButton href="/book" className="mt-5">Start a booking</CTAButton>
+              </div>
+            ) : (
+              bookings.map((booking) => (
+                <div key={booking.id} className="rounded-[24px] border border-[var(--ms-border)] bg-white p-4 shadow-[0_8px_22px_rgba(13,27,42,0.05)]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ms-navy)]">{booking.targetName}</p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--ms-mauve)]">{booking.services.join(", ")}</p>
+                      <p className="mt-2 text-xs font-semibold text-[var(--ms-charcoal)]">
+                        {booking.preferredDate} · {booking.preferredTime} · KES {booking.totalKES.toLocaleString()}
+                      </p>
+                    </div>
+                    <span className="w-fit rounded-full bg-[var(--ms-soft-bg)] px-3 py-1 text-xs font-semibold capitalize text-[var(--ms-plum)]">
+                      {booking.status.replace("_", " ")}
+                    </span>
+                  </div>
+                  {booking.notes ? <p className="mt-3 rounded-[18px] bg-[var(--ms-soft-bg)] px-4 py-3 text-xs leading-5 text-[var(--ms-mauve)]">{booking.notes}</p> : null}
+                </div>
+              ))
             )}
           </div>
         )}
@@ -1046,6 +1098,11 @@ function SalonProfileWorkspace({
         </div>
       </SectionReveal>
 
+      <ProviderRequestsPanel
+        providerSlug={session.publicSlug}
+        roleLabel="Salon"
+      />
+
       <ProviderMessagesPanel
         avatar={session.profilePhoto}
         displayName={session.salonName}
@@ -1187,6 +1244,11 @@ function ProfessionalProfileWorkspace({
         </div>
       </SectionReveal>
 
+      <ProviderRequestsPanel
+        providerSlug={session.publicSlug}
+        roleLabel="Professional"
+      />
+
       <ProviderMessagesPanel
         avatar={session.profilePhoto}
         displayName={session.displayName}
@@ -1210,6 +1272,155 @@ function GuestProfilePrompt() {
         <CTAButton href="/home" variant="outline">Keep browsing</CTAButton>
       </div>
     </section>
+  );
+}
+
+function OperationsProfilePrompt({ role }: { role: "shop" | "delivery" }) {
+  const href = role === "shop" ? "/shop/dashboard" : "/delivery/dashboard";
+  const label = role === "shop" ? "Shop dashboard" : "Delivery dashboard";
+
+  return (
+    <section className="mx-auto max-w-2xl rounded-[32px] border border-[var(--ms-border)] bg-white p-6 text-center shadow-[0_18px_48px_rgba(13,27,42,0.08)]">
+      <Store className="mx-auto h-9 w-9 text-[var(--ms-rose)]" />
+      <h1 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Your operational workspace is separate.</h1>
+      <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ms-mauve)]">
+        Shop and delivery accounts stay focused on products, dispatch, and fulfilment. Social Home is reserved for Client, Pro, and Salon accounts.
+      </p>
+      <div className="mt-5 flex justify-center">
+        <CTAButton href={href}>{label}</CTAButton>
+      </div>
+    </section>
+  );
+}
+
+function SuperAdminWorkspace() {
+  return (
+    <div className="section-grid">
+      <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
+        <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Super Admin</p>
+        <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Mobile Salon control room.</h1>
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">
+          This account is the only role allowed to override role limits, review safety reports, and regulate profiles.
+        </p>
+      </SectionReveal>
+      <div className="grid gap-4 md:grid-cols-3">
+        {[
+          { label: "Moderation", value: "Reports and removals" },
+          { label: "Verification", value: "KYC review queue" },
+          { label: "Role control", value: "Suspend or restore access" },
+        ].map((item) => (
+          <SectionReveal key={item.label} className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">{item.label}</p>
+            <p className="mt-3 text-xl font-semibold text-[var(--ms-navy)]">{item.value}</p>
+          </SectionReveal>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProviderRequestsPanel({
+  providerSlug,
+  roleLabel,
+}: {
+  providerSlug: string;
+  roleLabel: string;
+}) {
+  const [requests, setRequests] = useState<BookingRequest[]>([]);
+
+  useEffect(() => {
+    function sync() {
+      setRequests(getIncomingBookings(providerSlug));
+    }
+
+    sync();
+    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+
+    return () => {
+      window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [providerSlug]);
+
+  function acceptRequest(id: string) {
+    updateBookingStatus(id, "accepted");
+  }
+
+  function declineRequest(id: string) {
+    updateBookingStatus(id, "declined");
+  }
+
+  return (
+    <SectionReveal className="beauty-card rounded-[32px] p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">{roleLabel} requests</p>
+          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Booking requests arrive here.</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">
+            When a client chooses you during booking, the request appears here with the service, time, notes, and funded amount.
+          </p>
+        </div>
+        <span className="w-fit rounded-full bg-[var(--ms-soft-bg)] px-4 py-2 text-sm font-semibold text-[var(--ms-plum)]">
+          {requests.length} pending
+        </span>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        {requests.length === 0 ? (
+          <div className="rounded-[24px] border border-dashed border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-6 text-center">
+            <Clock className="mx-auto h-8 w-8 text-[var(--ms-mauve)] opacity-50" />
+            <p className="mt-3 text-sm font-semibold text-[var(--ms-navy)]">No client requests yet</p>
+            <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-[var(--ms-mauve)]">
+              Stay published and keep your profile updated. New requests will show here instantly.
+            </p>
+          </div>
+        ) : (
+          requests.map((request) => (
+            <div key={request.id} className="rounded-[24px] border border-[var(--ms-border)] bg-white p-4 shadow-[0_10px_28px_rgba(13,27,42,0.06)]">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-rose)]">NEW REQUEST</span>
+                    <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{request.clientName}</p>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--ms-charcoal)]">{request.services.join(", ")}</p>
+                  <p className="mt-1 text-xs font-semibold text-[var(--ms-mauve)]">
+                    {request.preferredDate} · {request.preferredTime} · KES {request.totalKES.toLocaleString()}
+                  </p>
+                  {request.location ? (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-[var(--ms-mauve)]">
+                      <MapPin className="h-3.5 w-3.5" /> {request.location}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => acceptRequest(request.id)}
+                    className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => declineRequest(request.id)}
+                    className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-200"
+                  >
+                    <X className="h-3.5 w-3.5" /> Decline
+                  </button>
+                </div>
+              </div>
+              {request.notes ? (
+                <p className="mt-4 rounded-[18px] bg-[var(--ms-soft-bg)] px-4 py-3 text-xs leading-6 text-[var(--ms-mauve)]">
+                  {request.notes}
+                </p>
+              ) : null}
+            </div>
+          ))
+        )}
+      </div>
+    </SectionReveal>
   );
 }
 

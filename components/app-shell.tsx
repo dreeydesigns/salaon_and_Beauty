@@ -6,6 +6,7 @@ import { GuestAuthGate } from "@/components/guest-auth-gate";
 import type { NavKey, RoleMode } from "@/lib/site-data";
 import { ClientSessionGate } from "@/components/client-session-gate";
 import { BottomMobileNav, SplitBrandHeader } from "@/components/marketplace-ui";
+import type { AppUserRole } from "@/lib/client-session";
 
 export function AppShell({
   children,
@@ -13,6 +14,7 @@ export function AppShell({
   requireSession = false,
   showBottomNav = true,
   showFooter = false,
+  allowedRoles,
 }: {
   children: ReactNode;
   currentNav: NavKey;
@@ -20,6 +22,7 @@ export function AppShell({
   requireSession?: boolean;
   showBottomNav?: boolean;
   showFooter?: boolean;
+  allowedRoles?: AppUserRole[];
 }) {
   return (
     <div className="feminine-shell min-h-screen">
@@ -28,7 +31,7 @@ export function AppShell({
       <GuestAuthGate />
       <SplitBrandHeader currentNav={currentNav} />
       <main className="mx-auto min-h-[calc(100vh-180px)] w-full max-w-7xl overflow-x-clip px-4 pb-28 pt-6 lg:px-6 lg:pb-12">
-        {requireSession ? <ClientSessionGate>{children}</ClientSessionGate> : children}
+        {requireSession ? <ClientSessionGate allowedRoles={allowedRoles}>{children}</ClientSessionGate> : children}
       </main>
       {showFooter ? (
         <footer className="border-t border-[var(--ms-border)] bg-white/90">
