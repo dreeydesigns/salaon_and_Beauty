@@ -266,10 +266,16 @@ export function updateBookingStatus(id: string, status: BookingStatus) {
 }
 
 /** Get pending bookings for a specific pro or salon slug */
+/** Pending requests for a pro/salon — shown as the action queue */
 export function getIncomingBookings(targetSlug: string): BookingRequest[] {
   return readBookings().filter(
     (b) => b.targetSlug === targetSlug && b.status === "pending",
   );
+}
+
+/** All bookings sent to a pro/salon (all statuses) — for history view */
+export function getAllProviderBookings(targetSlug: string): BookingRequest[] {
+  return readBookings().filter((b) => b.targetSlug === targetSlug);
 }
 
 /** Get all bookings for a client by their id */

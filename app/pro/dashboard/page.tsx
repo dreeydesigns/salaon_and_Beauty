@@ -1,5 +1,9 @@
+import { redirect } from "next/navigation";
+
 /**
- * Canonical professional dashboard route.
- * Re-exports the dashboard page component from /dashboard/professional.
+ * /pro/dashboard → /profile?tab=requests
+ * Old legacy route kept so existing links don't 404.
  */
-export { default } from "@/app/dashboard/professional/page";
+export default function ProDashboardPage() {
+  redirect("/profile?tab=requests");
+}

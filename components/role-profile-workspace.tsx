@@ -60,6 +60,7 @@ import {
   getOrCreateThreadId,
   getClientBookings,
   getIncomingBookings,
+  getAllProviderBookings,
   updateBookingStatus,
   SOCIAL_CHANGE_EVENT,
   type SocialPost,
@@ -1294,30 +1295,27 @@ function OperationsProfilePrompt({ role }: { role: "shop" | "delivery" }) {
 }
 
 function SuperAdminWorkspace() {
+  // Redirect to the full /admin control panel.
+  useEffect(() => {
+    window.location.href = "/admin";
+  }, []);
+
   return (
-    <div className="section-grid">
-      <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
-        <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Super Admin</p>
-        <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Mobile Salon control room.</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">
-          This account is the only role allowed to override role limits, review safety reports, and regulate profiles.
-        </p>
-      </SectionReveal>
-      <div className="grid gap-4 md:grid-cols-3">
-        {[
-          { label: "Moderation", value: "Reports and removals" },
-          { label: "Verification", value: "KYC review queue" },
-          { label: "Role control", value: "Suspend or restore access" },
-        ].map((item) => (
-          <SectionReveal key={item.label} className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--ms-mauve)]">{item.label}</p>
-            <p className="mt-3 text-xl font-semibold text-[var(--ms-navy)]">{item.value}</p>
-          </SectionReveal>
-        ))}
-      </div>
+    <div className="flex min-h-[40vh] items-center justify-center">
+      <div className="loader-bloom h-14 w-14" />
     </div>
   );
 }
+
+const STATUS_COLORS: Record<string, string> = {
+  pending:               "bg-amber-100 text-amber-700",
+  accepted:              "bg-emerald-100 text-emerald-700",
+  completed:             "bg-[var(--ms-petal)] text-[var(--ms-rose)]",
+  declined:              "bg-red-100 text-red-600",
+  cancelled:             "bg-gray-100 text-gray-500",
+  reschedule_requested:  "bg-blue-100 text-blue-600",
+  draft:                 "bg-gray-100 text-gray-400",
+};
 
 function ProviderRequestsPanel({
   providerSlug,
@@ -1326,11 +1324,15 @@ function ProviderRequestsPanel({
   providerSlug: string;
   roleLabel: string;
 }) {
-  const [requests, setRequests] = useState<BookingRequest[]>([]);
+  const [pending,  setPending]  = useState<BookingRequest[]>([]);
+  const [history,  setHistory]  = useState<BookingRequest[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     function sync() {
-      setRequests(getIncomingBookings(providerSlug));
+      const all = getAllProviderBookings(providerSlug);
+      setPending(all.filter((b) => b.status === "pending"));
+      setHistory(all.filter((b) => b.status !== "pending"));
     }
 
     sync();
@@ -1343,16 +1345,9 @@ function ProviderRequestsPanel({
     };
   }, [providerSlug]);
 
-  function acceptRequest(id: string) {
-    updateBookingStatus(id, "accepted");
-  }
-
-  function declineRequest(id: string) {
-    updateBookingStatus(id, "declined");
-  }
-
   return (
     <SectionReveal className="beauty-card rounded-[32px] p-6">
+      {/* ── Header ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">{roleLabel} requests</p>
@@ -1362,21 +1357,22 @@ function ProviderRequestsPanel({
           </p>
         </div>
         <span className="w-fit rounded-full bg-[var(--ms-soft-bg)] px-4 py-2 text-sm font-semibold text-[var(--ms-plum)]">
-          {requests.length} pending
+          {pending.length} pending
         </span>
       </div>
 
+      {/* ── Pending queue ── */}
       <div className="mt-6 space-y-3">
-        {requests.length === 0 ? (
+        {pending.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-6 text-center">
             <Clock className="mx-auto h-8 w-8 text-[var(--ms-mauve)] opacity-50" />
-            <p className="mt-3 text-sm font-semibold text-[var(--ms-navy)]">No client requests yet</p>
+            <p className="mt-3 text-sm font-semibold text-[var(--ms-navy)]">No pending requests</p>
             <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-[var(--ms-mauve)]">
               Stay published and keep your profile updated. New requests will show here instantly.
             </p>
           </div>
         ) : (
-          requests.map((request) => (
+          pending.map((request) => (
             <div key={request.id} className="rounded-[24px] border border-[var(--ms-border)] bg-white p-4 shadow-[0_10px_28px_rgba(13,27,42,0.06)]">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
@@ -1397,14 +1393,14 @@ function ProviderRequestsPanel({
                 <div className="flex shrink-0 gap-2">
                   <button
                     type="button"
-                    onClick={() => acceptRequest(request.id)}
+                    onClick={() => updateBookingStatus(request.id, "accepted")}
                     className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-200"
                   >
                     <Check className="h-3.5 w-3.5" /> Accept
                   </button>
                   <button
                     type="button"
-                    onClick={() => declineRequest(request.id)}
+                    onClick={() => updateBookingStatus(request.id, "declined")}
                     className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-200"
                   >
                     <X className="h-3.5 w-3.5" /> Decline
@@ -1420,6 +1416,62 @@ function ProviderRequestsPanel({
           ))
         )}
       </div>
+
+      {/* ── Booking history ── */}
+      {history.length > 0 && (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowHistory((v) => !v)}
+            className="flex w-full items-center justify-between rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm font-semibold text-[var(--ms-plum)] transition hover:border-[var(--ms-rose)]/40"
+          >
+            <span className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-[var(--ms-rose)]" />
+              Booking history · {history.length} appointment{history.length !== 1 ? "s" : ""}
+            </span>
+            <svg
+              className={cn("h-4 w-4 text-[var(--ms-mauve)] transition-transform", showHistory && "rotate-180")}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+
+          {showHistory && (
+            <div className="mt-3 space-y-2">
+              {history.map((b) => {
+                const statusClass = STATUS_COLORS[b.status] ?? "bg-gray-100 text-gray-500";
+                return (
+                  <div key={b.id} className="rounded-[20px] border border-[var(--ms-border)] bg-white p-4 shadow-[0_4px_12px_rgba(13,27,42,0.04)]">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{b.clientName}</p>
+                        <p className="mt-0.5 truncate text-xs text-[var(--ms-mauve)]">{b.services.join(", ")}</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--ms-charcoal)]">
+                          {b.preferredDate} · {b.preferredTime} · KES {b.totalKES.toLocaleString()}
+                        </p>
+                      </div>
+                      <span className={cn("w-fit rounded-full px-3 py-1 text-[10px] font-bold uppercase shrink-0", statusClass)}>
+                        {b.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    {/* Mark completed action for accepted bookings */}
+                    {b.status === "accepted" && (
+                      <button
+                        type="button"
+                        onClick={() => updateBookingStatus(b.id, "completed")}
+                        className="mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--ms-petal)] px-3 py-1.5 text-[10px] font-semibold text-[var(--ms-rose)] hover:bg-[var(--ms-rose)] hover:text-white"
+                      >
+                        <Check className="h-3 w-3" /> Mark completed
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </SectionReveal>
   );
 }

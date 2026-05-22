@@ -1,5 +1,9 @@
+import { redirect } from "next/navigation";
+
 /**
- * Canonical salon dashboard route.
- * Re-exports the dashboard page component from /dashboard/salon.
+ * /salon/dashboard → /profile?tab=requests
+ * Old legacy route kept so existing links don't 404.
  */
-export { default } from "@/app/dashboard/salon/page";
+export default function SalonDashboardPage() {
+  redirect("/profile?tab=requests");
+}
