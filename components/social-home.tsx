@@ -235,6 +235,97 @@ function RoomsBar({
   );
 }
 
+// ─── Stories row ─────────────────────────────────────────────────────────────
+
+interface StoryCreator {
+  id: string;
+  name: string;
+  avatar?: string;
+  role: SocialPost["authorRole"];
+}
+
+function StoriesRow({
+  sessionName,
+  sessionPhoto,
+  sessionRole,
+  onCompose,
+  creators,
+  onToast,
+}: {
+  sessionName: string;
+  sessionPhoto?: string;
+  sessionRole: AppUserSession["role"];
+  onCompose: () => void;
+  creators: StoryCreator[];
+  onToast: (msg: string) => void;
+}) {
+  const avatarRole: SocialPost["authorRole"] =
+    sessionRole === "professional" ? "professional" :
+    sessionRole === "salon" ? "salon" : "client";
+
+  return (
+    <div className="mb-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-webkit-overflow-scrolling:touch]">
+      <div className="flex items-start gap-4 px-4 pb-1">
+        {/* Your story */}
+        <button type="button" onClick={onCompose} className="flex flex-col items-center gap-1.5 shrink-0">
+          <div className="relative">
+            <div
+              className="h-[58px] w-[58px] overflow-hidden rounded-full"
+              style={{ background: "linear-gradient(135deg,#f3e8ff,#fce7f3)" }}
+            >
+              {sessionPhoto ? (
+                <img src={sessionPhoto} alt={sessionName} className="h-full w-full object-cover" />
+              ) : (
+                <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br ${avatarGradient(avatarRole)} font-bold text-white text-lg`}>
+                  {sessionName[0]?.toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-white border-2 border-white shadow-sm">
+              <Plus className="h-3 w-3" strokeWidth={3} />
+            </div>
+          </div>
+          <span className="text-[9.5px] font-semibold leading-tight text-[var(--ms-navy)] max-w-[58px] truncate text-center">
+            Your story
+          </span>
+        </button>
+
+        {/* Active creators */}
+        {creators.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onToast(`See ${c.name.split(" ")[0]}'s posts below`)}
+            className="flex flex-col items-center gap-1.5 shrink-0"
+          >
+            <div
+              className="p-[2.5px] rounded-full"
+              style={{
+                background: "linear-gradient(135deg,#D4537E 0%,#8B5CF6 50%,#EC4899 100%)",
+              }}
+            >
+              <div className="rounded-full overflow-hidden bg-white p-[1.5px]">
+                <div
+                  className={`h-[54px] w-[54px] overflow-hidden rounded-full flex items-center justify-center bg-gradient-to-br ${avatarGradient(c.role)} font-bold text-white text-base`}
+                >
+                  {c.avatar ? (
+                    <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" />
+                  ) : (
+                    c.name[0]?.toUpperCase()
+                  )}
+                </div>
+              </div>
+            </div>
+            <span className="text-[9.5px] font-semibold leading-tight text-[var(--ms-navy)] max-w-[58px] truncate text-center">
+              {c.name.split(" ")[0]}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Post options menu ────────────────────────────────────────────────────────
 
 function PostMenu({
@@ -617,7 +708,7 @@ function PostCard({
   return (
     <>
       <article className={cn(
-        "overflow-hidden rounded-[20px] bg-white shadow-[0_1px_10px_rgba(13,27,42,0.09)]",
+        "overflow-hidden bg-white",
         className,
       )}>
         {/* Author row */}
@@ -678,9 +769,9 @@ function PostCard({
           </button>
         </div>
 
-        {/* Media — landscape in hero */}
+        {/* Media — portrait in hero (4:5 Instagram standard) */}
         {localPost.images.length > 0 && (
-          <div className="relative aspect-[3/2] overflow-hidden bg-[var(--ms-soft-bg)]">
+          <div className="relative aspect-[4/5] overflow-hidden bg-[var(--ms-soft-bg)]">
             <img
               src={localPost.images[imgIdx]}
               alt={localPost.caption}
@@ -1234,6 +1325,22 @@ export function SocialHome() {
   const activeCategory = activeRoom.filter;
 
   const allPosts = realPosts.filter((p) => !deletedIds.has(p.id) && !archivedIds.has(p.id));
+
+  // Story creators — unique authors from posts (excluding self), up to 8
+  const storyCreators: StoryCreator[] = Array.from(
+    allPosts.reduce((map, post) => {
+      if (!map.has(post.authorId) && post.authorId !== sessionId) {
+        map.set(post.authorId, {
+          id: post.authorId,
+          name: post.authorName,
+          avatar: post.authorAvatar,
+          role: post.authorRole,
+        });
+      }
+      return map;
+    }, new Map<string, StoryCreator>()),
+  ).map(([, c]) => c).slice(0, 8);
+
   const suggestedCreators = Array.from(
     allPosts.reduce((map, post) => {
       if (!map.has(post.authorId) && post.authorId !== sessionId) {
@@ -1297,59 +1404,110 @@ export function SocialHome() {
             </div>
           )}
 
-          {/* For You / Following tabs */}
-          <div className="mb-3 flex rounded-[18px] border border-[var(--ms-border)] bg-white p-1 shadow-[0_1px_6px_rgba(13,27,42,0.05)]">
-            {(["foryou", "following"] as FeedTab[]).map((t) => (
+          {/* Beauty moment header */}
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <p className="text-[18px] font-black tracking-[-0.02em] text-[var(--ms-navy)]">
+                For You <span className="text-[var(--ms-rose)]">✦</span>
+              </p>
+              <p className="text-[11px] text-[var(--ms-mauve)] leading-tight">beauty · style · self-care</p>
+            </div>
+            {canPost && (
               <button
-                key={t}
                 type="button"
-                onClick={() => setActiveTab(t)}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-[14px] py-2 text-[13px] font-bold transition",
-                  activeTab === t
-                    ? "bg-[var(--ms-navy)] text-white"
-                    : "text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
-                )}
+                onClick={() => setShowCompose(true)}
+                className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-bold text-white shadow-[0_4px_14px_rgba(212,83,126,0.3)] transition hover:brightness-110"
+                style={{ background: "linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))" }}
               >
-                {t === "foryou"
-                  ? <><Sparkles className="h-4 w-4" /> For You</>
-                  : <><Users className="h-4 w-4" /> Following</>}
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                Share
               </button>
-            ))}
+            )}
+          </div>
+
+          {/* Stories row */}
+          <StoriesRow
+            sessionName={sessionName}
+            sessionPhoto={sessionPhoto}
+            sessionRole={sessionRole}
+            onCompose={() => canPost ? setShowCompose(true) : showToast("Create a free account to post")}
+            creators={storyCreators}
+            onToast={showToast}
+          />
+
+          {/* Separator */}
+          <div className="mb-3 h-px bg-[var(--ms-border)]/50 -mx-4 lg:-mx-6" />
+
+          {/* For You / Following tabs — sticky */}
+          <div className="sticky top-[56px] z-20 -mx-4 lg:-mx-6 mb-4">
+            <div className="flex border-b border-[var(--ms-border)]/60 bg-white/95 backdrop-blur-md px-4 lg:px-6">
+              {(["foryou", "following"] as FeedTab[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setActiveTab(t)}
+                  className={cn(
+                    "relative flex flex-1 items-center justify-center gap-2 py-3 text-[13px] font-bold transition-colors",
+                    activeTab === t
+                      ? "text-[var(--ms-navy)]"
+                      : "text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
+                  )}
+                >
+                  {t === "foryou"
+                    ? <><Sparkles className="h-4 w-4" /> For You</>
+                    : <><Users className="h-4 w-4" /> Following</>}
+                  {activeTab === t && (
+                    <span
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] w-10 rounded-full"
+                      style={{ background: "linear-gradient(90deg,var(--ms-rose),var(--ms-orchid))" }}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Empty state */}
           {filteredPosts.length === 0 && (
             <div className="rounded-[20px] bg-white py-14 text-center shadow-[0_1px_8px_rgba(13,27,42,0.08)]">
-              <Users className="mx-auto h-10 w-10 text-[var(--ms-mauve)] opacity-30" />
-              <p className="mt-3 text-[14px] font-bold text-[var(--ms-navy)]">
-                {activeTab === "following" ? "Nothing here yet" : "No posts in this room"}
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--ms-petal)]">
+                <Sparkles className="h-7 w-7 text-[var(--ms-rose)]" />
+              </div>
+              <p className="text-[14px] font-bold text-[var(--ms-navy)]">
+                {activeTab === "following" ? "Your feed is waiting" : "Nothing here yet"}
               </p>
               <p className="mt-1 text-[12px] text-[var(--ms-mauve)]">
                 {activeTab === "following"
-                  ? "Follow creators to build your feed."
-                  : "Be the first to post here!"}
+                  ? "Follow creators to fill your feed with beauty."
+                  : "Be the first to share your beauty moment."}
               </p>
               <button
                 type="button"
-                onClick={() => { setActiveTab("foryou"); setActiveRoomId("r_all"); }}
-                className="mt-4 rounded-full bg-[var(--ms-petal)] px-5 py-2 text-[13px] font-bold text-[var(--ms-plum)]"
+                onClick={() => canPost ? setShowCompose(true) : showToast("Join free to post")}
+                className="mt-4 rounded-full px-6 py-2.5 text-[13px] font-bold text-white shadow-[0_6px_18px_rgba(212,83,126,0.3)]"
+                style={{ background: "linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))" }}
               >
-                See everything
+                {canPost ? "Share now" : "Join free"}
               </button>
+              {activeTab === "following" && (
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab("foryou"); setActiveRoomId("r_all"); }}
+                  className="ml-3 mt-4 rounded-full bg-[var(--ms-petal)] px-5 py-2.5 text-[13px] font-bold text-[var(--ms-plum)]"
+                >
+                  Explore all
+                </button>
+              )}
             </div>
           )}
 
-          {/* Canvas editorial grid */}
-          <div className="grid grid-cols-2 gap-2.5">
-            {filteredPosts.map((post, i) => {
-              const isHero = i % 3 === 0;
-              return (
+          {/* Single-column feed */}
+          <div className="space-y-0">
+            {filteredPosts.map((post) => (
+              <div key={`${post.id}_${refreshKey}`} className="border-b border-[var(--ms-border)]/40 last:border-0">
                 <PostCard
-                  key={`${post.id}_${refreshKey}`}
                   post={post}
-                  variant={isHero ? "hero" : "compact"}
-                  className={isHero ? "col-span-2" : "col-span-1"}
+                  variant="hero"
                   sessionId={sessionId}
                   sessionRole={sessionRole}
                   sessionPhoto={sessionPhoto}
@@ -1366,8 +1524,8 @@ export function SocialHome() {
                     setRefreshKey((k) => k + 1);
                   }}
                 />
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
 

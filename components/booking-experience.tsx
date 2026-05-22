@@ -44,6 +44,61 @@ const PROVIDER_SORTS: { key: ProviderSort; label: string }[] = [
   { key: "verified", label: "Verified only" },
 ];
 
+// ─── Geo-location utilities ────────────────────────────────────────────────────
+// Approximate lat/lng centres for Nairobi neighbourhoods used for distance scoring
+const NAIROBI_AREA_COORDS: Record<string, { lat: number; lng: number }> = {
+  "westlands":      { lat: -1.2686, lng: 36.8070 },
+  "karen":          { lat: -1.3173, lng: 36.7222 },
+  "kilimani":       { lat: -1.2915, lng: 36.7840 },
+  "lavington":      { lat: -1.2868, lng: 36.7720 },
+  "parklands":      { lat: -1.2620, lng: 36.8130 },
+  "cbd":            { lat: -1.2833, lng: 36.8167 },
+  "kileleshwa":     { lat: -1.2829, lng: 36.7815 },
+  "upperhill":      { lat: -1.2971, lng: 36.8105 },
+  "spring valley":  { lat: -1.2540, lng: 36.7940 },
+  "runda":          { lat: -1.2136, lng: 36.7993 },
+  "gigiri":         { lat: -1.2191, lng: 36.8031 },
+  "muthaiga":       { lat: -1.2417, lng: 36.8357 },
+  "langata":        { lat: -1.3419, lng: 36.7545 },
+  "south b":        { lat: -1.3012, lng: 36.8245 },
+  "south c":        { lat: -1.3145, lng: 36.8264 },
+  "eastleigh":      { lat: -1.2712, lng: 36.8494 },
+  "kasarani":       { lat: -1.2257, lng: 36.8967 },
+  "ruaka":          { lat: -1.1915, lng: 36.7980 },
+  "nairobi":        { lat: -1.2833, lng: 36.8167 },
+};
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getAreaCoords(locationText?: string): { lat: number; lng: number } | null {
+  if (!locationText) return null;
+  const lower = locationText.toLowerCase();
+  for (const [area, coords] of Object.entries(NAIROBI_AREA_COORDS)) {
+    if (lower.includes(area)) return coords;
+  }
+  return null;
+}
+
+function providerKmLabel(
+  provider: BookableProviderProfile,
+  clientCoords: { lat: number; lng: number } | null,
+): string | null {
+  if (!clientCoords) return null;
+  const providerCoords = getAreaCoords(provider.location);
+  if (!providerCoords) return null;
+  const km = haversineKm(clientCoords.lat, clientCoords.lng, providerCoords.lat, providerCoords.lng);
+  if (km < 1) return "< 1 km";
+  return `~${km.toFixed(1)} km`;
+}
+
 function normalizeArea(value?: string) {
   return (value ?? "").toLowerCase().trim();
 }
@@ -149,6 +204,26 @@ export function BookingExperience() {
     toggleService,
   } = useBookingStore();
   const [providerSort, setProviderSort] = useState<ProviderSort>("nearest");
+  const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
+
+  // Auto-request location when the provider selection step becomes visible
+  useEffect(() => {
+    if (step !== 1 || geoStatus !== "idle") return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("denied");
+      return;
+    }
+    setGeoStatus("requesting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeoCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoStatus("granted");
+      },
+      () => setGeoStatus("denied"),
+      { timeout: 8000, maximumAge: 60000 },
+    );
+  }, [step, geoStatus]);
 
   useEffect(() => {
     if (searchParams.get("resume") !== "booking") {
@@ -210,7 +285,20 @@ export function BookingExperience() {
     currentSession?.role === "client" && currentSession.location?.label
       ? currentSession.location.label
       : undefined;
-  const rankedProviders = sortProviders(registeredProviders, providerSort, clientArea);
+  // When real GPS coords are available + sort is "nearest", use Haversine distance for ordering
+  const rankedProviders =
+    providerSort === "nearest" && geoCoords
+      ? [...sortProviders(registeredProviders, providerSort, clientArea)].sort((a, b) => {
+          const aCoords = getAreaCoords(a.location);
+          const bCoords = getAreaCoords(b.location);
+          if (!aCoords && !bCoords) return 0;
+          if (!aCoords) return 1;
+          if (!bCoords) return -1;
+          const aDist = haversineKm(geoCoords.lat, geoCoords.lng, aCoords.lat, aCoords.lng);
+          const bDist = haversineKm(geoCoords.lat, geoCoords.lng, bCoords.lat, bCoords.lng);
+          return aDist - bDist;
+        })
+      : sortProviders(registeredProviders, providerSort, clientArea);
   const targetServices = targetEntity
     ? getServicesByIds(targetEntity.serviceIds).length > 0
       ? getServicesByIds(targetEntity.serviceIds)
@@ -416,6 +504,21 @@ export function BookingExperience() {
                     <h2 className="mt-1 text-xl font-semibold text-[var(--ms-navy)]">
                       {targetType === "salons" ? "Salons near you" : "Professionals near you"}
                     </h2>
+                    {geoStatus === "requesting" && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-[var(--ms-mauve)]">
+                        <LoaderCircle className="h-3 w-3 animate-spin" /> Finding your location…
+                      </p>
+                    )}
+                    {geoStatus === "granted" && (
+                      <p className="mt-1 text-xs font-semibold text-emerald-600">
+                        📍 Sorted by distance from you
+                      </p>
+                    )}
+                    {geoStatus === "denied" && clientArea && (
+                      <p className="mt-1 text-xs text-[var(--ms-mauve)]">
+                        📍 Based on your saved area: {clientArea}
+                      </p>
+                    )}
                   </div>
                   <select
                     className="rounded-full border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-2 text-sm font-semibold text-[var(--ms-navy)] outline-none"
@@ -441,8 +544,10 @@ export function BookingExperience() {
                   </div>
                 ) : (
                   <div className="mt-5 grid gap-3">
-                    {rankedProviders.map((provider) => {
+                    {rankedProviders.map((provider, idx) => {
                       const active = targetId === provider.slug;
+                      const kmLabel = providerKmLabel(provider, geoCoords);
+                      const isNearest = idx === 0 && (geoStatus === "granted" || providerSort === "nearest");
                       return (
                         <button
                           className={cn(
@@ -455,11 +560,16 @@ export function BookingExperience() {
                           onClick={() => setTarget(provider.targetType, provider.slug)}
                           type="button"
                         >
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ms-soft-bg)] text-base font-bold text-[var(--ms-plum)]">
+                          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--ms-soft-bg)] text-base font-bold text-[var(--ms-plum)]">
                             {provider.image?.url ? (
                               <img src={provider.image.url} alt={provider.image.alt} className="h-full w-full object-cover" />
                             ) : (
                               provider.name.slice(0, 1).toUpperCase()
+                            )}
+                            {isNearest && (
+                              <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[8px] font-black text-white shadow">
+                                #1
+                              </span>
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -471,10 +581,20 @@ export function BookingExperience() {
                               {provider.verified ? (
                                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Verified</span>
                               ) : null}
+                              {isNearest && (
+                                <span className="rounded-full bg-[var(--ms-petal)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ms-rose)]">
+                                  Nearest
+                                </span>
+                              )}
                             </div>
                             <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--ms-mauve)]">{provider.description}</p>
                             <p className="mt-2 text-xs font-semibold text-[var(--ms-charcoal)]">
-                              {provider.location || "Location setup pending"} · {provider.rating ? `${provider.rating.toFixed(1)} rating` : "New"} · {provider.responseSpeedMinutes ? `${provider.responseSpeedMinutes} min response` : "Response time pending"}
+                              {provider.location || "Location setup pending"}
+                              {kmLabel && (
+                                <span className="ml-1.5 font-bold text-[var(--ms-rose)]">· {kmLabel}</span>
+                              )}
+                              {" · "}{provider.rating ? `${provider.rating.toFixed(1)} ★` : "New"}
+                              {" · "}{provider.responseSpeedMinutes ? `${provider.responseSpeedMinutes} min response` : "Response time pending"}
                             </p>
                           </div>
                         </button>
