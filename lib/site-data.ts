@@ -10,7 +10,11 @@ export type NavKey =
   | "activity"
   | "profile"
   | "salons"
-  | "professionals";
+  | "professionals"
+  | "requests"
+  | "messages"
+  | "posts"
+  | "admin";
 
 export type ServiceCategory =
   | "Hair"

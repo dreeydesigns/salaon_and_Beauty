@@ -975,6 +975,516 @@ function EditField({
   );
 }
 
+// ── Shared social-profile workspace for Professional and Salon ────────────────
+// Both roles get the same Instagram-style shell — only the data fields differ.
+
+type ProviderTab = "posts" | "requests" | "messages" | "settings";
+
+function ProviderProfileWorkspace({
+  session,
+  onSave,
+  onDeleteDraft,
+}: {
+  session: ProfessionalUserProfile | SalonUserProfile;
+  onSave: (s: AppUserSession) => void;
+  onDeleteDraft?: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const initTab = (searchParams.get("tab") as ProviderTab | null) ?? "posts";
+  const [activeTab, setActiveTab] = useState<ProviderTab>(
+    (["posts", "requests", "messages", "settings"] as ProviderTab[]).includes(initTab) ? initTab : "posts",
+  );
+
+  const isPro    = session.role === "professional";
+  const proSess  = isPro ? (session as ProfessionalUserProfile) : null;
+  const salonSess= !isPro ? (session as SalonUserProfile) : null;
+
+  const displayName  = isPro ? proSess!.displayName   : salonSess!.salonName;
+  const subtitle     = isPro ? proSess!.specialty      : "Salon";
+  const publicSlug   = isPro ? proSess!.publicSlug     : salonSess!.publicSlug;
+  const coverPhoto   = (session as { coverPhoto?: string }).coverPhoto;
+  const initials     = displayName.slice(0, 1).toUpperCase();
+
+  // Posts by this provider
+  const [posts,    setPosts]    = useState<SocialPost[]>([]);
+  const [pending,  setPending]  = useState<BookingRequest[]>([]);
+  const [showNewPost, setShowNewPost] = useState(false);
+  const [newImages, setNewImages] = useState<string[]>([]);
+  const [newCaption, setNewCaption] = useState("");
+  const [newTag, setNewTag] = useState("portfolio");
+  const [expandedPost, setExpandedPost] = useState<SocialPost | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Settings edit state
+  const [editDisplayName, setEditDisplayName] = useState(displayName);
+  const [editSubtitle, setEditSubtitle]       = useState(subtitle);
+  const [editPhone, setEditPhone]             = useState(session.phone);
+  const [editEmail, setEditEmail]             = useState(session.email ?? "");
+  const [editLocation, setEditLocation]       = useState(isPro ? proSess!.location : salonSess!.location);
+  const [editBio, setEditBio]                 = useState(isPro ? proSess!.bio : (salonSess as { description?: string })?.description ?? "");
+
+  useEffect(() => {
+    function sync() {
+      setPosts(readPosts().filter((p) => p.authorId === session.id));
+      setPending(getIncomingBookings(publicSlug));
+    }
+    sync();
+    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [session.id, publicSlug]);
+
+  function handleAvatarSave(dataUrl: string) {
+    onSave({ ...session, profilePhoto: dataUrl });
+  }
+
+  function handleCoverSave(dataUrl: string) {
+    onSave({ ...session, coverPhoto: dataUrl } as unknown as typeof session);
+  }
+
+  function handlePublishPost() {
+    if (!newCaption.trim() && newImages.length === 0) return;
+    const authorRole: SocialPost["authorRole"] = isPro ? "professional" : "salon";
+    const post: SocialPost = {
+      id: `post_${Date.now()}`,
+      authorId: session.id,
+      authorName: displayName,
+      authorAvatar: session.profilePhoto,
+      authorRole,
+      type: newTag as SocialPost["type"],
+      images: newImages,
+      caption: newCaption,
+      tags: newCaption.match(/#\w+/g) ?? [],
+      likes: 0,
+      savedBy: [],
+      bookmarkedBy: [],
+      repostedBy: [],
+      comments: [],
+      createdAt: new Date().toISOString(),
+    };
+    writePost(post);
+    setPosts((prev) => [post, ...prev]);
+    setNewImages([]);
+    setNewCaption("");
+    setShowNewPost(false);
+  }
+
+  function handleLike(postId: string) {
+    likePost(postId, session.id);
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const liked = p.savedBy.includes(session.id);
+        return { ...p, likes: liked ? p.likes - 1 : p.likes + 1, savedBy: liked ? p.savedBy.filter((id) => id !== session.id) : [...p.savedBy, session.id] };
+      }),
+    );
+  }
+
+  function handleComment() {
+    if (!expandedPost || !commentText.trim()) return;
+    const comment: SocialComment = { id: `c_${Date.now()}`, authorId: session.id, authorName: displayName, authorAvatar: session.profilePhoto, text: commentText, createdAt: new Date().toISOString() };
+    addComment(expandedPost.id, comment);
+    setExpandedPost((p) => p ? { ...p, comments: [...p.comments, comment] } : p);
+    setCommentText("");
+  }
+
+  function handleSaveSettings() {
+    setSaving(true);
+    const next: AppUserSession = isPro
+      ? { ...session, displayName: editDisplayName, specialty: editSubtitle, phone: editPhone, email: editEmail || undefined, location: editLocation, bio: editBio } as AppUserSession
+      : { ...session, salonName: editDisplayName, phone: editPhone, email: editEmail || undefined, location: editLocation, description: editBio } as AppUserSession;
+    onSave(next);
+    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000); }, 400);
+  }
+
+  const tabCfg: { key: ProviderTab; label: string; icon: ReactNode }[] = [
+    { key: "posts",    label: "Posts",    icon: <Grid3X3 className="h-4 w-4" />    },
+    { key: "requests", label: "Requests", icon: <CalendarDays className="h-4 w-4" /> },
+    { key: "messages", label: "Messages", icon: <MessageCircle className="h-4 w-4" /> },
+    { key: "settings", label: "Settings", icon: <Settings className="h-4 w-4" />   },
+  ];
+
+  return (
+    <div className="mx-auto max-w-3xl pb-24">
+      {/* ── Cover ───────────────────────────────────────────────────────── */}
+      <div className="relative h-44 overflow-hidden rounded-b-[0px] rounded-t-[32px] sm:h-52 lg:rounded-t-[40px]">
+        {coverPhoto ? (
+          <img src={coverPhoto} alt="Cover" className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-[linear-gradient(135deg,var(--ms-plum),#6B3FA0,var(--ms-orchid))]" />
+        )}
+        <div className="absolute inset-0 bg-black/10" />
+        <label className="absolute right-3 top-3 flex cursor-pointer items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur hover:bg-black/50">
+          <Camera className="h-3.5 w-3.5" /> Edit cover
+          <input type="file" accept="image/*" className="sr-only" onChange={(e) => {
+            const file = e.target.files?.[0]; if (!file) return;
+            const r = new FileReader(); r.onload = (ev) => { if (ev.target?.result) handleCoverSave(ev.target.result as string); }; r.readAsDataURL(file);
+          }} />
+        </label>
+        {/* Status chip */}
+        <div className="absolute bottom-3 left-4">
+          <span className={cn("rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide",
+            (isPro ? proSess!.listingPublished : salonSess!.listingPublished)
+              ? "bg-emerald-500/90 text-white" : "bg-black/50 text-white/80")}>
+            {(isPro ? proSess!.listingPublished : salonSess!.listingPublished) ? "● Live" : "● Draft"}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Identity ────────────────────────────────────────────────────── */}
+      <div className="relative px-4 sm:px-6">
+        <div className="relative -mt-12 flex items-end justify-between">
+          <div className="relative">
+            <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-[var(--ms-soft-bg)] shadow-[0_8px_24px_rgba(13,27,42,0.18)]">
+              {session.profilePhoto ? (
+                <img src={session.profilePhoto} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,var(--ms-plum),var(--ms-orchid))] text-3xl font-bold text-white">
+                  {initials}
+                </div>
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-[var(--ms-plum)] text-white shadow-md hover:bg-[var(--ms-orchid)]">
+              <Camera className="h-3.5 w-3.5" />
+              <input type="file" accept="image/*" className="sr-only" onChange={(e) => {
+                const file = e.target.files?.[0]; if (!file) return;
+                const r = new FileReader(); r.onload = (ev) => { if (ev.target?.result) handleAvatarSave(ev.target.result as string); }; r.readAsDataURL(file);
+              }} />
+            </label>
+          </div>
+          <div className="flex shrink-0 gap-2 pb-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("settings")}
+              className="flex items-center gap-1.5 rounded-full border border-[var(--ms-border)] px-4 py-2 text-sm font-semibold text-[var(--ms-navy)] hover:border-[var(--ms-plum)] hover:text-[var(--ms-plum)]"
+            >
+              <Settings className="h-4 w-4" /> Edit
+            </button>
+            {isPro && (
+              <a
+                href={`/professionals/${publicSlug}`}
+                className="flex items-center gap-1.5 rounded-full bg-[var(--ms-petal)] px-4 py-2 text-sm font-semibold text-[var(--ms-plum)] hover:bg-[var(--ms-plum)] hover:text-white"
+              >
+                Preview
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold text-[var(--ms-navy)]">{displayName}</h1>
+            {isPro && proSess!.specialty && (
+              <span className="rounded-full bg-[var(--ms-petal)] px-3 py-1 text-[11px] font-semibold text-[var(--ms-plum)]">
+                <Sparkles className="mr-1 inline-block h-3 w-3" />{proSess!.specialty}
+              </span>
+            )}
+          </div>
+          {(isPro ? proSess!.location : salonSess!.location) && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-[var(--ms-mauve)]">
+              <MapPin className="h-3.5 w-3.5" />
+              {isPro ? proSess!.location : salonSess!.location}
+            </p>
+          )}
+        </div>
+
+        {/* Stats bar */}
+        <div className="mt-4 flex gap-6 border-b border-[var(--ms-border)] pb-4">
+          {[
+            { label: "Posts",    value: posts.length    },
+            { label: "Pending",  value: pending.length  },
+            { label: isPro ? "Mode" : "Team", value: isPro ? proSess!.serviceMode : `${salonSess!.teamCount}` },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center">
+              <p className="text-xl font-bold text-[var(--ms-navy)]">{stat.value}</p>
+              <p className="text-xs text-[var(--ms-mauve)]">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-0 flex border-b border-[var(--ms-border)]">
+          {tabCfg.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 border-b-2 py-3 text-sm font-semibold transition",
+                activeTab === tab.key
+                  ? "border-[var(--ms-plum)] text-[var(--ms-plum)]"
+                  : "border-transparent text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
+              )}
+            >
+              {tab.icon}
+              <span className="hidden sm:inline">{tab.label}</span>
+              {tab.key === "requests" && pending.length > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[10px] font-bold text-white">
+                  {pending.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Posts tab ──────────────────────────────────────────────── */}
+        {activeTab === "posts" && (
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => setShowNewPost(true)}
+              className="mb-5 flex w-full items-center gap-3 rounded-[24px] border-2 border-dashed border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-5 py-4 text-left transition hover:border-[var(--ms-plum)]"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-plum),var(--ms-orchid))] text-white">
+                <Plus className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[var(--ms-navy)]">Share your work</p>
+                <p className="text-xs text-[var(--ms-mauve)]">Portfolio, tutorials, before/after, promotions</p>
+              </div>
+            </button>
+
+            {posts.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ms-soft-bg)]">
+                  <ImagePlus className="h-8 w-8 text-[var(--ms-mauve)] opacity-50" />
+                </div>
+                <p className="mt-4 text-base font-semibold text-[var(--ms-navy)]">Your portfolio is empty</p>
+                <p className="mt-2 text-sm text-[var(--ms-mauve)]">Share your best work — clients discover you through your posts.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                {posts.map((post) => (
+                  <button
+                    key={post.id}
+                    type="button"
+                    onClick={() => setExpandedPost(post)}
+                    className="group relative aspect-square overflow-hidden rounded-[12px] bg-[var(--ms-soft-bg)]"
+                  >
+                    {post.images[0] ? (
+                      <img src={post.images[0]} alt={post.caption} className="h-full w-full object-cover transition group-hover:scale-105" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,var(--ms-petal),var(--ms-soft-bg))]">
+                        <Sparkles className="h-8 w-8 text-[var(--ms-plum)] opacity-40" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/0 text-white opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
+                      <span className="flex items-center gap-1 text-xs font-bold"><Heart className="h-4 w-4" /> {post.likes}</span>
+                      <span className="flex items-center gap-1 text-xs font-bold"><MessageCircle className="h-4 w-4" /> {post.comments.length}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Requests tab ───────────────────────────────────────────── */}
+        {activeTab === "requests" && (
+          <div className="mt-5">
+            <ProviderRequestsPanel providerSlug={publicSlug} roleLabel={isPro ? "Professional" : "Salon"} />
+          </div>
+        )}
+
+        {/* ── Messages tab ───────────────────────────────────────────── */}
+        {activeTab === "messages" && (
+          <div className="mt-5">
+            <ProviderMessagesPanel
+              avatar={session.profilePhoto}
+              displayName={displayName}
+              messagingId={publicSlug}
+              roleLabel={isPro ? "Professional" : "Salon"}
+            />
+          </div>
+        )}
+
+        {/* ── Settings tab ───────────────────────────────────────────── */}
+        {activeTab === "settings" && (
+          <div className="mt-5 space-y-4">
+            {/* Publish toggle card */}
+            <div className="rounded-[22px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_4px_16px_rgba(13,27,42,0.06)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-[var(--ms-navy)]">Marketplace listing</p>
+                  <p className="text-xs text-[var(--ms-mauve)]">
+                    {(isPro ? proSess!.listingPublished : salonSess!.listingPublished)
+                      ? "Clients can discover and book you"
+                      : "Hidden — clients cannot find you yet"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSave({ ...session, listingPublished: !(isPro ? proSess!.listingPublished : salonSess!.listingPublished) })}
+                  className={cn(
+                    "flex h-7 w-12 items-center rounded-full p-1 transition",
+                    (isPro ? proSess!.listingPublished : salonSess!.listingPublished) ? "justify-end bg-[var(--ms-plum)]" : "justify-start bg-[var(--ms-border)]",
+                  )}
+                >
+                  <span className="h-5 w-5 rounded-full bg-white" />
+                </button>
+              </div>
+              {isPro && (
+                <a href={`/professionals/${publicSlug}`} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ms-plum)] hover:underline">
+                  Preview your public page →
+                </a>
+              )}
+            </div>
+
+            {/* Edit fields */}
+            <div className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_4px_16px_rgba(13,27,42,0.06)]">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ms-mauve)]">
+                {isPro ? "Professional details" : "Salon details"}
+              </p>
+              <div className="space-y-3">
+                <EditField label={isPro ? "Display name" : "Salon name"} value={editDisplayName} onChange={setEditDisplayName} icon={<UserRound className="h-4 w-4" />} />
+                {isPro && <EditField label="Specialty" value={editSubtitle} onChange={setEditSubtitle} icon={<Sparkles className="h-4 w-4" />} />}
+                <EditField label="Phone" value={editPhone} onChange={setEditPhone} type="tel" icon={<Phone className="h-4 w-4" />} />
+                <EditField label="Email" value={editEmail} onChange={setEditEmail} type="email" icon={<Mail className="h-4 w-4" />} />
+                <EditField label="Location" value={editLocation} onChange={setEditLocation} icon={<MapPin className="h-4 w-4" />} />
+                <div>
+                  <label className="block rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3">
+                    <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ms-mauve)]">
+                      <MessageSquare className="h-3.5 w-3.5" /> {isPro ? "Bio" : "Salon description"}
+                    </span>
+                    <textarea
+                      className="mt-2 w-full resize-none bg-transparent text-sm leading-6 text-[var(--ms-charcoal)] outline-none placeholder:text-[var(--ms-border)]"
+                      rows={3}
+                      placeholder={isPro ? "Describe your expertise and style…" : "Tell clients what makes your salon special…"}
+                      value={editBio}
+                      onChange={(e) => setEditBio(e.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={saving}
+                className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-[16px] bg-[linear-gradient(135deg,var(--ms-plum),var(--ms-orchid))] text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-60"
+              >
+                {saved ? "Saved ✓" : saving ? "Saving…" : "Save profile"}
+              </button>
+            </div>
+
+            {/* Cards section */}
+            {session.cards && session.cards.length > 0 && (
+              <div className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ms-mauve)]">Public page sections</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {session.cards.map((card) => (
+                    <CardPreferenceRow
+                      card={card}
+                      key={card.id}
+                      onRemove={card.removable ? () => onSave({ ...session, cards: session.cards.filter((c) => c.id !== card.id) }) : undefined}
+                      onToggle={() => onSave({ ...session, cards: session.cards.map((c) => c.id === card.id ? { ...c, enabled: !c.enabled } : c) })}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {onDeleteDraft && (
+              <button
+                type="button"
+                onClick={onDeleteDraft}
+                className="w-full rounded-[16px] border border-red-200 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"
+              >
+                Delete draft account
+              </button>
+            )}
+            <MyWorldCard />
+            <LanguagePreferenceCard />
+          </div>
+        )}
+      </div>
+
+      {/* New post modal */}
+      {showNewPost && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-lg rounded-t-[32px] bg-white p-5 shadow-[0_-18px_60px_rgba(13,27,42,0.18)] sm:rounded-[32px]">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[var(--ms-navy)]">Share your work</h2>
+              <button type="button" onClick={() => setShowNewPost(false)} className="rounded-full bg-[var(--ms-soft-bg)] p-2 text-[var(--ms-mauve)]"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { key: "portfolio",    label: "Portfolio"     },
+                { key: "before_after", label: "Before/After"  },
+                { key: "tip",          label: "Tutorial"      },
+                { key: "promotion",    label: "Offer"         },
+              ].map((t) => (
+                <button key={t.key} type="button" onClick={() => setNewTag(t.key)}
+                  className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                    newTag === t.key ? "bg-[var(--ms-plum)] text-white" : "bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)]")}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <ImageUploadEditor label="Add photo" requirements="JPG or PNG · max 5 MB" aspectHint="1:1" maxMB={5} value={newImages[0]} onSave={(url) => setNewImages((p) => [...p, url])} />
+            <textarea
+              className="mt-3 w-full resize-none rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm leading-6 text-[var(--ms-charcoal)] outline-none placeholder:text-[var(--ms-mauve)]"
+              rows={3} placeholder="Describe your work… add #hashtags" value={newCaption} onChange={(e) => setNewCaption(e.target.value)}
+            />
+            <button type="button" onClick={handlePublishPost} disabled={!newCaption.trim() && newImages.length === 0}
+              className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-[linear-gradient(135deg,var(--ms-plum),var(--ms-orchid))] text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40">
+              <Send className="h-4 w-4" /> Post to community
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Post detail modal */}
+      {expandedPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_rgba(13,27,42,0.28)]">
+            <div className="flex items-center gap-3 border-b border-[var(--ms-border)] p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-plum),var(--ms-orchid))] text-sm font-bold text-white">
+                {expandedPost.authorName.slice(0, 1).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[var(--ms-navy)]">{expandedPost.authorName}</p>
+                <p className="text-xs text-[var(--ms-mauve)]">{new Date(expandedPost.createdAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</p>
+              </div>
+              <button type="button" onClick={() => setExpandedPost(null)} className="rounded-full bg-[var(--ms-soft-bg)] p-2"><X className="h-4 w-4 text-[var(--ms-mauve)]" /></button>
+            </div>
+            {expandedPost.images[0] && <img src={expandedPost.images[0]} alt="Post" className="max-h-64 w-full object-cover" />}
+            <div className="border-b border-[var(--ms-border)] p-4">
+              <p className="text-sm leading-6 text-[var(--ms-charcoal)]">{expandedPost.caption}</p>
+              <div className="mt-3 flex items-center gap-4">
+                <button type="button" onClick={() => handleLike(expandedPost.id)} className={cn("flex items-center gap-1.5 text-sm font-semibold transition", expandedPost.savedBy.includes(session.id) ? "text-[var(--ms-rose)]" : "text-[var(--ms-mauve)]")}>
+                  <Heart className="h-4 w-4" fill={expandedPost.savedBy.includes(session.id) ? "currentColor" : "none"} /> {expandedPost.likes}
+                </button>
+                <span className="flex items-center gap-1.5 text-sm text-[var(--ms-mauve)]"><MessageCircle className="h-4 w-4" /> {expandedPost.comments.length}</span>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {expandedPost.comments.length === 0 && <p className="text-center text-xs text-[var(--ms-mauve)]">No comments yet.</p>}
+              {expandedPost.comments.map((c) => (
+                <div key={c.id} className="flex gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--ms-soft-bg)] text-xs font-bold text-[var(--ms-plum)]">{c.authorName.slice(0, 1).toUpperCase()}</div>
+                  <div className="min-w-0 rounded-[14px] bg-[var(--ms-soft-bg)] px-3 py-2">
+                    <p className="text-xs font-semibold text-[var(--ms-navy)]">{c.authorName}</p>
+                    <p className="text-xs leading-5 text-[var(--ms-charcoal)]">{c.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 border-t border-[var(--ms-border)] p-3">
+              <input className="flex-1 rounded-full border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-2 text-sm outline-none" placeholder="Add a comment…" value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleComment(); }} />
+              <button type="button" onClick={handleComment} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ms-plum)] text-white hover:bg-[var(--ms-orchid)]"><Send className="h-4 w-4" /></button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SalonProfileWorkspace({
   session,
   onSave,
@@ -982,136 +1492,7 @@ function SalonProfileWorkspace({
   session: SalonUserProfile;
   onSave: (session: AppUserSession) => void;
 }) {
-  return (
-    <div className="section-grid">
-      <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Salon profile</p>
-            <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Manage the salon page clients will judge first.</h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">
-              Keep the salon name, contacts, subscription plan, and public page sections clear before you publish.
-            </p>
-          </div>
-          <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm font-semibold text-[var(--ms-plum)]">
-            {session.plan.toUpperCase()} plan · {session.subscriptionStatus.replaceAll("_", " ")}
-          </div>
-        </div>
-      </SectionReveal>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.58fr)_minmax(320px,0.42fr)]">
-        <SectionReveal className="beauty-card rounded-[32px] p-6">
-          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Business details</p>
-          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Edit your salon account</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Field
-              icon={<Store className="h-4 w-4" />}
-              label="Salon name"
-              value={session.salonName}
-              onChange={(value) => onSave({ ...session, salonName: value })}
-            />
-            <Field
-              icon={<UserRound className="h-4 w-4" />}
-              label="Contact person"
-              value={session.contactName}
-              onChange={(value) => onSave({ ...session, contactName: value })}
-            />
-            <Field
-              icon={<Phone className="h-4 w-4" />}
-              label="Phone"
-              value={session.phone}
-              onChange={(value) => onSave({ ...session, phone: value })}
-            />
-            <Field
-              icon={<Mail className="h-4 w-4" />}
-              label="Email"
-              value={session.email ?? ""}
-              onChange={(value) => onSave({ ...session, email: value })}
-            />
-            <Field
-              icon={<MapPin className="h-4 w-4" />}
-              label="Location"
-              value={session.location}
-              onChange={(value) => onSave({ ...session, location: value })}
-            />
-            <Field
-              icon={<Camera className="h-4 w-4" />}
-              label="Logo or hero image URL"
-              value={session.profilePhoto ?? ""}
-              onChange={(value) => onSave({ ...session, profilePhoto: value })}
-            />
-          </div>
-          <TextAreaField
-            label="Salon description"
-            value={session.description}
-            onChange={(value) => onSave({ ...session, description: value })}
-          />
-        </SectionReveal>
-
-        <SectionReveal className="beauty-card rounded-[32px] p-6">
-          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Listing control</p>
-          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Publish only when it feels ready.</h2>
-          <div className="mt-5 grid gap-3">
-            <SummaryRow icon={<BadgeCheck className="h-4 w-4" />} label="Listing status" value={session.listingPublished ? "Published" : "Draft"} />
-            <SummaryRow icon={<BriefcaseBusiness className="h-4 w-4" />} label="Team size" value={`${session.teamCount} team members`} />
-            <SummaryRow icon={<LayoutPanelTop className="h-4 w-4" />} label="Service count" value={`${session.servicesCount} visible services`} />
-          </div>
-          <div className="mt-6 flex flex-col gap-3">
-            <CTAButton
-              onClick={() => onSave({ ...session, listingPublished: !session.listingPublished })}
-              type="button"
-            >
-              {session.listingPublished ? "Unpublish salon page" : "Publish salon page"}
-            </CTAButton>
-            <CTAButton href="/onboarding/salon" variant="outline">
-              Update salon setup
-            </CTAButton>
-          </div>
-          <p className="mt-4 text-xs leading-6 text-[var(--ms-mauve)]">
-            Salon accounts are paid monthly subscriptions. Publish should stay locked to salons that have completed plan setup and billing.
-          </p>
-        </SectionReveal>
-      </div>
-
-      <SectionReveal className="beauty-card rounded-[32px] p-6">
-        <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Page sections</p>
-        <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Choose what appears on your salon page.</h2>
-        <div className="mt-6 grid gap-3 md:grid-cols-2">
-          {session.cards.map((card) => (
-            <CardPreferenceRow
-              card={card}
-              key={card.id}
-              onRemove={
-                card.removable
-                  ? () => onSave({ ...session, cards: session.cards.filter((item) => item.id !== card.id) })
-                  : undefined
-              }
-              onToggle={() =>
-                onSave({
-                  ...session,
-                  cards: session.cards.map((item) =>
-                    item.id === card.id ? { ...item, enabled: !item.enabled } : item,
-                  ),
-                })
-              }
-            />
-          ))}
-        </div>
-      </SectionReveal>
-
-      <ProviderRequestsPanel
-        providerSlug={session.publicSlug}
-        roleLabel="Salon"
-      />
-
-      <ProviderMessagesPanel
-        avatar={session.profilePhoto}
-        displayName={session.salonName}
-        messagingId={session.publicSlug}
-        roleLabel="Salon"
-      />
-    </div>
-  );
+  return <ProviderProfileWorkspace session={session} onSave={onSave} />;
 }
 
 function ProfessionalProfileWorkspace({
@@ -1123,141 +1504,7 @@ function ProfessionalProfileWorkspace({
   onSave: (session: AppUserSession) => void;
   onDeleteDraft: () => void;
 }) {
-  return (
-    <div className="section-grid">
-      <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Professional profile</p>
-            <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Control your public page before it goes to the marketplace.</h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">
-              Edit your basics, switch public cards on or off, then publish only when the page is strong enough to represent you.
-            </p>
-          </div>
-          <div className="rounded-[24px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm font-semibold text-[var(--ms-plum)]">
-            {session.listingPublished ? "Published" : "Draft"} · {session.serviceMode}
-          </div>
-        </div>
-      </SectionReveal>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.58fr)_minmax(320px,0.42fr)]">
-        <SectionReveal className="beauty-card rounded-[32px] p-6">
-          <div className="flex items-start gap-4">
-            <ProfileAvatar photo={session.profilePhoto} label={session.displayName} />
-            <div className="min-w-0">
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Profile basics</p>
-              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Edit the professional account</h2>
-            </div>
-          </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Field
-              icon={<UserRound className="h-4 w-4" />}
-              label="Display name"
-              value={session.displayName}
-              onChange={(value) => onSave({ ...session, displayName: value })}
-            />
-            <Field
-              icon={<Sparkles className="h-4 w-4" />}
-              label="Specialty"
-              value={session.specialty}
-              onChange={(value) => onSave({ ...session, specialty: value })}
-            />
-            <Field
-              icon={<Phone className="h-4 w-4" />}
-              label="Phone"
-              value={session.phone}
-              onChange={(value) => onSave({ ...session, phone: value })}
-            />
-            <Field
-              icon={<Mail className="h-4 w-4" />}
-              label="Email"
-              value={session.email ?? ""}
-              onChange={(value) => onSave({ ...session, email: value })}
-            />
-            <Field
-              icon={<MapPin className="h-4 w-4" />}
-              label="Location"
-              value={session.location}
-              onChange={(value) => onSave({ ...session, location: value })}
-            />
-            <Field
-              icon={<Camera className="h-4 w-4" />}
-              label="Profile image URL"
-              value={session.profilePhoto ?? ""}
-              onChange={(value) => onSave({ ...session, profilePhoto: value })}
-            />
-          </div>
-          <TextAreaField
-            label="Bio"
-            value={session.bio}
-            onChange={(value) => onSave({ ...session, bio: value })}
-          />
-        </SectionReveal>
-
-        <SectionReveal className="beauty-card rounded-[32px] p-6">
-          <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Marketplace status</p>
-          <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Publish, pause, or remove the profile.</h2>
-          <div className="mt-5 grid gap-3">
-            <SummaryRow icon={<BadgeCheck className="h-4 w-4" />} label="Public status" value={session.listingPublished ? "Visible in marketplace" : "Hidden from marketplace"} />
-            <SummaryRow icon={<Globe2 className="h-4 w-4" />} label="Public page" value={session.publicSlug} />
-            <SummaryRow icon={<MapPin className="h-4 w-4" />} label="Areas served" value={session.areasServed.join(", ")} />
-          </div>
-          <div className="mt-6 flex flex-col gap-3">
-            <CTAButton
-              onClick={() => onSave({ ...session, listingPublished: !session.listingPublished })}
-              type="button"
-            >
-              {session.listingPublished ? "Unpublish profile" : "Publish profile"}
-            </CTAButton>
-            <CTAButton href={`/professionals/${session.publicSlug}`} variant="outline">
-              Preview public page
-            </CTAButton>
-            <CTAButton onClick={onDeleteDraft} type="button" variant="outline">
-              Delete draft
-            </CTAButton>
-          </div>
-        </SectionReveal>
-      </div>
-
-      <SectionReveal className="beauty-card rounded-[32px] p-6">
-        <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Profile cards</p>
-        <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-plum)]">Add or remove what the public profile shows.</h2>
-        <div className="mt-6 grid gap-3 md:grid-cols-2">
-          {session.cards.map((card) => (
-            <CardPreferenceRow
-              card={card}
-              key={card.id}
-              onRemove={
-                card.removable
-                  ? () => onSave({ ...session, cards: session.cards.filter((item) => item.id !== card.id) })
-                  : undefined
-              }
-              onToggle={() =>
-                onSave({
-                  ...session,
-                  cards: session.cards.map((item) =>
-                    item.id === card.id ? { ...item, enabled: !item.enabled } : item,
-                  ),
-                })
-              }
-            />
-          ))}
-        </div>
-      </SectionReveal>
-
-      <ProviderRequestsPanel
-        providerSlug={session.publicSlug}
-        roleLabel="Professional"
-      />
-
-      <ProviderMessagesPanel
-        avatar={session.profilePhoto}
-        displayName={session.displayName}
-        messagingId={session.publicSlug}
-        roleLabel="Professional"
-      />
-    </div>
-  );
+  return <ProviderProfileWorkspace session={session} onSave={onSave} onDeleteDraft={onDeleteDraft} />;
 }
 
 function GuestProfilePrompt() {

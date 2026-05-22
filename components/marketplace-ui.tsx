@@ -15,7 +15,9 @@ import {
   CreditCard,
   LockKeyhole,
   Filter,
+  Grid3X3,
   Home,
+  Inbox,
   LayoutGrid,
   MapPin,
   Menu,
@@ -87,17 +89,24 @@ function useGuestBookingGate(bookHref: string) {
   );
 }
 
-const navItems: Array<{
-  key: NavKey;
-  label: string;
-  href: string;
-  icon: typeof Home;
-}> = [
-  { key: "home", label: "Home", href: "/home", icon: Home },
-  { key: "discover", label: "Discover", href: "/discover", icon: LayoutGrid },
-  { key: "counter", label: "Shop", href: "/counter", icon: ShoppingBag },
-  { key: "book", label: "Book", href: "/book", icon: CalendarDays },
-  { key: "profile", label: "Me", href: "/profile", icon: UserRound },
+type NavItem = { key: NavKey; label: string; href: string; icon: typeof Home };
+
+/** Client + guest navigation — default */
+const clientNavItems: NavItem[] = [
+  { key: "home",    label: "Home",    href: "/home",    icon: Home        },
+  { key: "explore", label: "Discover",href: "/explore", icon: LayoutGrid  },
+  { key: "counter", label: "Shop",    href: "/counter", icon: ShoppingBag },
+  { key: "book",    label: "Book",    href: "/book",    icon: CalendarDays },
+  { key: "profile", label: "Me",      href: "/profile", icon: UserRound   },
+];
+
+/** Professional + Salon navigation — no shop, no discover */
+const providerNavItems: NavItem[] = [
+  { key: "home",     label: "Home",     href: "/home",                 icon: Home             },
+  { key: "requests", label: "Requests", href: "/profile?tab=requests", icon: Inbox            },
+  { key: "posts",    label: "Posts",    href: "/profile?tab=posts",    icon: Grid3X3          },
+  { key: "messages", label: "Messages", href: "/profile?tab=messages", icon: MessageCircleMore},
+  { key: "profile",  label: "Me",       href: "/profile",              icon: UserRound        },
 ];
 
 export function SectionReveal({
@@ -406,19 +415,31 @@ export function SplitBrandHeader({
     setMenuOpen(false);
   }
 
-  // Mobile menu links — show dashboard/sign-out when logged in, auth links when not
-  const mobileLinks: [string, string][] = [
-    ["Home", roleHomeHref],
-    ["Discover", "/discover"],
-    ["Shop", "/counter"],
-    ["Guide", "/guide"],
-    ["Book now", "/book?rush=true"],
-    ["Profile", "/profile"],
-    ...(session ? [] : [["Sign in", "/auth/sign-in"] as [string, string]]),
-    ...(session ? [] : [["Create account", "/auth/sign-up"] as [string, string]]),
-    ["Terms & Conditions", "/terms"],
-    ["Help", "/help"],
-  ];
+  // Mobile menu links — role-aware
+  const isProvider = session?.role === "professional" || session?.role === "salon";
+  const mobileLinks: [string, string][] = isProvider
+    ? [
+        ["Home",        "/home"],
+        ["Requests",    "/profile?tab=requests"],
+        ["My Posts",    "/profile?tab=posts"],
+        ["Messages",    "/profile?tab=messages"],
+        ["Profile",     "/profile"],
+        ["Guide",       "/guide"],
+        ["Terms & Conditions", "/terms"],
+        ["Help",        "/help"],
+      ]
+    : [
+        ["Home",        roleHomeHref],
+        ["Discover",    "/explore"],
+        ["Shop",        "/counter"],
+        ["Guide",       "/guide"],
+        ["Book now",    "/book?rush=true"],
+        ["Profile",     "/profile"],
+        ...(session ? [] : [["Sign in", "/auth/sign-in"] as [string, string]]),
+        ...(session ? [] : [["Create account", "/auth/sign-up"] as [string, string]]),
+        ["Terms & Conditions", "/terms"],
+        ["Help",        "/help"],
+      ];
 
   return (
     <>
@@ -626,11 +647,13 @@ function DesktopNavLink({
 
 export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [role, setRole] = useState<string>("guest");
 
   useEffect(() => {
     function syncUnread() {
       try {
         const session = readAppSession();
+        setRole(session?.role ?? "guest");
         if (!session) { setUnreadCount(0); return; }
         const threads: Array<{ participantIds: string[]; messages: Array<{ read: boolean; senderId: string }> }> =
           JSON.parse(localStorage.getItem("ms_messages") ?? "[]");
@@ -642,12 +665,17 @@ export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
     }
     syncUnread();
     window.addEventListener("ms-social-change", syncUnread);
+    window.addEventListener(APP_SESSION_EVENT, syncUnread);
     window.addEventListener("storage", syncUnread);
     return () => {
       window.removeEventListener("ms-social-change", syncUnread);
+      window.removeEventListener(APP_SESSION_EVENT, syncUnread);
       window.removeEventListener("storage", syncUnread);
     };
   }, []);
+
+  const isProvider = role === "professional" || role === "salon";
+  const navItems = isProvider ? providerNavItems : clientNavItems;
 
   return (
     <nav
