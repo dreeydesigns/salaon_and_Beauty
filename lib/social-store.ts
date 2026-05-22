@@ -77,6 +77,7 @@ export type PostType = "before_after" | "inspo" | "tip" | "portfolio" | "promoti
 export interface SocialPost {
   id: string;
   authorId: string;          // session id
+  authorSlug?: string;       // publicSlug for professionals/salons — used for booking links
   authorName: string;        // display name
   authorAvatar?: string;
   authorRole: "client" | "professional" | "salon";

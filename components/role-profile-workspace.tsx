@@ -1053,6 +1053,7 @@ function ProviderProfileWorkspace({
     const post: SocialPost = {
       id: `post_${Date.now()}`,
       authorId: session.id,
+      authorSlug: publicSlug,  // enables direct "Book" links from the social feed
       authorName: displayName,
       authorAvatar: session.profilePhoto,
       authorRole,

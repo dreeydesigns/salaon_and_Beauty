@@ -7,6 +7,7 @@ import {
   Archive,
   BadgeCheck,
   Bookmark,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Droplets,
@@ -147,6 +148,13 @@ function getSessionName(session: AppUserSession | null): string {
   if (session.role === "professional") return (session as { displayName: string }).displayName;
   if (session.role === "salon")        return (session as { salonName: string }).salonName;
   return "Guest";
+}
+
+/** Safely extract publicSlug for provider sessions (undefined for clients/guests) */
+function getSessionSlug(session: AppUserSession | null): string | undefined {
+  if (!session) return undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (session as any).publicSlug as string | undefined;
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -901,6 +909,20 @@ function PostCard({
           </button>
         </div>
 
+        {/* Book this provider — connects social feed → booking flow */}
+        {localPost.authorSlug && (localPost.authorRole === "professional" || localPost.authorRole === "salon") && (
+          <div className="mx-4 mb-2 mt-1">
+            <Link
+              href={`/book?targetType=${localPost.authorRole === "professional" ? "professionals" : "salons"}&targetId=${localPost.authorSlug}`}
+              className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[13px] font-bold text-white transition hover:brightness-110"
+              style={{ background: "linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))" }}
+            >
+              <CalendarDays className="h-4 w-4" />
+              Book {localPost.authorName.split(" ")[0]}
+            </Link>
+          </div>
+        )}
+
         {/* Caption */}
         <div className="px-4 pb-2 pt-1">
           <p className="text-[13px] leading-5 text-[var(--ms-charcoal)]">
@@ -1105,6 +1127,7 @@ function TrendingSidebar({
 
 function ComposeSheet({
   sessionId,
+  sessionSlug,
   sessionRole,
   sessionName,
   sessionPhoto,
@@ -1112,6 +1135,7 @@ function ComposeSheet({
   onPublished,
 }: {
   sessionId: string;
+  sessionSlug?: string;
   sessionRole: AppUserSession["role"];
   sessionName: string;
   sessionPhoto: string | undefined;
@@ -1138,6 +1162,7 @@ function ComposeSheet({
     const post: SocialPost = {
       id: `post_${Date.now()}`,
       authorId: sessionId,
+      authorSlug: sessionSlug,
       authorName: sessionName,
       authorAvatar: sessionPhoto,
       authorRole,
@@ -1318,6 +1343,7 @@ export function SocialHome() {
   const sessionRole = session.role;
   const sessionName = getSessionName(session);
   const sessionPhoto= getSessionPhoto(session);
+  const sessionSlug = getSessionSlug(session);
   const canPost     = !isGuest;
 
   // Derive active category from active room
@@ -1556,6 +1582,7 @@ export function SocialHome() {
       {showCompose && canPost && (
         <ComposeSheet
           sessionId={sessionId}
+          sessionSlug={sessionSlug}
           sessionRole={sessionRole}
           sessionName={sessionName}
           sessionPhoto={sessionPhoto}
