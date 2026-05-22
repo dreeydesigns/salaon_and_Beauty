@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useDeferredValue } from "react";
+import { useEffect, useState, useDeferredValue } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Briefcase,
@@ -28,6 +29,7 @@ import {
   FilterDrawer,
   type FilterSection,
 } from "@/components/marketplace-ui";
+import { readAppSession } from "@/lib/client-session";
 import { professionals, salons } from "@/lib/site-data";
 import { rankProfessionals, rankSalons } from "@/lib/discovery-ranking";
 import { cn } from "@/lib/utils";
@@ -88,6 +90,16 @@ const PACKAGES = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DiscoverPage() {
+  const router = useRouter();
+
+  // Providers don't have a Discover page — send them to their home feed
+  useEffect(() => {
+    const session = readAppSession();
+    if (session?.role === "professional" || session?.role === "salon") {
+      router.replace("/home");
+    }
+  }, [router]);
+
   const [tab, setTab] = useState<DiscoverTab>("salons");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [selected, setSelected] = useState<string[]>([]);

@@ -464,24 +464,37 @@ export function SplitBrandHeader({
               <DesktopNavLink href="/home" current={currentNav === "home"}>
                 Home
               </DesktopNavLink>
-              <DesktopNavLink href="/discover" current={currentNav === "discover" || currentNav === "explore"}>
-                Discover
-              </DesktopNavLink>
-              <DesktopNavLink href="/counter" current={currentNav === "counter"}>
-                Shop
-              </DesktopNavLink>
-              <DesktopNavLink href="/book" current={currentNav === "book"}>
-                Book
-              </DesktopNavLink>
 
-              {/* Session-aware right section */}
+              {/* ── Role-aware middle links ───────────────────────────── */}
+              {isProvider ? (
+                <>
+                  <DesktopNavLink href="/profile?tab=requests" current={currentNav === "requests"}>
+                    Requests
+                  </DesktopNavLink>
+                  <DesktopNavLink href="/profile?tab=posts" current={currentNav === "posts"}>
+                    Posts
+                  </DesktopNavLink>
+                  <DesktopNavLink href="/profile?tab=messages" current={currentNav === "messages"}>
+                    Messages
+                  </DesktopNavLink>
+                </>
+              ) : (
+                <>
+                  <DesktopNavLink href="/explore" current={currentNav === "discover" || currentNav === "explore"}>
+                    Discover
+                  </DesktopNavLink>
+                  <DesktopNavLink href="/counter" current={currentNav === "counter"}>
+                    Shop
+                  </DesktopNavLink>
+                  <DesktopNavLink href="/book" current={currentNav === "book"}>
+                    Book
+                  </DesktopNavLink>
+                </>
+              )}
+
+              {/* ── Session-aware right section ───────────────────────── */}
               {session ? (
                 <>
-                  {(session.role === "professional" || session.role === "salon") && (
-                    <DesktopNavLink href="/profile?tab=requests">
-                      Requests
-                    </DesktopNavLink>
-                  )}
                   <Link
                     href="/profile"
                     className={cn(
@@ -510,6 +523,11 @@ export function SplitBrandHeader({
                   >
                     Sign out
                   </button>
+                  <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href={primaryAction.href}>
+                    <span className="hidden xl:inline">{primaryAction.label === "Book" ? "Start Booking" : primaryAction.label}</span>
+                    <span className="xl:hidden">{primaryAction.label}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </CTAButton>
                 </>
               ) : (
                 <>
@@ -528,13 +546,6 @@ export function SplitBrandHeader({
                     <ArrowRight className="h-4 w-4" />
                   </CTAButton>
                 </>
-              )}
-              {session && (
-                <CTAButton className="ml-2 min-h-10 px-4 xl:px-6 xl:min-h-12" href={primaryAction.href}>
-                  <span className="hidden xl:inline">{primaryAction.label === "Book" ? "Start Booking" : primaryAction.label}</span>
-                  <span className="xl:hidden">{primaryAction.label}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </CTAButton>
               )}
             </nav>
 
