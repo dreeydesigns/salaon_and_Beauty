@@ -78,9 +78,14 @@ function generateToken(): string {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-/** Get all team members for a salon */
+/** Get all team members for a salon (by internal ID) */
 export function getTeamMembers(salonId: string): TeamMember[] {
   return readAll().filter((m) => m.salonId === salonId);
+}
+
+/** Get accepted team members for a salon's public page (by slug) */
+export function getAcceptedTeamBySalonSlug(salonSlug: string): TeamMember[] {
+  return readAll().filter((m) => m.salonSlug === salonSlug && m.inviteStatus === "accepted");
 }
 
 /** Get a single team member by their account ID (post-accept) */

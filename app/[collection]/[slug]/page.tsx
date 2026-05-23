@@ -27,6 +27,7 @@ import {
 import { buildBookingHref } from "@/lib/utils";
 import { FollowButton } from "@/components/follow-button";
 import { MessageButton } from "@/components/message-button";
+import { SalonLiveTeamSection } from "@/components/salon-live-team";
 
 export default async function DetailPage({
   params,
@@ -182,6 +183,11 @@ export default async function DetailPage({
                   ))}
               </ScrollSection>
             ) : null}
+
+            {/* Live team members registered through the platform */}
+            {"specialty" in item ? null : (
+              <SalonLiveTeamSection salonSlug={item.slug} />
+            )}
 
             <section className="section-grid dark-atmosphere rounded-[32px] p-6 text-white shadow-[0_18px_48px_rgba(13,27,42,0.22)]">
               <div>
