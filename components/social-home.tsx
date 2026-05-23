@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   Bookmark,
   CalendarDays,
+  Camera,
   ChevronLeft,
   ChevronRight,
   Droplets,
@@ -57,6 +58,13 @@ import {
   type SocialComment,
 } from "@/lib/social-store";
 import { cn } from "@/lib/utils";
+import {
+  readStories,
+  addStory,
+  getStoriesByAuthor,
+  STORY_CHANGE_EVENT,
+  type Story,
+} from "@/lib/story-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -245,76 +253,104 @@ function RoomsBar({
 
 // ─── Stories row ─────────────────────────────────────────────────────────────
 
-interface StoryCreator {
-  id: string;
-  name: string;
-  avatar?: string;
-  role: SocialPost["authorRole"];
-}
-
 function StoriesRow({
+  sessionId,
   sessionName,
   sessionPhoto,
   sessionRole,
-  onCompose,
-  creators,
-  onToast,
+  allStories,
+  onAddStory,
+  onViewStory,
 }: {
+  sessionId: string;
   sessionName: string;
   sessionPhoto?: string;
   sessionRole: AppUserSession["role"];
-  onCompose: () => void;
-  creators: StoryCreator[];
-  onToast: (msg: string) => void;
+  allStories: Story[];
+  onAddStory: () => void;
+  onViewStory: (authorId: string) => void;
 }) {
   const avatarRole: SocialPost["authorRole"] =
     sessionRole === "professional" ? "professional" :
-    sessionRole === "salon" ? "salon" : "client";
+    sessionRole === "salon"        ? "salon"        : "client";
+
+  const myStories = allStories.filter((s) => s.authorId === sessionId);
+  const iHaveStory = myStories.length > 0;
+
+  // Unique authors with stories (excluding self)
+  const otherCreators = Array.from(
+    allStories
+      .filter((s) => s.authorId !== sessionId)
+      .reduce((map, s) => {
+        if (!map.has(s.authorId)) {
+          map.set(s.authorId, {
+            id: s.authorId,
+            name: s.authorName,
+            avatar: s.authorAvatar,
+            role: s.authorRole,
+          });
+        }
+        return map;
+      }, new Map<string, { id: string; name: string; avatar?: string; role: Story["authorRole"] }>()),
+  ).map(([, c]) => c);
 
   return (
     <div className="mb-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-webkit-overflow-scrolling:touch]">
       <div className="flex items-start gap-4 px-4 pb-1">
         {/* Your story */}
-        <button type="button" onClick={onCompose} className="flex flex-col items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={iHaveStory ? () => onViewStory(sessionId) : onAddStory}
+          className="flex flex-col items-center gap-1.5 shrink-0"
+        >
           <div className="relative">
+            {/* Ring: gradient if you have a story, plain border otherwise */}
             <div
-              className="h-[58px] w-[58px] overflow-hidden rounded-full"
-              style={{ background: "linear-gradient(135deg,#f3e8ff,#fce7f3)" }}
+              className={`p-[2.5px] rounded-full ${iHaveStory ? "" : "p-0"}`}
+              style={iHaveStory ? { background: "linear-gradient(135deg,#D4537E 0%,#8B5CF6 50%,#EC4899 100%)" } : {}}
             >
-              {sessionPhoto ? (
-                <img src={sessionPhoto} alt={sessionName} className="h-full w-full object-cover" />
-              ) : (
-                <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br ${avatarGradient(avatarRole)} font-bold text-white text-lg`}>
-                  {sessionName[0]?.toUpperCase()}
+              <div className={`${iHaveStory ? "rounded-full overflow-hidden bg-white p-[1.5px]" : ""}`}>
+                <div
+                  className={`h-[58px] w-[58px] overflow-hidden rounded-full border-2 ${iHaveStory ? "border-transparent" : "border-[var(--ms-border)]"}`}
+                  style={iHaveStory ? {} : { background: "linear-gradient(135deg,#f3e8ff,#fce7f3)" }}
+                >
+                  {sessionPhoto ? (
+                    <img src={sessionPhoto} alt={sessionName} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br ${avatarGradient(avatarRole)} font-bold text-white text-lg`}>
+                      {sessionName[0]?.toUpperCase()}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-white border-2 border-white shadow-sm">
-              <Plus className="h-3 w-3" strokeWidth={3} />
-            </div>
+            {/* + badge if no story yet */}
+            {!iHaveStory && (
+              <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-white border-2 border-white shadow-sm">
+                <Plus className="h-3 w-3" strokeWidth={3} />
+              </div>
+            )}
           </div>
           <span className="text-[9.5px] font-semibold leading-tight text-[var(--ms-navy)] max-w-[58px] truncate text-center">
             Your story
           </span>
         </button>
 
-        {/* Active creators */}
-        {creators.map((c) => (
+        {/* Other users with active stories */}
+        {otherCreators.map((c) => (
           <button
             key={c.id}
             type="button"
-            onClick={() => onToast(`See ${c.name.split(" ")[0]}'s posts below`)}
+            onClick={() => onViewStory(c.id)}
             className="flex flex-col items-center gap-1.5 shrink-0"
           >
             <div
               className="p-[2.5px] rounded-full"
-              style={{
-                background: "linear-gradient(135deg,#D4537E 0%,#8B5CF6 50%,#EC4899 100%)",
-              }}
+              style={{ background: "linear-gradient(135deg,#D4537E 0%,#8B5CF6 50%,#EC4899 100%)" }}
             >
               <div className="rounded-full overflow-hidden bg-white p-[1.5px]">
                 <div
-                  className={`h-[54px] w-[54px] overflow-hidden rounded-full flex items-center justify-center bg-gradient-to-br ${avatarGradient(c.role)} font-bold text-white text-base`}
+                  className={`h-[54px] w-[54px] overflow-hidden rounded-full flex items-center justify-center bg-gradient-to-br ${avatarGradient(c.role === "team_member" ? "client" : c.role)} font-bold text-white text-base`}
                 >
                   {c.avatar ? (
                     <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" />
@@ -329,6 +365,326 @@ function StoriesRow({
             </span>
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Story create modal ───────────────────────────────────────────────────────
+
+function StoryCreateModal({
+  session,
+  onClose,
+  onPosted,
+}: {
+  session: AppUserSession;
+  onClose: () => void;
+  onPosted: () => void;
+}) {
+  const [step, setStep] = useState<"choose" | "preview">("choose");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  const [caption, setCaption] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const galleryInputRef = { current: null as HTMLInputElement | null };
+  const cameraInputRef  = { current: null as HTMLInputElement | null };
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isVideo = file.type.startsWith("video/");
+    setMediaType(isVideo ? "video" : "image");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setMediaUrl(ev.target?.result as string);
+      setStep("preview");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handlePost() {
+    if (!mediaUrl) return;
+    setPosting(true);
+    const authorRole =
+      session.role === "salon"        ? "salon"        :
+      session.role === "professional" ? "professional" :
+      session.role === "team_member"  ? "team_member"  : "client";
+
+    addStory({
+      authorId:     session.id,
+      authorName:   getSessionName(session),
+      authorRole,
+      authorAvatar: getSessionPhoto(session),
+      mediaUrl,
+      mediaType,
+      caption:      caption.trim() || undefined,
+    });
+    setTimeout(() => {
+      setPosting(false);
+      onPosted();
+    }, 400);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm overflow-hidden rounded-t-[32px] bg-white sm:rounded-[32px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--ms-border)]" />
+
+        {step === "choose" ? (
+          <div className="p-6">
+            <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">Add to your story</h2>
+            <p className="mt-1 text-[13px] text-[var(--ms-mauve)]">
+              Stories disappear after 24 hours.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              {/* Choose from storage */}
+              <label className="flex cursor-pointer items-center gap-4 rounded-[20px] bg-[var(--ms-soft-bg)] px-5 py-4 transition hover:bg-[#F0EBFF]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F0EBFF]">
+                  <LayoutGrid className="h-5 w-5 text-[var(--ms-plum)]" strokeWidth={1.85} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-bold text-[var(--ms-navy)]">Choose from gallery</p>
+                  <p className="text-[12px] text-[var(--ms-mauve)]">Photo or video from your device</p>
+                </div>
+                <input
+                  ref={(el) => { galleryInputRef.current = el; }}
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={handleFile}
+                />
+              </label>
+
+              {/* Take a photo/video */}
+              <label className="flex cursor-pointer items-center gap-4 rounded-[20px] bg-[var(--ms-soft-bg)] px-5 py-4 transition hover:bg-[#FEF0F3]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FEF0F3]">
+                  <Camera className="h-5 w-5 text-[var(--ms-rose)]" strokeWidth={1.85} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-bold text-[var(--ms-navy)]">Take a photo or video</p>
+                  <p className="text-[12px] text-[var(--ms-mauve)]">Open your camera now</p>
+                </div>
+                <input
+                  ref={(el) => { cameraInputRef.current = el; }}
+                  type="file"
+                  accept="image/*,video/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleFile}
+                />
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-5 w-full rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)] transition hover:bg-[var(--ms-soft-bg)]"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          /* ── Preview step ── */
+          <div className="p-0">
+            {/* Media preview */}
+            <div className="relative aspect-[9/14] w-full overflow-hidden bg-black sm:aspect-[9/12]">
+              {mediaType === "image" && mediaUrl ? (
+                <img src={mediaUrl} alt="Story preview" className="h-full w-full object-cover" />
+              ) : mediaUrl ? (
+                <video src={mediaUrl} className="h-full w-full object-cover" autoPlay muted playsInline loop />
+              ) : null}
+
+              {/* Caption overlay */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-4">
+                <input
+                  type="text"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  placeholder="Add a caption…"
+                  className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/50"
+                />
+              </div>
+
+              {/* Back button */}
+              <button
+                type="button"
+                onClick={() => { setStep("choose"); setMediaUrl(null); }}
+                className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+              >
+                <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* Post button */}
+            <div className="p-4">
+              <button
+                type="button"
+                onClick={handlePost}
+                disabled={posting}
+                className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-[18px] text-[15px] font-bold text-white shadow-[0_6px_24px_rgba(212,83,126,0.3)] transition hover:brightness-110 disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))" }}
+              >
+                {posting ? "Posting…" : "Add to story"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Story viewer modal ───────────────────────────────────────────────────────
+
+function StoryViewerModal({
+  authorId,
+  allStories,
+  onClose,
+}: {
+  authorId: string;
+  allStories: Story[];
+  onClose: () => void;
+}) {
+  const stories = getStoriesByAuthor(authorId).length > 0
+    ? getStoriesByAuthor(authorId)
+    : allStories.filter((s) => s.authorId === authorId);
+
+  const [index, setIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const DURATION = 5000; // 5s per story
+
+  const current = stories[index];
+
+  useEffect(() => {
+    if (!current || current.mediaType === "video") return;
+    setProgress(0);
+    const start = Date.now();
+    const tick = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min((elapsed / DURATION) * 100, 100);
+      setProgress(pct);
+      if (elapsed >= DURATION) {
+        clearInterval(tick);
+        if (index < stories.length - 1) {
+          setIndex((i) => i + 1);
+        } else {
+          onClose();
+        }
+      }
+    }, 50);
+    return () => clearInterval(tick);
+  }, [index, current, stories.length, onClose]);
+
+  if (!current) return null;
+
+  const timeAgo = (() => {
+    const diff = Date.now() - new Date(current.createdAt).getTime();
+    const h = Math.floor(diff / (1000 * 60 * 60));
+    if (h < 1) return `${Math.max(1, Math.floor(diff / 60000))}m ago`;
+    return `${h}h ago`;
+  })();
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black"
+      onClick={onClose}
+    >
+      <div
+        className="relative h-full w-full max-w-sm overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Progress bars */}
+        <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-3">
+          {stories.map((_, i) => (
+            <div key={i} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30">
+              <div
+                className="h-full rounded-full bg-white transition-none"
+                style={{
+                  width: i < index ? "100%" : i === index ? `${progress}%` : "0%",
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Author + close */}
+        <div className="absolute top-8 left-0 right-0 z-20 flex items-center justify-between px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-white bg-white/20">
+              {current.authorAvatar ? (
+                <img src={current.authorAvatar} alt={current.authorName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[13px] font-bold text-white">
+                  {current.authorName[0]?.toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-[13px] font-bold text-white drop-shadow">{current.authorName.split(" ")[0]}</p>
+              <p className="text-[10px] text-white/70">{timeAgo}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm"
+          >
+            <X className="h-4 w-4" strokeWidth={2.5} />
+          </button>
+        </div>
+
+        {/* Media */}
+        {current.mediaType === "image" ? (
+          <img
+            src={current.mediaUrl}
+            alt={current.caption ?? "Story"}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <video
+            src={current.mediaUrl}
+            className="h-full w-full object-cover"
+            autoPlay
+            playsInline
+            loop={false}
+            onEnded={() => {
+              if (index < stories.length - 1) setIndex((i) => i + 1);
+              else onClose();
+            }}
+          />
+        )}
+
+        {/* Caption */}
+        {current.caption && (
+          <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 via-black/30 to-transparent px-5 py-8">
+            <p className="text-sm font-semibold text-white drop-shadow-md">{current.caption}</p>
+          </div>
+        )}
+
+        {/* Tap zones: left = previous, right = next */}
+        <div className="absolute inset-0 z-10 flex">
+          <button
+            type="button"
+            className="flex-1 cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); if (index > 0) setIndex((i) => i - 1); else onClose(); }}
+            aria-label="Previous story"
+          />
+          <button
+            type="button"
+            className="flex-1 cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); if (index < stories.length - 1) setIndex((i) => i + 1); else onClose(); }}
+            aria-label="Next story"
+          />
+        </div>
       </div>
     </div>
   );
@@ -1291,19 +1647,22 @@ export function SocialHome() {
   const searchParams = useSearchParams();
   const initTab = (searchParams.get("tab") as FeedTab | null) ?? "foryou";
 
-  const [session,        setSession]        = useState<AppUserSession | null>(null);
-  const [realPosts,      setRealPosts]      = useState<SocialPost[]>([]);
-  const [saves,          setSaves]          = useState<SocialSaves>({ professionals: [], salons: [] });
-  const [followedAuthors,setFollowedAuthors]= useState<Set<string>>(new Set());
-  const [activeTab,      setActiveTab]      = useState<FeedTab>(
+  const [session,           setSession]           = useState<AppUserSession | null>(null);
+  const [realPosts,         setRealPosts]         = useState<SocialPost[]>([]);
+  const [saves,             setSaves]             = useState<SocialSaves>({ professionals: [], salons: [] });
+  const [followedAuthors,   setFollowedAuthors]   = useState<Set<string>>(new Set());
+  const [activeTab,         setActiveTab]         = useState<FeedTab>(
     ["foryou", "following"].includes(initTab) ? initTab : "foryou",
   );
-  const [activeRoomId,   setActiveRoomId]   = useState<RoomId>("r_all");
-  const [showCompose,    setShowCompose]    = useState(false);
-  const [toast,          setToast]          = useState<string | null>(null);
-  const [deletedIds,     setDeletedIds]     = useState<Set<string>>(new Set());
-  const [archivedIds,    setArchivedIds]    = useState<Set<string>>(new Set());
-  const [refreshKey,     setRefreshKey]     = useState(0);
+  const [activeRoomId,      setActiveRoomId]      = useState<RoomId>("r_all");
+  const [showCompose,       setShowCompose]       = useState(false);
+  const [toast,             setToast]             = useState<string | null>(null);
+  const [deletedIds,        setDeletedIds]        = useState<Set<string>>(new Set());
+  const [archivedIds,       setArchivedIds]       = useState<Set<string>>(new Set());
+  const [refreshKey,        setRefreshKey]        = useState(0);
+  const [allStories,        setAllStories]        = useState<Story[]>([]);
+  const [showStoryCreate,   setShowStoryCreate]   = useState(false);
+  const [viewingAuthorId,   setViewingAuthorId]   = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => setToast(msg), []);
 
@@ -1314,14 +1673,17 @@ export function SocialHome() {
       setRealPosts(readPosts());
       setSaves(readSaves());
       setFollowedAuthors(new Set(readFollowedAuthors()));
+      setAllStories(readStories());
     }
     sync();
     window.addEventListener(APP_SESSION_EVENT,    sync);
     window.addEventListener(SOCIAL_CHANGE_EVENT,  sync);
+    window.addEventListener(STORY_CHANGE_EVENT,   sync);
     window.addEventListener("storage",            sync);
     return () => {
       window.removeEventListener(APP_SESSION_EVENT,   sync);
       window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
+      window.removeEventListener(STORY_CHANGE_EVENT,  sync);
       window.removeEventListener("storage",           sync);
     };
   }, []);
@@ -1352,20 +1714,6 @@ export function SocialHome() {
 
   const allPosts = realPosts.filter((p) => !deletedIds.has(p.id) && !archivedIds.has(p.id));
 
-  // Story creators — unique authors from posts (excluding self), up to 8
-  const storyCreators: StoryCreator[] = Array.from(
-    allPosts.reduce((map, post) => {
-      if (!map.has(post.authorId) && post.authorId !== sessionId) {
-        map.set(post.authorId, {
-          id: post.authorId,
-          name: post.authorName,
-          avatar: post.authorAvatar,
-          role: post.authorRole,
-        });
-      }
-      return map;
-    }, new Map<string, StoryCreator>()),
-  ).map(([, c]) => c).slice(0, 8);
 
   const suggestedCreators = Array.from(
     allPosts.reduce((map, post) => {
@@ -1438,27 +1786,17 @@ export function SocialHome() {
               </p>
               <p className="text-[11px] text-[var(--ms-mauve)] leading-tight">beauty · style · self-care</p>
             </div>
-            {canPost && (
-              <button
-                type="button"
-                onClick={() => setShowCompose(true)}
-                className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-bold text-white shadow-[0_4px_14px_rgba(212,83,126,0.3)] transition hover:brightness-110"
-                style={{ background: "linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))" }}
-              >
-                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                Share
-              </button>
-            )}
-          </div>
+            </div>
 
           {/* Stories row */}
           <StoriesRow
+            sessionId={sessionId}
             sessionName={sessionName}
             sessionPhoto={sessionPhoto}
             sessionRole={sessionRole}
-            onCompose={() => canPost ? setShowCompose(true) : showToast("Create a free account to post")}
-            creators={storyCreators}
-            onToast={showToast}
+            allStories={allStories}
+            onAddStory={() => canPost ? setShowStoryCreate(true) : showToast("Create a free account to add a story")}
+            onViewStory={(authorId) => setViewingAuthorId(authorId)}
           />
 
           {/* Separator */}
@@ -1579,6 +1917,26 @@ export function SocialHome() {
       </button>
 
       {/* Compose sheet */}
+      {/* Story modals */}
+      {showStoryCreate && session && session.role !== "guest" && (
+        <StoryCreateModal
+          session={session}
+          onClose={() => setShowStoryCreate(false)}
+          onPosted={() => {
+            setShowStoryCreate(false);
+            setAllStories(readStories());
+            showToast("Story added — visible for 24 hours");
+          }}
+        />
+      )}
+      {viewingAuthorId && (
+        <StoryViewerModal
+          authorId={viewingAuthorId}
+          allStories={allStories}
+          onClose={() => setViewingAuthorId(null)}
+        />
+      )}
+
       {showCompose && canPost && (
         <ComposeSheet
           sessionId={sessionId}
