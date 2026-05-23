@@ -7,6 +7,7 @@ import type { NavKey, RoleMode } from "@/lib/site-data";
 import { ClientSessionGate } from "@/components/client-session-gate";
 import { BottomMobileNav, SplitBrandHeader } from "@/components/marketplace-ui";
 import type { AppUserRole } from "@/lib/client-session";
+import { FEATURES } from "@/lib/feature-flags";
 
 export function AppShell({
   children,
@@ -44,9 +45,11 @@ export function AppShell({
               <Link href="/guide" className="hover:text-[var(--ms-navy)]">
                 Guide
               </Link>
-              <Link href="/counter" className="hover:text-[var(--ms-navy)]">
-                Counter
-              </Link>
+              {FEATURES.SHOP && (
+                <Link href="/counter" className="hover:text-[var(--ms-navy)]">
+                  Counter
+                </Link>
+              )}
               <Link href="/book" className="hover:text-[var(--ms-navy)]">
                 Book
               </Link>
