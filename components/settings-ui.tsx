@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -34,6 +34,7 @@ import {
   Sparkles,
   Trash2,
   Type,
+  Upload,
   User,
   UserCog,
   UserX,
@@ -55,9 +56,15 @@ import {
 import {
   APP_SESSION_EVENT,
   readAppSession,
+  writeAppSession,
   clearAppSession,
   type AppUserSession,
 } from "@/lib/client-session";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const IS_DEV = process.env.NODE_ENV === "development";
+const LANG_KEY = "ms_language_pref";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -79,12 +86,21 @@ function getAccountLabel(session: AppUserSession | null): string {
   return "";
 }
 
+function maskPhone(phone: string): string {
+  if (!phone) return "your registered number";
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length < 6) return phone;
+  const visible = cleaned.slice(-3);
+  const masked = cleaned.slice(0, -3).replace(/\d/g, "X");
+  return `+${masked}${visible}`;
+}
+
 function calcStorageUsed(): string {
   if (typeof window === "undefined") return "< 1 KB";
   try {
     let bytes = 0;
     for (const key of Object.keys(localStorage)) {
-      bytes += (localStorage.getItem(key) ?? "").length * 2; // UTF-16 chars
+      bytes += (localStorage.getItem(key) ?? "").length * 2;
     }
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -92,6 +108,43 @@ function calcStorageUsed(): string {
   } catch {
     return "< 1 KB";
   }
+}
+
+// ─── Language config ──────────────────────────────────────────────────────────
+
+const LANGUAGES = [
+  { code: "en", label: "English",   nativeLabel: "English",    dir: "ltr" },
+  { code: "sw", label: "Kiswahili", nativeLabel: "Kiswahili",  dir: "ltr" },
+  { code: "es", label: "Español",   nativeLabel: "Español",    dir: "ltr" },
+  { code: "fr", label: "Français",  nativeLabel: "Français",   dir: "ltr" },
+  { code: "ar", label: "Arabic",    nativeLabel: "العربية",    dir: "rtl" },
+  { code: "hi", label: "Hindi",     nativeLabel: "हिन्दी",     dir: "ltr" },
+  { code: "zh", label: "Chinese",   nativeLabel: "中文",       dir: "ltr" },
+  { code: "pt", label: "Português", nativeLabel: "Português",  dir: "ltr" },
+] as const;
+
+type LangCode = (typeof LANGUAGES)[number]["code"];
+
+interface LangPref {
+  code: LangCode;
+  label: string;
+  dir: string;
+}
+
+function readLangPref(): LangPref {
+  try {
+    const raw = localStorage.getItem(LANG_KEY);
+    if (raw) return JSON.parse(raw) as LangPref;
+  } catch { /* noop */ }
+  return { code: "en", label: "English", dir: "ltr" };
+}
+
+function saveLangPref(pref: LangPref): void {
+  try {
+    localStorage.setItem(LANG_KEY, JSON.stringify(pref));
+    document.documentElement.lang = pref.code;
+    document.documentElement.dir  = pref.dir;
+  } catch { /* noop */ }
 }
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
@@ -191,6 +244,7 @@ interface RowBase {
   sub?: string;
   danger?: boolean;
   iconBg?: string;
+  dim?: boolean;
 }
 
 interface ToggleRow extends RowBase {
@@ -205,6 +259,7 @@ interface LinkRow extends RowBase {
   href?: string;
   onClick?: () => void;
   value?: string;
+  readOnly?: boolean;
 }
 
 interface SelectRow extends RowBase {
@@ -218,10 +273,9 @@ type RowDef = ToggleRow | LinkRow | SelectRow;
 
 function Row({ def, last }: { def: RowDef; last: boolean }) {
   const Icon = def.icon;
+  const isReadOnly = def.kind === "link" && def.readOnly;
 
-  const iconBg =
-    def.iconBg ??
-    (def.danger ? "bg-red-50" : "bg-[var(--ms-soft-bg)]");
+  const iconBg    = def.iconBg ?? (def.danger ? "bg-red-50" : "bg-[var(--ms-soft-bg)]");
   const iconColor = def.danger ? "text-red-500" : "text-[var(--ms-mauve)]";
 
   const inner = (
@@ -229,29 +283,15 @@ function Row({ def, last }: { def: RowDef; last: boolean }) {
       className={cn(
         "flex items-center gap-3.5 px-4 py-3.5",
         !last && "border-b border-[var(--ms-border)]/60",
+        def.dim && "opacity-50",
       )}
     >
-      {/* Icon */}
-      <span
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]",
-          iconBg,
-        )}
-      >
-        <Icon
-          className={cn("h-[18px] w-[18px]", iconColor)}
-          strokeWidth={1.85}
-        />
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]", iconBg)}>
+        <Icon className={cn("h-[18px] w-[18px]", iconColor)} strokeWidth={1.85} />
       </span>
 
-      {/* Label + sub */}
       <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            "text-[14px] font-semibold leading-snug",
-            def.danger ? "text-red-500" : "text-[var(--ms-navy)]",
-          )}
-        >
+        <p className={cn("text-[14px] font-semibold leading-snug", def.danger ? "text-red-500" : "text-[var(--ms-navy)]")}>
           {def.label}
         </p>
         {def.sub && (
@@ -259,17 +299,19 @@ function Row({ def, last }: { def: RowDef; last: boolean }) {
         )}
       </div>
 
-      {/* Right element */}
       {def.kind === "toggle" && (
         <Toggle on={def.on} onChange={def.onChange} disabled={def.disabled} />
       )}
-      {def.kind === "link" && (
+      {def.kind === "link" && !isReadOnly && (
         <div className="flex shrink-0 items-center gap-1.5">
           {def.value && (
             <span className="text-[12px] text-[var(--ms-mauve)]">{def.value}</span>
           )}
           <ChevronRight className="h-4 w-4 text-[var(--ms-border)]" />
         </div>
+      )}
+      {def.kind === "link" && isReadOnly && def.value && (
+        <span className="shrink-0 text-[12px] text-[var(--ms-mauve)]">{def.value}</span>
       )}
       {def.kind === "select" && (
         <SelectPill
@@ -282,6 +324,9 @@ function Row({ def, last }: { def: RowDef; last: boolean }) {
   );
 
   if (def.kind === "link") {
+    if (isReadOnly) {
+      return <div style={{ cursor: "default", pointerEvents: "none" }}>{inner}</div>;
+    }
     if (def.href) {
       return (
         <Link href={def.href} className="block transition hover:bg-[var(--ms-soft-bg)]/50">
@@ -313,9 +358,260 @@ function RowGroup({ rows }: { rows: RowDef[] }) {
   );
 }
 
+// ─── OTP boxes ────────────────────────────────────────────────────────────────
+
+function OtpBoxes({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const digits = (value + "      ").slice(0, 6).split("");
+
+  function handleChange(i: number, ch: string) {
+    const d = ch.replace(/\D/g, "").slice(-1);
+    const next = [...digits];
+    next[i] = d || " ";
+    const newVal = next.join("").trimEnd().slice(0, 6);
+    onChange(newVal);
+    if (d && i < 5) refs.current[i + 1]?.focus();
+  }
+
+  function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace") {
+      if (!digits[i]?.trim() && i > 0) {
+        refs.current[i - 1]?.focus();
+      }
+      const next = [...digits];
+      next[i] = " ";
+      onChange(next.join("").trimEnd());
+    }
+    if (e.key === "ArrowLeft" && i > 0) refs.current[i - 1]?.focus();
+    if (e.key === "ArrowRight" && i < 5) refs.current[i + 1]?.focus();
+  }
+
+  return (
+    <div className="flex justify-center gap-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => { refs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digits[i]?.trim() ?? ""}
+          onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          onFocus={(e) => e.target.select()}
+          className="h-12 w-10 rounded-[12px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] text-center text-lg font-bold text-[var(--ms-navy)] outline-none transition focus:border-[var(--ms-plum)] focus:ring-2 focus:ring-[var(--ms-plum)]/20"
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Dev OTP banner ───────────────────────────────────────────────────────────
+
+function DevOtpBanner({ otp }: { otp: string }) {
+  if (!IS_DEV) return null;
+  return (
+    <div className="rounded-[12px] bg-amber-50 px-4 py-3">
+      <p className="text-[11px] leading-5 text-amber-700">
+        <strong>Dev mode —</strong> simulated OTP:{" "}
+        <span className="font-mono font-bold tracking-widest">{otp}</span>
+        <br />
+        SMS (Africa&apos;s Talking) is not yet integrated. In production the code will be sent to the user&apos;s phone.
+      </p>
+    </div>
+  );
+}
+
+// ─── Phone change sheet ───────────────────────────────────────────────────────
+
+function PhoneChangeSheet({
+  currentPhone,
+  onSaved,
+  onCancel,
+}: {
+  currentPhone: string;
+  onSaved: (newPhone: string) => void;
+  onCancel: () => void;
+}) {
+  const [step,    setStep]    = useState<"number" | "otp">("number");
+  const [number,  setNumber]  = useState("");
+  const [otp,     setOtp]     = useState("");
+  const [devOtp,  setDevOtp]  = useState("");
+  const [error,   setError]   = useState("");
+  const [loading, setLoading] = useState(false);
+
+  function handleSendCode() {
+    const cleaned = number.replace(/\D/g, "");
+    if (cleaned.length < 9) {
+      setError("Enter a valid Kenyan mobile number.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setDevOtp(code);
+    setTimeout(() => {
+      setLoading(false);
+      setStep("otp");
+    }, 700);
+  }
+
+  function handleVerify() {
+    if (otp.trim().length !== 6) {
+      setError("Enter the 6-digit code.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      onSaved(`+254${number.replace(/\D/g, "")}`);
+    }, 700);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm overflow-hidden rounded-t-[28px] bg-white sm:rounded-[28px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--ms-border)]" />
+        <div className="p-6">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#F0EBFF]">
+              <Phone className="h-6 w-6 text-[var(--ms-plum)]" strokeWidth={1.85} />
+            </div>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="mt-1 rounded-full p-1 text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {step === "number" ? (
+            <>
+              <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">Change phone number</h2>
+              <p className="mt-1 text-[13px] leading-5 text-[var(--ms-mauve)]">
+                Current: <span className="font-semibold text-[var(--ms-navy)]">{maskPhone(currentPhone)}</span>
+              </p>
+              <div className="mt-4">
+                <label className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
+                  New number
+                </label>
+                <div className="flex overflow-hidden rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] focus-within:border-[var(--ms-plum)] transition">
+                  <span className="flex items-center border-r border-[var(--ms-border)] bg-white px-3 text-[14px] font-semibold text-[var(--ms-navy)] select-none">
+                    +254
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={9}
+                    value={number}
+                    onChange={(e) => { setNumber(e.target.value.replace(/\D/g, "")); setError(""); }}
+                    placeholder="7XX XXX XXX"
+                    className="flex-1 bg-transparent px-3 py-3 text-[14px] text-[var(--ms-navy)] outline-none placeholder:text-[var(--ms-border)]"
+                  />
+                </div>
+                {error && (
+                  <p className="mt-2 flex items-center gap-1.5 text-[12px] text-red-500">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    {error}
+                  </p>
+                )}
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendCode}
+                  disabled={loading}
+                  className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                >
+                  {loading ? "Sending…" : "Send code"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">Enter verification code</h2>
+              <p className="mt-1 text-[13px] leading-5 text-[var(--ms-mauve)]">
+                We sent a 6-digit code to{" "}
+                <span className="font-semibold text-[var(--ms-navy)]">+254 {number.slice(0, 3)} XXX XXX</span>
+              </p>
+              <div className="mt-5 space-y-4">
+                {IS_DEV && devOtp && <DevOtpBanner otp={devOtp} />}
+                <OtpBoxes value={otp} onChange={setOtp} />
+                {error && (
+                  <p className="flex items-center gap-1.5 text-[12px] text-red-500">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    {error}
+                  </p>
+                )}
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setStep("number"); setOtp(""); setError(""); }}
+                  className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleVerify}
+                  disabled={loading || otp.trim().length !== 6}
+                  className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                >
+                  {loading ? "Verifying…" : "Verify & save"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Language picker modal ────────────────────────────────────────────────────
 
-function LanguageModal({ onClose }: { onClose: () => void }) {
+function LanguageModal({
+  currentCode,
+  onSave,
+  onClose,
+}: {
+  currentCode: LangCode;
+  onSave: (pref: LangPref) => void;
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<LangCode>(currentCode);
+
+  function handleSave() {
+    const lang = LANGUAGES.find((l) => l.code === selected);
+    if (!lang) return;
+    const pref: LangPref = { code: lang.code, label: lang.label, dir: lang.dir };
+    saveLangPref(pref);
+    onSave(pref);
+    onClose();
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center"
@@ -329,31 +625,64 @@ function LanguageModal({ onClose }: { onClose: () => void }) {
         <div className="p-6">
           <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">Language</h2>
           <p className="mt-1 text-[13px] text-[var(--ms-mauve)]">
-            Choose your preferred language for the Mobile Salon app.
+            Choose your preferred display language.
           </p>
-          <div className="mt-5 space-y-3">
-            {/* English — active */}
-            <div className="flex items-center justify-between rounded-[14px] bg-[var(--ms-plum)] px-4 py-3.5">
-              <span className="text-[14px] font-semibold text-white">English</span>
-              <Check className="h-4 w-4 text-white" strokeWidth={2.5} />
-            </div>
-            {/* Swahili — coming soon */}
-            <div className="flex items-center justify-between rounded-[14px] bg-[var(--ms-soft-bg)] px-4 py-3.5 opacity-70">
-              <div className="flex items-center gap-2.5">
-                <span className="text-[14px] font-semibold text-[var(--ms-mauve)]">Kiswahili</span>
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                  Coming soon
-                </span>
-              </div>
-            </div>
+          <div className="mt-4 rounded-[12px] bg-amber-50 px-3 py-2.5">
+            <p className="text-[11px] leading-5 text-amber-700">
+              UI text remains in English while full translations are in progress. Your selection sets the language direction and locale for dates.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="mt-5 w-full rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110"
-          >
-            Done
-          </button>
+          <div className="mt-4 space-y-2 max-h-[320px] overflow-y-auto">
+            {LANGUAGES.map((lang) => {
+              const active = selected === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setSelected(lang.code)}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-[14px] px-4 py-3.5 transition",
+                    active
+                      ? "bg-[var(--ms-plum)] text-white"
+                      : "bg-[var(--ms-soft-bg)] text-[var(--ms-navy)] hover:bg-[var(--ms-petal)]",
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={cn("text-[14px] font-semibold", !active && "text-[var(--ms-navy)]")}>
+                      {lang.nativeLabel}
+                    </span>
+                    {lang.code !== "en" && (
+                      <span className={cn("text-[12px]", active ? "text-white/70" : "text-[var(--ms-mauve)]")}>
+                        {lang.label}
+                      </span>
+                    )}
+                    {lang.dir === "rtl" && (
+                      <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", active ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700")}>
+                        RTL
+                      </span>
+                    )}
+                  </div>
+                  {active && <Check className="h-4 w-4 text-white" strokeWidth={2.5} />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110"
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -364,28 +693,42 @@ function LanguageModal({ onClose }: { onClose: () => void }) {
 
 function TwoFactorModal({
   mode,
+  maskedPhone,
   onConfirm,
   onCancel,
 }: {
   mode: "enable" | "disable";
+  maskedPhone: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const [value, setValue] = useState("");
-  const [error, setError] = useState("");
+  const [step,    setStep]    = useState<"phone" | "otp" | "password">(
+    mode === "enable" ? "phone" : "password",
+  );
+  const [otp,     setOtp]     = useState("");
+  const [devOtp,  setDevOtp]  = useState("");
+  const [password, setPassword] = useState("");
+  const [error,   setError]   = useState("");
+  const [sending, setSending] = useState(false);
+
+  function handleSendCode() {
+    setSending(true);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setDevOtp(code);
+    setTimeout(() => {
+      setSending(false);
+      setStep("otp");
+    }, 700);
+  }
 
   function handleConfirm() {
-    if (mode === "enable") {
-      if (!/^\d{6}$/.test(value.trim())) {
-        setError("Enter a valid 6-digit code.");
-        return;
-      }
-    } else {
-      if (!value.trim()) {
-        setError("Please enter your current password.");
-        return;
-      }
+    if (step === "otp") {
+      if (otp.trim().length !== 6) { setError("Enter the 6-digit code."); return; }
     }
+    if (step === "password") {
+      if (!password.trim()) { setError("Please enter your current password."); return; }
+    }
+    setError("");
     onConfirm();
   }
 
@@ -413,32 +756,83 @@ function TwoFactorModal({
             </button>
           </div>
 
-          {mode === "enable" ? (
+          {/* Enable — step 1: confirm phone & send code */}
+          {mode === "enable" && step === "phone" && (
             <>
               <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">
                 Enable two-factor authentication
               </h2>
               <p className="mt-1.5 text-[13px] leading-5 text-[var(--ms-mauve)]">
-                Open your authenticator app (Google Authenticator, Authy, etc.) and scan the QR code for Mobile Salon, then enter the 6-digit code to confirm.
+                We will send a test code to your registered number to confirm your phone is reachable.
               </p>
-              {/* Simulated QR placeholder */}
-              <div className="mx-auto my-4 flex h-32 w-32 items-center justify-center rounded-[14px] border-2 border-dashed border-[var(--ms-border)] bg-[var(--ms-soft-bg)]">
-                <Smartphone className="h-10 w-10 text-[var(--ms-plum)]" strokeWidth={1.5} />
+              <div className="mt-4 rounded-[14px] bg-[var(--ms-soft-bg)] px-4 py-3.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--ms-mauve)]">Phone number</p>
+                <p className="mt-1 text-[15px] font-bold text-[var(--ms-navy)]">{maskedPhone}</p>
               </div>
-              <p className="mb-3 text-center text-[11px] text-[var(--ms-mauve)]">
-                Authenticator app required
+              <p className="mt-3 text-[11px] leading-5 text-[var(--ms-mauve)]">
+                Not your number? Update it in <strong>Account &rarr; Phone number</strong> first.
               </p>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={value}
-                onChange={(e) => { setValue(e.target.value); setError(""); }}
-                placeholder="000000"
-                className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-center text-xl font-bold tracking-[0.3em] text-[var(--ms-navy)] outline-none focus:border-[var(--ms-plum)] transition"
-              />
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendCode}
+                  disabled={sending}
+                  className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                >
+                  {sending ? "Sending…" : "Send test code"}
+                </button>
+              </div>
             </>
-          ) : (
+          )}
+
+          {/* Enable — step 2: enter OTP */}
+          {mode === "enable" && step === "otp" && (
+            <>
+              <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">
+                Enter the code
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-5 text-[var(--ms-mauve)]">
+                Enter the 6-digit code we sent to {maskedPhone}.
+              </p>
+              <div className="mt-5 space-y-4">
+                {IS_DEV && devOtp && <DevOtpBanner otp={devOtp} />}
+                <OtpBoxes value={otp} onChange={(v) => { setOtp(v); setError(""); }} />
+                {error && (
+                  <p className="flex items-center gap-1.5 text-[12px] text-red-500">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    {error}
+                  </p>
+                )}
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
+                  className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={otp.trim().length !== 6}
+                  className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-40"
+                >
+                  Enable 2FA
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Disable — enter password */}
+          {mode === "disable" && step === "password" && (
             <>
               <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">
                 Disable two-factor authentication
@@ -453,37 +847,35 @@ function TwoFactorModal({
               </div>
               <input
                 type="password"
-                value={value}
-                onChange={(e) => { setValue(e.target.value); setError(""); }}
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 placeholder="Current password"
                 className="mt-4 w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-[14px] text-[var(--ms-navy)] outline-none focus:border-[var(--ms-plum)] transition"
               />
+              {error && (
+                <p className="mt-2 flex items-center gap-1.5 text-[12px] text-red-500">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  {error}
+                </p>
+              )}
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110"
+                >
+                  Disable 2FA
+                </button>
+              </div>
             </>
           )}
-
-          {error && (
-            <p className="mt-2 flex items-center gap-1.5 text-[12px] text-red-500">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              {error}
-            </p>
-          )}
-
-          <div className="mt-5 flex gap-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110"
-            >
-              {mode === "enable" ? "Enable 2FA" : "Disable 2FA"}
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -506,7 +898,9 @@ function AgeVerifyModal({
     if (!dob) { setError("Please enter your date of birth."); return; }
     const birth = new Date(dob);
     const today = new Date();
-    const age = today.getFullYear() - birth.getFullYear() -
+    const age =
+      today.getFullYear() -
+      birth.getFullYear() -
       (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
     if (isNaN(age) || age < 18) {
       setError("You must be 18 or older to view adult products.");
@@ -538,7 +932,6 @@ function AgeVerifyModal({
           <h2 className="text-[18px] font-bold text-[var(--ms-navy)]">Confirm your age</h2>
           <p className="mt-1.5 text-[13px] leading-5 text-[var(--ms-mauve)]">
             Adult products on Counter are intended for people aged 18 and above only.
-            Please confirm your date of birth to continue.
           </p>
           <div className="mt-5">
             <label className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
@@ -562,7 +955,7 @@ function AgeVerifyModal({
           </div>
           <div className="mt-2 rounded-[12px] bg-amber-50 px-4 py-3">
             <p className="text-[11px] leading-5 text-amber-700">
-              <strong>For adults aged 18+ only.</strong> By confirming, you certify that you are 18 years of age or older. This preference is stored on this device only.
+              <strong>For adults aged 18+ only.</strong> This preference is stored on this device only.
             </p>
           </div>
           <div className="mt-5 flex gap-3">
@@ -624,21 +1017,137 @@ function SignOutConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCanc
   );
 }
 
+// ─── Clear cache confirm modal ────────────────────────────────────────────────
+
+function ClearCacheConfirmModal({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-[24px] bg-white p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--ms-soft-bg)]">
+          <Trash2 className="h-6 w-6 text-[var(--ms-mauve)]" strokeWidth={1.85} />
+        </div>
+        <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Clear cached data?</h3>
+        <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+          This removes temporary files — draft previews, image cache, and non-essential app data. Your account, posts, bookings, and messages are not affected.
+        </p>
+        <div className="mt-5 flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex-1 rounded-full bg-[var(--ms-navy)] py-3 text-[13px] font-bold text-white transition hover:brightness-125"
+          >
+            Clear cache
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Download data confirm modal ──────────────────────────────────────────────
+
+function DownloadDataConfirmModal({
+  maskedPhone,
+  onConfirm,
+  onCancel,
+}: {
+  maskedPhone: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-[24px] bg-white p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#EDF5FF]">
+          <Download className="h-6 w-6 text-[var(--ms-plum)]" strokeWidth={1.85} />
+        </div>
+        <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Download your data</h3>
+        <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+          We will prepare a copy of your posts, bookings, messages, and account information and send a download link to your registered phone number.
+        </p>
+        <div className="mt-3 rounded-[14px] bg-[var(--ms-soft-bg)] px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--ms-mauve)]">Will be sent to</p>
+          <p className="mt-0.5 text-[14px] font-bold text-[var(--ms-navy)]">{maskedPhone}</p>
+        </div>
+        <p className="mt-2 text-[11px] text-[var(--ms-mauve)]">
+          Your file will be ready within 48 hours. This is a simulated request — Vercel Cron Jobs are not yet configured.
+        </p>
+        <div className="mt-5 flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110"
+          >
+            Request download
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Report a problem modal ───────────────────────────────────────────────────
 
 function ReportProblemModal({ onClose }: { onClose: () => void }) {
-  const [category, setCategory] = useState("");
+  const [category,    setCategory]    = useState("");
   const [description, setDescription] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [screenshot,  setScreenshot]  = useState<string | null>(null);
+  const [submitted,   setSubmitted]   = useState(false);
+
+  const MIN_CHARS = 20;
+  const MAX_CHARS = 500;
+  const tooShort  = description.trim().length < MIN_CHARS;
+  const atLimit   = description.length >= MAX_CHARS - 10;
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setScreenshot(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
 
   function handleSubmit() {
-    if (!category || description.trim().length < 10) return;
+    if (!category || tooShort) return;
     try {
       const existing = JSON.parse(localStorage.getItem("ms_support_reports") ?? "[]") as unknown[];
       existing.push({
         id: `rep_${Date.now()}`,
         category,
         description: description.trim(),
+        screenshotAttached: !!screenshot,
         submittedAt: new Date().toISOString(),
       });
       localStorage.setItem("ms_support_reports", JSON.stringify(existing));
@@ -734,14 +1243,49 @@ function ReportProblemModal({ onClose }: { onClose: () => void }) {
               </label>
               <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => setDescription(e.target.value.slice(0, MAX_CHARS))}
                 rows={4}
                 placeholder="Describe the problem in as much detail as possible…"
                 className="w-full resize-none rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-[14px] leading-6 text-[var(--ms-navy)] outline-none placeholder:text-[var(--ms-border)] focus:border-[var(--ms-plum)] transition"
               />
-              <p className="mt-1 text-right text-[11px] text-[var(--ms-mauve)]">
-                {description.length} chars{description.length < 10 ? " (min 10)" : ""}
+              <p className={cn(
+                "mt-1 text-right text-[11px]",
+                atLimit ? "text-red-500" : "text-[var(--ms-mauve)]",
+              )}>
+                {description.length} / {MAX_CHARS}
+                {tooShort && description.length > 0 && ` (min ${MIN_CHARS})`}
               </p>
+            </div>
+
+            {/* Screenshot */}
+            <div>
+              <label className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
+                Screenshot <span className="font-normal text-[var(--ms-mauve)]">(optional)</span>
+              </label>
+              {screenshot ? (
+                <div className="relative overflow-hidden rounded-[14px] border border-[var(--ms-border)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={screenshot} alt="Screenshot preview" className="max-h-40 w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setScreenshot(null)}
+                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center gap-2.5 rounded-[14px] border-2 border-dashed border-[var(--ms-border)] px-4 py-4 text-[13px] text-[var(--ms-mauve)] transition hover:border-[var(--ms-plum)] hover:text-[var(--ms-navy)]">
+                  <Upload className="h-5 w-5 shrink-0" strokeWidth={1.85} />
+                  <span>Attach a screenshot</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
+              )}
             </div>
           </div>
 
@@ -756,7 +1300,7 @@ function ReportProblemModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!category || description.trim().length < 10}
+              disabled={!category || tooShort}
               className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-40"
             >
               Submit report
@@ -785,14 +1329,14 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
 // ─── Deactivate account modal ─────────────────────────────────────────────────
 
 function DeactivateAccountModal({ onCancel }: { onCancel: () => void }) {
+  const [step,     setStep]     = useState<"warn" | "password">("warn");
   const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
 
   function handleDeactivate() {
     if (!password.trim()) { setError("Please enter your password to continue."); return; }
     setLoading(true);
-    // Simulate network delay then proceed
     setTimeout(() => {
       try {
         localStorage.setItem(
@@ -814,56 +1358,86 @@ function DeactivateAccountModal({ onCancel }: { onCancel: () => void }) {
         className="w-full max-w-sm rounded-[24px] bg-white p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-amber-50">
-          <BellOff className="h-6 w-6 text-amber-600" strokeWidth={1.85} />
-        </div>
-        <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Deactivate account</h3>
-        <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
-          Deactivating temporarily hides your profile and posts from the community.
-          You can reactivate anytime by signing back in.
-        </p>
-        <div className="mt-3 rounded-[12px] bg-amber-50 px-4 py-3">
-          <p className="text-[11px] leading-5 text-amber-700">
-            You will be signed out immediately. Your bookings, messages, and data remain safe.
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <label className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
-            Confirm with your password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setError(""); }}
-            placeholder="Your password"
-            className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-[14px] text-[var(--ms-navy)] outline-none focus:border-[var(--ms-plum)] transition"
-          />
-          {error && (
-            <p className="mt-2 flex items-center gap-1.5 text-[12px] text-red-500">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              {error}
+        {/* Step 1: Warning */}
+        {step === "warn" && (
+          <>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-amber-50">
+              <BellOff className="h-6 w-6 text-amber-600" strokeWidth={1.85} />
+            </div>
+            <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Deactivate account?</h3>
+            <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+              Deactivating temporarily hides your profile and posts from the community. You can reactivate anytime by signing back in.
             </p>
-          )}
-        </div>
+            <div className="mt-3 rounded-[12px] bg-amber-50 px-4 py-3">
+              <ul className="space-y-1 text-[11px] leading-5 text-amber-700">
+                <li>Your profile becomes invisible to other users</li>
+                <li>Your posts and bookings are preserved</li>
+                <li>You are signed out immediately</li>
+              </ul>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("password")}
+                className="flex-1 rounded-full bg-amber-500 py-3 text-[13px] font-bold text-white transition hover:brightness-110"
+              >
+                Continue
+              </button>
+            </div>
+          </>
+        )}
 
-        <div className="mt-5 flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleDeactivate}
-            disabled={loading}
-            className="flex-1 rounded-full bg-amber-500 py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-60"
-          >
-            {loading ? "Deactivating…" : "Deactivate"}
-          </button>
-        </div>
+        {/* Step 2: Password */}
+        {step === "password" && (
+          <>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-amber-50">
+              <Lock className="h-6 w-6 text-amber-600" strokeWidth={1.85} />
+            </div>
+            <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Confirm deactivation</h3>
+            <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+              Enter your password to deactivate your account.
+            </p>
+            <div className="mt-4">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                placeholder="Your password"
+                className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-[14px] text-[var(--ms-navy)] outline-none focus:border-[var(--ms-plum)] transition"
+              />
+              {error && (
+                <p className="mt-2 flex items-center gap-1.5 text-[12px] text-red-500">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  {error}
+                </p>
+              )}
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setStep("warn")}
+                className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleDeactivate}
+                disabled={loading}
+                className="flex-1 rounded-full bg-amber-500 py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+              >
+                {loading ? "Deactivating…" : "Deactivate"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -872,7 +1446,8 @@ function DeactivateAccountModal({ onCancel }: { onCancel: () => void }) {
 // ─── Delete account modal ─────────────────────────────────────────────────────
 
 function DeleteAccountModal({ onCancel }: { onCancel: () => void }) {
-  const [typed, setTyped]     = useState("");
+  const [step,    setStep]    = useState<"warn" | "confirm">("warn");
+  const [typed,   setTyped]   = useState("");
   const [loading, setLoading] = useState(false);
   const canConfirm = typed === "DELETE";
 
@@ -910,52 +1485,81 @@ function DeleteAccountModal({ onCancel }: { onCancel: () => void }) {
         className="w-full max-w-sm rounded-[24px] bg-white p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-red-50">
-          <UserX className="h-6 w-6 text-red-500" strokeWidth={1.85} />
-        </div>
-        <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Delete account</h3>
-        <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
-          Permanently removes your account, profile, and posts from Mobile Salon.
-        </p>
-        <div className="mt-3 rounded-[12px] bg-red-50 px-4 py-3">
-          <ul className="space-y-1 text-[11px] leading-5 text-red-700">
-            <li>Your account is deactivated immediately</li>
-            <li>Permanent deletion happens on <strong>{gracePeriodStr}</strong> (30-day grace period)</li>
-            <li>Reviews you wrote are anonymised — not deleted</li>
-            <li>This action cannot be undone after the grace period</li>
-          </ul>
-        </div>
+        {/* Step 1: Red warning */}
+        {step === "warn" && (
+          <>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-red-50">
+              <UserX className="h-6 w-6 text-red-500" strokeWidth={1.85} />
+            </div>
+            <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Are you sure?</h3>
+            <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+              Deleting your account permanently removes your profile, posts, and personal data from Mobile Salon.
+            </p>
+            <div className="mt-3 rounded-[12px] bg-red-50 px-4 py-3">
+              <p className="text-[12px] font-bold text-red-600">This cannot be undone.</p>
+              <ul className="mt-1.5 space-y-1 text-[11px] leading-5 text-red-700">
+                <li>Your account is deactivated immediately</li>
+                <li>Permanent deletion on <strong>{gracePeriodStr}</strong> (30-day grace)</li>
+                <li>Reviews you wrote are anonymised, not deleted</li>
+              </ul>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("confirm")}
+                className="flex-1 rounded-full bg-red-600 py-3 text-[13px] font-bold text-white transition hover:brightness-110"
+              >
+                Continue
+              </button>
+            </div>
+          </>
+        )}
 
-        <div className="mt-4">
-          <label className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
-            Type <span className="font-mono text-red-500">DELETE</span> to confirm
-          </label>
-          <input
-            type="text"
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            placeholder="DELETE"
-            className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-[14px] font-semibold tracking-widest text-[var(--ms-navy)] outline-none focus:border-red-400 transition"
-          />
-        </div>
-
-        <div className="mt-5 flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={!canConfirm || loading}
-            className="flex-1 rounded-full bg-red-600 py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-40"
-          >
-            {loading ? "Deleting…" : "Delete account"}
-          </button>
-        </div>
+        {/* Step 2: Type DELETE */}
+        {step === "confirm" && (
+          <>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-red-50">
+              <UserX className="h-6 w-6 text-red-500" strokeWidth={1.85} />
+            </div>
+            <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Delete account</h3>
+            <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+              Type <span className="font-mono font-bold text-red-500">DELETE</span> to confirm permanent account deletion.
+            </p>
+            <div className="mt-4">
+              <input
+                type="text"
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                placeholder="DELETE"
+                className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-[14px] font-semibold tracking-widest text-[var(--ms-navy)] outline-none focus:border-red-400 transition"
+              />
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setStep("warn")}
+                className="flex-1 rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)]"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={!canConfirm || loading}
+                className="flex-1 rounded-full bg-red-600 py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-40"
+              >
+                {loading ? "Deleting…" : "Delete account"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -964,22 +1568,26 @@ function DeleteAccountModal({ onCancel }: { onCancel: () => void }) {
 // ─── Main SettingsUI ──────────────────────────────────────────────────────────
 
 export function SettingsUI() {
-  const [settings, setSettings]               = useState<AppSettings>(readSettings);
-  const [session,  setSession]                = useState<AppUserSession | null>(null);
-  const [showAgeModal,     setShowAgeModal]    = useState(false);
-  const [showSignOut,      setShowSignOut]     = useState(false);
-  const [showDeactivate,   setShowDeactivate]  = useState(false);
-  const [showDelete,       setShowDelete]      = useState(false);
-  const [showLanguage,     setShowLanguage]    = useState(false);
-  const [showTwoFactor,    setShowTwoFactor]   = useState(false);
-  const [twoFactorAction,  setTwoFactorAction] = useState<"enable" | "disable">("enable");
-  const [showReportModal,  setShowReportModal] = useState(false);
-  const [storageUsed,      setStorageUsed]     = useState("< 1 KB");
-  const [toast,            setToast]           = useState<string | null>(null);
+  const [settings,         setSettings]         = useState<AppSettings>(readSettings);
+  const [session,          setSession]          = useState<AppUserSession | null>(null);
+  const [langPref,         setLangPref]         = useState<LangPref>({ code: "en", label: "English", dir: "ltr" });
+  const [showAgeModal,     setShowAgeModal]      = useState(false);
+  const [showSignOut,      setShowSignOut]       = useState(false);
+  const [showDeactivate,   setShowDeactivate]    = useState(false);
+  const [showDelete,       setShowDelete]        = useState(false);
+  const [showLanguage,     setShowLanguage]      = useState(false);
+  const [showTwoFactor,    setShowTwoFactor]     = useState(false);
+  const [twoFactorAction,  setTwoFactorAction]   = useState<"enable" | "disable">("enable");
+  const [showReportModal,  setShowReportModal]   = useState(false);
+  const [showClearCache,   setShowClearCache]    = useState(false);
+  const [showDownloadData, setShowDownloadData]  = useState(false);
+  const [showPhoneChange,  setShowPhoneChange]   = useState(false);
+  const [storageUsed,      setStorageUsed]       = useState("< 1 KB");
+  const [toast,            setToast]             = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => setToast(msg), []);
 
-  // ── Sync settings + session from localStorage ──────────────────────────────
+  // ── Sync settings + session ────────────────────────────────────────────────
   useEffect(() => {
     function sync() {
       setSettings(readSettings());
@@ -996,53 +1604,37 @@ export function SettingsUI() {
     };
   }, []);
 
-  // ── Apply CSS side effects whenever appearance/accessibility settings change ─
+  // ── Apply CSS side effects ─────────────────────────────────────────────────
   useEffect(() => {
     const root = document.documentElement;
-
-    // Color scheme
     root.setAttribute("data-color-scheme", settings.colorScheme);
-
-    // Text size  (±15% around the base)
-    const sizeMap: Record<string, string> = {
-      small:  "90%",
-      medium: "100%",
-      large:  "115%",
-    };
+    const sizeMap: Record<string, string> = { small: "90%", medium: "100%", large: "115%" };
     root.style.setProperty("--base-font-size", sizeMap[settings.textSize] ?? "100%");
-
-    // Reduce motion
-    if (settings.reduceMotion) {
-      root.setAttribute("data-reduce-motion", "true");
-    } else {
-      root.removeAttribute("data-reduce-motion");
-    }
-
-    // High contrast
-    if (settings.highContrast) {
-      root.setAttribute("data-high-contrast", "true");
-    } else {
-      root.removeAttribute("data-high-contrast");
-    }
+    if (settings.reduceMotion) root.setAttribute("data-reduce-motion", "true");
+    else root.removeAttribute("data-reduce-motion");
+    if (settings.highContrast) root.setAttribute("data-high-contrast", "true");
+    else root.removeAttribute("data-high-contrast");
   }, [settings.colorScheme, settings.textSize, settings.reduceMotion, settings.highContrast]);
 
-  // ── Calculate real storage usage once on mount ─────────────────────────────
+  // ── Apply saved language pref on mount ─────────────────────────────────────
   useEffect(() => {
+    const pref = readLangPref();
+    setLangPref(pref);
+    document.documentElement.lang = pref.code;
+    document.documentElement.dir  = pref.dir;
     setStorageUsed(calcStorageUsed());
   }, []);
 
   const isGuest    = !session || session.role === "guest";
   const isProvider = session?.role === "professional" || session?.role === "salon";
+  const sessionPhone = isGuest ? "" : (session as { phone?: string }).phone ?? "";
 
   function patch<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
     setSettings(setSetting(key, value));
   }
 
   function handleAdultToggle(on: boolean) {
-    if (!on) {
-      setSettings(writeSettings({ showAdultProducts: false }));
-      return;
-    }
+    if (!on) { setSettings(writeSettings({ showAdultProducts: false })); return; }
     if (settings.adultProductsAgeVerified) {
       setSettings(writeSettings({ showAdultProducts: true }));
     } else {
@@ -1051,14 +1643,7 @@ export function SettingsUI() {
   }
 
   function handleAgeConfirmed(dob: string) {
-    setSettings(
-      writeSettings({
-        showAdultProducts: true,
-        adultProductsAgeVerified: true,
-        adultProductsVerifiedAt: new Date().toISOString(),
-        adultProductsDOB: dob,
-      }),
-    );
+    setSettings(writeSettings({ showAdultProducts: true, adultProductsAgeVerified: true, adultProductsVerifiedAt: new Date().toISOString(), adultProductsDOB: dob }));
     setShowAgeModal(false);
     showToast("Adult products enabled");
   }
@@ -1066,7 +1651,6 @@ export function SettingsUI() {
   function handleSignOut() {
     clearAppSession();
     setShowSignOut(false);
-    // Replace so the back button cannot restore the logged-in page
     window.location.replace("/");
   }
 
@@ -1082,7 +1666,7 @@ export function SettingsUI() {
     showToast(enabling ? "Two-factor authentication enabled" : "Two-factor authentication disabled");
   }
 
-  function handleClearCache() {
+  function handleClearCacheConfirmed() {
     const keepKeys = new Set([
       "ms_app_settings.v1",
       "mobile-salon.client-session.v1",
@@ -1096,26 +1680,31 @@ export function SettingsUI() {
       "ms_account_deletion",
     ]);
     try {
-      const toRemove = Object.keys(localStorage).filter(
-        (k) => k.startsWith("ms_") && !keepKeys.has(k),
-      );
+      const toRemove = Object.keys(localStorage).filter((k) => k.startsWith("ms_") && !keepKeys.has(k));
       toRemove.forEach((k) => localStorage.removeItem(k));
     } catch { /* noop */ }
     setStorageUsed(calcStorageUsed());
+    setShowClearCache(false);
     showToast("Temporary cache cleared");
   }
 
-  function handleDownloadData() {
+  function handleDownloadDataConfirmed() {
     try {
-      localStorage.setItem(
-        "ms_data_download_request",
-        JSON.stringify({ requestedAt: new Date().toISOString(), status: "pending" }),
-      );
+      localStorage.setItem("ms_data_download_request", JSON.stringify({ requestedAt: new Date().toISOString(), status: "pending" }));
     } catch { /* noop */ }
-    showToast("Request received — we'll prepare your file within 48 hours");
+    setShowDownloadData(false);
+    showToast("Request received — file ready within 48 hours");
   }
 
-  // ── Row definitions ─────────────────────────────────────────────────────────
+  function handlePhoneSaved(newPhone: string) {
+    if (!session || session.role === "guest") return;
+    const updated = { ...session, phone: newPhone } as AppUserSession;
+    writeAppSession(updated);
+    setShowPhoneChange(false);
+    showToast("Phone number updated");
+  }
+
+  // ── Row definitions ────────────────────────────────────────────────────────
 
   const accountRows: RowDef[] = [
     {
@@ -1130,26 +1719,29 @@ export function SettingsUI() {
       kind: "link",
       icon: Phone,
       label: "Phone number",
-      sub: isGuest ? "—" : (session as { phone?: string }).phone ?? "Not set",
-      href: isGuest ? "/auth/sign-in" : "/settings/edit-profile",
+      sub: isGuest ? "—" : (sessionPhone || "Not set"),
+      onClick: isGuest ? undefined : () => setShowPhoneChange(true),
+      href: isGuest ? "/auth/sign-in" : undefined,
     },
     {
       kind: "link",
       icon: UserCog,
       label: "Account type",
       value: isGuest ? "Guest" : getAccountLabel(session),
-      href: "/profile",
+      readOnly: true,
+      dim: true,
     },
     {
       kind: "link",
       icon: Languages,
       label: "Language",
-      value: "English",
+      value: langPref.label,
       onClick: () => setShowLanguage(true),
     },
   ];
 
-  const privacyRows: RowDef[] = [
+  // Privacy B1–B4 only for clients
+  const clientPrivacyRows: RowDef[] = session?.role === "client" ? [
     {
       kind: "toggle",
       icon: Lock,
@@ -1158,19 +1750,6 @@ export function SettingsUI() {
       on: settings.privateAccount,
       onChange: (v) => patch("privateAccount", v),
       iconBg: "bg-[#EDF5FF]",
-    },
-    {
-      kind: "select",
-      icon: MessageCircle,
-      label: "Who can comment",
-      sub: "Control who replies to your posts",
-      value: settings.whoCanComment,
-      options: [
-        { value: "everyone",  label: "Everyone"  },
-        { value: "followers", label: "Followers" },
-        { value: "nobody",    label: "Nobody"    },
-      ],
-      onChange: (v) => patch("whoCanComment", v as AppSettings["whoCanComment"]),
     },
     {
       kind: "toggle",
@@ -1188,6 +1767,23 @@ export function SettingsUI() {
       on: settings.allowDirectMessages,
       onChange: (v) => patch("allowDirectMessages", v),
     },
+    {
+      kind: "select",
+      icon: MessageCircle,
+      label: "Who can comment",
+      sub: "Control who replies to your posts",
+      value: settings.whoCanComment,
+      options: [
+        { value: "everyone",  label: "Everyone"  },
+        { value: "followers", label: "Followers" },
+        { value: "nobody",    label: "Nobody"    },
+      ],
+      onChange: (v) => patch("whoCanComment", v as AppSettings["whoCanComment"]),
+    },
+  ] : [];
+
+  const privacyRows: RowDef[] = [
+    ...clientPrivacyRows,
     {
       kind: "link",
       icon: UserX,
@@ -1434,28 +2030,28 @@ export function SettingsUI() {
       icon: Trash2,
       label: "Clear cache",
       sub: "Remove temporary data to free up space",
-      onClick: handleClearCache,
+      onClick: () => setShowClearCache(true),
     },
     {
       kind: "link",
       icon: Download,
       label: "Download your data",
       sub: "Get a copy of your posts, bookings, and account data",
-      onClick: handleDownloadData,
+      onClick: () => setShowDownloadData(true),
     },
     {
       kind: "link",
       icon: Database,
       label: "Storage used",
       value: storageUsed,
-      onClick: () => { setStorageUsed(calcStorageUsed()); showToast("Storage recalculated"); },
+      readOnly: true,
     },
     {
       kind: "link",
       icon: WifiOff,
       label: "Offline mode",
-      sub: "Manage locally cached content",
-      onClick: () => showToast("Offline mode is coming soon"),
+      sub: "Coming soon",
+      readOnly: true,
     },
   ];
 
@@ -1479,13 +2075,13 @@ export function SettingsUI() {
       icon: Shield,
       label: "Safety information",
       sub: "Our commitment to your safety on Mobile Salon",
-      href: "/terms",
+      href: "/safety",
     },
     {
       kind: "link",
       icon: BookOpen,
       label: "Community guidelines",
-      href: "/terms",
+      href: "/community-guidelines",
     },
   ];
 
@@ -1494,8 +2090,8 @@ export function SettingsUI() {
       kind: "link",
       icon: Info,
       label: "About Mobile Salon",
-      value: "v0.1.0",
-      href: "/guide",
+      value: process.env.NEXT_PUBLIC_APP_VERSION ?? "v0.1.0",
+      href: "/about",
       iconBg: "bg-[#F0EBFF]",
     },
     {
@@ -1544,12 +2140,12 @@ export function SettingsUI() {
     },
   ];
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-28 pt-2">
 
-      {/* Account card at the top */}
+      {/* Account card */}
       {!isGuest && session && (
         <Link
           href="/settings/edit-profile"
@@ -1583,10 +2179,9 @@ export function SettingsUI() {
       )}
 
       <Section title="Account"><RowGroup rows={accountRows} /></Section>
-      <Section title="Privacy & Safety"><RowGroup rows={privacyRows} /></Section>
+      <Section title="Privacy &amp; Safety"><RowGroup rows={privacyRows} /></Section>
       <Section title="Notifications"><RowGroup rows={notificationRows} /></Section>
 
-      {/* Counter — client only, growth phase only */}
       {FEATURES.SHOP && !isProvider && (
         <Section title="Counter — Shop">
           <div className="border-b border-[var(--ms-border)]/60 px-4 py-4">
@@ -1595,8 +2190,7 @@ export function SettingsUI() {
               <div className="min-w-0 flex-1">
                 <p className="text-[12px] font-bold text-amber-800">18+ products hidden by default</p>
                 <p className="mt-0.5 text-[11px] leading-4 text-amber-700">
-                  Adult products on Counter are hidden unless you verify your age below.
-                  Products are intended for adults aged 18 and above only.
+                  Adult products on Counter are hidden unless you verify your age below. Products are intended for adults aged 18 and above only.
                 </p>
               </div>
             </div>
@@ -1605,15 +2199,14 @@ export function SettingsUI() {
         </Section>
       )}
 
-      <Section title="Feed & Content"><RowGroup rows={feedRows} /></Section>
+      <Section title="Feed &amp; Content"><RowGroup rows={feedRows} /></Section>
       <Section title="Appearance"><RowGroup rows={appearanceRows} /></Section>
       <Section title="Accessibility"><RowGroup rows={accessibilityRows} /></Section>
       <Section title="Security"><RowGroup rows={securityRows} /></Section>
-      <Section title="Data & Storage"><RowGroup rows={storageRows} /></Section>
+      <Section title="Data &amp; Storage"><RowGroup rows={storageRows} /></Section>
       <Section title="Support"><RowGroup rows={supportRows} /></Section>
       <Section title="About"><RowGroup rows={aboutRows} /></Section>
 
-      {/* Account actions */}
       <Section title="Account actions">
         <RowGroup rows={isGuest ? [] : dangerRows} />
         {isGuest && (
@@ -1629,7 +2222,6 @@ export function SettingsUI() {
         )}
       </Section>
 
-      {/* Footer */}
       <p className="pb-4 text-center text-[11px] leading-6 text-[var(--ms-mauve)]">
         Mobile Salon · Beauty, softly handled · Kenya
         <br />
@@ -1638,16 +2230,10 @@ export function SettingsUI() {
 
       {/* ── Modals ── */}
       {showAgeModal && (
-        <AgeVerifyModal
-          onConfirm={handleAgeConfirmed}
-          onCancel={() => setShowAgeModal(false)}
-        />
+        <AgeVerifyModal onConfirm={handleAgeConfirmed} onCancel={() => setShowAgeModal(false)} />
       )}
       {showSignOut && (
-        <SignOutConfirm
-          onConfirm={handleSignOut}
-          onCancel={() => setShowSignOut(false)}
-        />
+        <SignOutConfirm onConfirm={handleSignOut} onCancel={() => setShowSignOut(false)} />
       )}
       {showDeactivate && (
         <DeactivateAccountModal onCancel={() => setShowDeactivate(false)} />
@@ -1656,17 +2242,42 @@ export function SettingsUI() {
         <DeleteAccountModal onCancel={() => setShowDelete(false)} />
       )}
       {showLanguage && (
-        <LanguageModal onClose={() => setShowLanguage(false)} />
+        <LanguageModal
+          currentCode={langPref.code}
+          onSave={(pref) => setLangPref(pref)}
+          onClose={() => setShowLanguage(false)}
+        />
       )}
       {showTwoFactor && (
         <TwoFactorModal
           mode={twoFactorAction}
+          maskedPhone={maskPhone(sessionPhone)}
           onConfirm={handleTwoFactorConfirmed}
           onCancel={() => setShowTwoFactor(false)}
         />
       )}
       {showReportModal && (
         <ReportProblemModal onClose={() => setShowReportModal(false)} />
+      )}
+      {showClearCache && (
+        <ClearCacheConfirmModal
+          onConfirm={handleClearCacheConfirmed}
+          onCancel={() => setShowClearCache(false)}
+        />
+      )}
+      {showDownloadData && (
+        <DownloadDataConfirmModal
+          maskedPhone={maskPhone(sessionPhone)}
+          onConfirm={handleDownloadDataConfirmed}
+          onCancel={() => setShowDownloadData(false)}
+        />
+      )}
+      {showPhoneChange && (
+        <PhoneChangeSheet
+          currentPhone={sessionPhone}
+          onSaved={handlePhoneSaved}
+          onCancel={() => setShowPhoneChange(false)}
+        />
       )}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>
