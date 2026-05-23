@@ -94,7 +94,9 @@ export interface SocialPost {
   shareCount?: number;
   comments: SocialComment[];
   createdAt: string;
-  archived?: boolean;        // owner-archived — hidden from public feed
+  archived?: boolean;        // owner-archived — toggled on/off by user, hides from public feed
+  deleted?: boolean;         // soft-deleted — NEVER hard-removed from storage (regulatory tombstone)
+  deletedAt?: string;        // ISO timestamp of deletion — audit trail per Kenyan DPA 2019
 }
 
 export interface SocialComment {
@@ -107,6 +109,19 @@ export interface SocialComment {
 }
 
 export function readPosts(): SocialPost[] {
+  if (!canUse()) return [];
+  try {
+    const all = JSON.parse(localStorage.getItem(POSTS_KEY) ?? "[]") as SocialPost[];
+    // Filter out soft-deleted posts — they stay in storage for regulatory audit but are never shown.
+    // 'archived' posts are intentionally kept (owner can un-archive); only 'deleted' are always hidden.
+    return all.filter((p) => !p.deleted);
+  } catch {
+    return [];
+  }
+}
+
+/** Admin/audit only — returns ALL posts including soft-deleted tombstones. */
+export function readAllPostsWithTombstones(): SocialPost[] {
   if (!canUse()) return [];
   try {
     return JSON.parse(localStorage.getItem(POSTS_KEY) ?? "[]") as SocialPost[];
@@ -178,8 +193,14 @@ export function sharePost(postId: string) {
 }
 
 export function deletePost(postId: string, ownerId: string) {
-  const posts = readPosts();
-  const updated = posts.filter((p) => !(p.id === postId && p.authorId === ownerId));
+  // Soft-delete: mark as deleted rather than removing from storage.
+  // Regulatory requirement (Kenyan DPA 2019): all deleted content must leave a
+  // traceable audit record. Never call filter() to erase — use the tombstone.
+  const all = readAllPostsWithTombstones();
+  const updated = all.map((p) => {
+    if (p.id !== postId || p.authorId !== ownerId) return p;
+    return { ...p, deleted: true, deletedAt: new Date().toISOString() };
+  });
   localStorage.setItem(POSTS_KEY, JSON.stringify(updated));
   dispatch();
 }

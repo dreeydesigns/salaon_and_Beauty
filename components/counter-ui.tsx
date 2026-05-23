@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Bookmark,
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/cart-store";
+import { readSettings } from "@/lib/settings-store";
 
 // ─── Category data ─────────────────────────────────────────────────────────────
 
@@ -46,7 +47,22 @@ const categories: Category[] = [
 
 // ─── Placeholder product data ───────────────────────────────────────────────────
 
-const placeholderProducts = [
+interface Product {
+  id: string;
+  name: string;
+  brand: string;
+  shopName: string;
+  price: number;
+  rating: number;
+  reviewCount: number;
+  category: string;
+  badge: string;
+  image: string;
+  /** 18+ adult product — filtered by the showAdultProducts setting */
+  adult?: boolean;
+}
+
+const placeholderProducts: Product[] = [
   {
     id: "1",
     name: "Edge Control Gel — Extra Hold",
@@ -119,6 +135,33 @@ const placeholderProducts = [
     badge: "New",
     image: "https://images.pexels.com/photos/4465124/pexels-photo-4465124.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop",
   },
+  // ── 18+ adult products — visible only when showAdultProducts setting is ON ──
+  {
+    id: "7",
+    name: "Intimate Care Cleansing Gel",
+    brand: "FemCare Pro",
+    shopName: "Wellness Corner KE",
+    price: 950,
+    rating: 4.7,
+    reviewCount: 7,
+    category: "wellness",
+    badge: "18+",
+    image: "https://images.pexels.com/photos/6621374/pexels-photo-6621374.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop",
+    adult: true,
+  },
+  {
+    id: "8",
+    name: "Body Contouring Massage Oil",
+    brand: "Luxe Body Lab",
+    shopName: "GlowUp KE",
+    price: 1800,
+    rating: 4.5,
+    reviewCount: 11,
+    category: "wellness",
+    badge: "18+",
+    image: "https://images.pexels.com/photos/3997389/pexels-photo-3997389.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop",
+    adult: true,
+  },
 ];
 
 // ─── Trust signals ──────────────────────────────────────────────────────────────
@@ -152,7 +195,7 @@ function formatKES(amount: number) {
 
 // ─── Product card ───────────────────────────────────────────────────────────────
 
-function ProductCard({ product }: { product: typeof placeholderProducts[0] }) {
+function ProductCard({ product }: { product: Product }) {
   const [added,    setAdded]    = useState(false);
   const [saved,    setSaved]    = useState(false);
   const [reported, setReported] = useState(false);
@@ -276,7 +319,25 @@ export function CounterUI() {
   const [searchQuery,    setSearchQuery]    = useState("");
   const cartCount = useCartStore((s) => s.count());
 
+  // Read the 18+ setting — synced from localStorage
+  const [showAdult, setShowAdult] = useState(() => readSettings().showAdultProducts);
+  useEffect(() => {
+    function syncSetting() {
+      setShowAdult(readSettings().showAdultProducts);
+    }
+    window.addEventListener("ms-settings-change", syncSetting);
+    window.addEventListener("storage", syncSetting);
+    return () => {
+      window.removeEventListener("ms-settings-change", syncSetting);
+      window.removeEventListener("storage", syncSetting);
+    };
+  }, []);
+
+  const hiddenAdultCount = placeholderProducts.filter((p) => p.adult && !showAdult).length;
+
   const filtered = placeholderProducts.filter((p) => {
+    // Hide adult products when setting is off
+    if (p.adult && !showAdult) return false;
     const matchesCat    = activeCategory === "all" || p.category === activeCategory;
     const matchesSearch =
       !searchQuery ||
@@ -394,6 +455,27 @@ export function CounterUI() {
           );
         })}
       </div>
+
+      {/* 18+ hidden banner — shown when adult products exist but setting is off */}
+      {hiddenAdultCount > 0 && !showAdult && (
+        <Link
+          href="/settings"
+          className="flex items-center gap-3 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 transition hover:border-amber-300"
+        >
+          <ShieldCheck className="h-5 w-5 shrink-0 text-amber-600" strokeWidth={1.85} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold text-amber-800">
+              {hiddenAdultCount} adult product{hiddenAdultCount !== 1 ? "s" : ""} hidden
+            </p>
+            <p className="text-[11px] text-amber-700">
+              Enable 18+ products in Settings to view them — age verification required.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-700">
+            Settings →
+          </span>
+        </Link>
+      )}
 
       {/* Products grid */}
       <section>

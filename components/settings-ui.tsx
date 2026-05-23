@@ -45,6 +45,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FEATURES } from "@/lib/feature-flags";
 import {
   readSettings,
   writeSettings,
@@ -1096,8 +1097,8 @@ export function SettingsUI() {
         <RowGroup rows={notificationRows} />
       </Section>
 
-      {/* ── Counter (Shop) — client only ────────────────────────────────── */}
-      {!isProvider && (
+      {/* ── Counter (Shop) — client only, growth phase only ────────────── */}
+      {FEATURES.SHOP && !isProvider && (
         <Section title="Counter — Shop">
           {/* Prominent 18+ callout card */}
           <div className="border-b border-[var(--ms-border)]/60 px-4 py-4">

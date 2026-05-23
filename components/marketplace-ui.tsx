@@ -45,6 +45,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import { openGuestGate } from "@/lib/guest-session";
 import { APP_SESSION_EVENT, clearAppSession, readAppSession, type AppUserSession } from "@/lib/client-session";
 import { getRoleHomeHref, getRolePrimaryAction } from "@/lib/role-permissions";
+import { FEATURES } from "@/lib/feature-flags";
 
 import type {
   NavKey,
@@ -91,11 +92,13 @@ function useGuestBookingGate(bookHref: string) {
 
 type NavItem = { key: NavKey; label: string; href: string; icon: typeof Home };
 
-/** Client + guest navigation — default */
+/** Client + guest navigation — default.
+ *  Shop tab is only included when FEATURES.SHOP is enabled (growth phase). */
 const clientNavItems: NavItem[] = [
   { key: "home",    label: "Home",    href: "/home",    icon: Home        },
   { key: "explore", label: "Discover",href: "/explore", icon: LayoutGrid  },
-  { key: "counter", label: "Shop",    href: "/counter", icon: ShoppingBag },
+  // Shop hidden during MVP beta — re-enable by setting FEATURES.SHOP = true in lib/feature-flags.ts
+  ...(FEATURES.SHOP ? [{ key: "counter" as NavKey, label: "Shop", href: "/counter", icon: ShoppingBag }] : []),
   { key: "book",    label: "Book",    href: "/book",    icon: CalendarDays },
   { key: "profile", label: "Me",      href: "/profile", icon: UserRound   },
 ];
@@ -431,7 +434,8 @@ export function SplitBrandHeader({
     : [
         ["Home",        roleHomeHref],
         ["Discover",    "/explore"],
-        ["Shop",        "/counter"],
+        // Shop hidden during MVP beta — re-enable via FEATURES.SHOP in lib/feature-flags.ts
+        ...(FEATURES.SHOP ? [["Shop", "/counter"] as [string, string]] : []),
         ["Guide",       "/guide"],
         ["Book now",    "/book?rush=true"],
         ["Profile",     "/profile"],
@@ -483,9 +487,12 @@ export function SplitBrandHeader({
                   <DesktopNavLink href="/explore" current={currentNav === "discover" || currentNav === "explore"}>
                     Discover
                   </DesktopNavLink>
-                  <DesktopNavLink href="/counter" current={currentNav === "counter"}>
-                    Shop
-                  </DesktopNavLink>
+                  {/* Shop: hidden during MVP beta. Set FEATURES.SHOP=true to re-enable for growth phase. */}
+                  {FEATURES.SHOP && (
+                    <DesktopNavLink href="/counter" current={currentNav === "counter"}>
+                      Shop
+                    </DesktopNavLink>
+                  )}
                   <DesktopNavLink href="/book" current={currentNav === "book"}>
                     Book
                   </DesktopNavLink>
