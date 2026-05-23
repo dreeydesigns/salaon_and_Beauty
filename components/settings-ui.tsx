@@ -449,14 +449,93 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
   );
 }
 
+// ─── Deactivate account modal (placeholder) ───────────────────────────────────
+
+function DeactivateAccountModal({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-[24px] bg-white p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-amber-50">
+          <BellOff className="h-6 w-6 text-amber-600" strokeWidth={1.85} />
+        </div>
+        <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Deactivate account</h3>
+        <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+          Deactivating temporarily hides your profile and posts from the community.
+          You can reactivate anytime by signing back in.
+        </p>
+        <div className="mt-3 rounded-[12px] bg-amber-50 px-4 py-3">
+          <p className="text-[11px] leading-5 text-amber-700">
+            <strong>Coming soon.</strong> Full account management requires our backend
+            infrastructure, currently in development. Your data stays safely stored on this device.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-5 w-full rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110"
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delete account modal (placeholder) ──────────────────────────────────────
+
+function DeleteAccountModal({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-[24px] bg-white p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-red-50">
+          <UserX className="h-6 w-6 text-red-500" strokeWidth={1.85} />
+        </div>
+        <h3 className="text-[16px] font-bold text-[var(--ms-navy)]">Delete account</h3>
+        <p className="mt-2 text-[13px] leading-5 text-[var(--ms-mauve)]">
+          Permanently removes your account, profile, posts, and booking history from Mobile Salon.
+          This action cannot be undone.
+        </p>
+        <div className="mt-3 rounded-[12px] bg-red-50 px-4 py-3">
+          <p className="text-[11px] leading-5 text-red-700">
+            <strong>Coming soon.</strong> Account deletion is a regulated operation that requires
+            our backend — currently in development. When available, all deleted data will leave a
+            traceable audit record as required by Kenyan data protection law (DPA 2019).
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-5 w-full rounded-full border border-[var(--ms-border)] py-3 text-[13px] font-semibold text-[var(--ms-navy)] transition hover:bg-[var(--ms-soft-bg)]"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main SettingsUI ──────────────────────────────────────────────────────────
 
 export function SettingsUI() {
   const [settings, setSettings]           = useState<AppSettings>(readSettings);
   const [session,  setSession]            = useState<AppUserSession | null>(null);
-  const [showAgeModal, setShowAgeModal]   = useState(false);
-  const [showSignOut,  setShowSignOut]    = useState(false);
-  const [toast, setToast]                 = useState<string | null>(null);
+  const [showAgeModal,    setShowAgeModal]    = useState(false);
+  const [showSignOut,     setShowSignOut]     = useState(false);
+  const [showDeactivate,  setShowDeactivate]  = useState(false);
+  const [showDelete,      setShowDelete]      = useState(false);
+  const [toast, setToast]                     = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => setToast(msg), []);
 
@@ -519,13 +598,24 @@ export function SettingsUI() {
   }
 
   function handleClearCache() {
-    // Clear non-session caches
+    // Only remove genuinely temporary/cache keys.
+    // Social posts, bookings, messages, saves, and follows are USER DATA — never touch them here.
+    const keepKeys = new Set([
+      "ms_app_settings.v1",
+      "mobile-salon.client-session.v1",
+      "ms_social_posts",
+      "ms_bookings",
+      "ms_messages",
+      "ms_social_saves",
+      "ms_social_follows",
+    ]);
     try {
-      const keep = ["ms_app_settings.v1", "mobile-salon.client-session.v1"];
-      const keys = Object.keys(localStorage).filter((k) => !keep.includes(k) && k.startsWith("ms_"));
-      keys.forEach((k) => localStorage.removeItem(k));
+      const toRemove = Object.keys(localStorage).filter(
+        (k) => k.startsWith("ms_") && !keepKeys.has(k),
+      );
+      toRemove.forEach((k) => localStorage.removeItem(k));
     } catch { /* noop */ }
-    showToast("Cache cleared");
+    showToast("Temporary cache cleared");
   }
 
   // ── Rows per section ────────────────────────────────────────────────────────
@@ -942,7 +1032,7 @@ export function SettingsUI() {
       icon: BellOff,
       label: "Deactivate account",
       sub: "Temporarily hides your profile and posts",
-      href: "#",
+      onClick: () => setShowDeactivate(true),
       danger: true,
     },
     {
@@ -950,7 +1040,7 @@ export function SettingsUI() {
       icon: UserX,
       label: "Delete account",
       sub: "Permanently removes your account and data",
-      href: "#",
+      onClick: () => setShowDelete(true),
       danger: true,
     },
   ];
@@ -1095,6 +1185,12 @@ export function SettingsUI() {
           onConfirm={handleSignOut}
           onCancel={() => setShowSignOut(false)}
         />
+      )}
+      {showDeactivate && (
+        <DeactivateAccountModal onCancel={() => setShowDeactivate(false)} />
+      )}
+      {showDelete && (
+        <DeleteAccountModal onCancel={() => setShowDelete(false)} />
       )}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>

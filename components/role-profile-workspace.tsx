@@ -1164,7 +1164,7 @@ function ProviderProfileWorkspace({
               onClick={() => setActiveTab("settings")}
               className="flex items-center gap-1.5 rounded-full border border-[var(--ms-border)] px-4 py-2 text-sm font-semibold text-[var(--ms-navy)] hover:border-[var(--ms-plum)] hover:text-[var(--ms-plum)]"
             >
-              <Settings className="h-4 w-4" /> Edit
+              <Settings className="h-4 w-4" /> Edit Profile
             </button>
             {isPro && (
               <a
@@ -1190,6 +1190,12 @@ function ProviderProfileWorkspace({
             <p className="mt-1 flex items-center gap-1 text-xs text-[var(--ms-mauve)]">
               <MapPin className="h-3.5 w-3.5" />
               {isPro ? proSess!.location : salonSess!.location}
+            </p>
+          )}
+          {/* Bio / description — visible directly on profile header */}
+          {(isPro ? proSess!.bio : (salonSess as SalonUserProfile & { description?: string })?.description) && (
+            <p className="mt-2 text-sm leading-6 text-[var(--ms-navy)]">
+              {isPro ? proSess!.bio : (salonSess as SalonUserProfile & { description?: string })?.description}
             </p>
           )}
         </div>
