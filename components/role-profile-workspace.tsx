@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
   Bell,
@@ -57,7 +57,6 @@ import {
   readThreads,
   markThreadRead,
   sendMessage,
-  getOrCreateThreadId,
   getClientBookings,
   getIncomingBookings,
   getAllProviderBookings,
@@ -74,6 +73,7 @@ import { cn } from "@/lib/utils";
 
 export function RoleProfileWorkspace() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [session, setSession] = useState<AppUserSession | null>(null);
 
   useEffect(() => {
@@ -99,6 +99,11 @@ export function RoleProfileWorkspace() {
   if (!session) {
     return null;
   }
+
+  // ── Standalone focused views (no profile header, no tab bar) ────────────────
+  const tab = searchParams.get("tab");
+  if (tab === "messages") return <MessagesOnlyView session={session} />;
+  if (tab === "requests") return <RequestsOnlyView session={session} />;
 
   if (session.role === "client") {
     return <ClientProfileWorkspace session={session} onSave={save} />;
@@ -132,9 +137,423 @@ export function RoleProfileWorkspace() {
   );
 }
 
+// ── Standalone: Messages page (/profile?tab=messages) ────────────────────────
+
+function MessagesOnlyView({ session }: { session: AppUserSession }) {
+  const [threads, setThreads] = useState<MessageThread[]>([]);
+  const [activeThread, setActiveThread] = useState<MessageThread | null>(null);
+  const [dmText, setDmText] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Derive the ID used in thread participantIds
+  const userId =
+    session.role === "professional" ? (session as ProfessionalUserProfile).publicSlug
+    : session.role === "salon"        ? (session as SalonUserProfile).publicSlug
+    : session.role === "client"       ? session.id
+    : session.role === "guest"        ? null
+    : (session as { id?: string }).id ?? null;
+
+  const displayName =
+    session.role === "professional" ? (session as ProfessionalUserProfile).displayName
+    : session.role === "salon"        ? (session as SalonUserProfile).salonName
+    : session.role === "client"       ? session.firstName
+    : "User";
+
+  const avatar = session.role !== "guest" ? (session as { profilePhoto?: string }).profilePhoto : undefined;
+
+  useEffect(() => {
+    if (!userId) return;
+    function sync() {
+      const all = readThreads().filter((t) => t.participantIds.includes(userId!));
+      setThreads(all);
+      setActiveThread((cur) => (cur ? all.find((t) => t.id === cur.id) ?? null : null));
+    }
+    sync();
+    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [userId]);
+
+  if (!userId) return <GuestProfilePrompt />;
+
+  const sortedThreads = [...threads].sort(
+    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
+  );
+
+  function handleSend() {
+    if (!activeThread || !dmText.trim()) return;
+    sendMessage(activeThread.id, {
+      id: `msg_${Date.now()}`,
+      text: dmText.trim(),
+      senderId: userId!,
+      senderName: displayName,
+      senderAvatar: avatar,
+      createdAt: new Date().toISOString(),
+      read: false,
+    });
+    setDmText("");
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl pb-24">
+      {/* Header */}
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-[var(--ms-navy)]">Messages</h1>
+        <button
+          type="button"
+          onClick={() => setShowSettings(true)}
+          className="flex items-center justify-center rounded-full p-2 text-[var(--ms-mauve)] transition hover:text-[var(--ms-plum)]"
+          title="Message settings"
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+      </div>
+
+      {activeThread ? (
+        /* ── Thread view ── */
+        <div className="flex flex-col rounded-[24px] border border-[var(--ms-border)] bg-white shadow-[0_4px_16px_rgba(13,27,42,0.06)]">
+          <div className="flex items-center gap-3 border-b border-[var(--ms-border)] p-4">
+            <button
+              type="button"
+              onClick={() => setActiveThread(null)}
+              className="rounded-full p-1.5 text-[var(--ms-mauve)] hover:text-[var(--ms-rose)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ms-petal)] text-sm font-bold text-[var(--ms-rose)]">
+              {(activeThread.participantNames.find((n, i) => activeThread.participantIds[i] !== userId) ?? "?")[0]}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--ms-navy)]">
+                {activeThread.participantNames.find((n, i) => activeThread.participantIds[i] !== userId) ?? "Unknown"}
+              </p>
+              <p className="text-xs text-[var(--ms-mauve)]">Protected platform chat</p>
+            </div>
+          </div>
+          <div className="flex max-h-[420px] flex-col-reverse gap-2 overflow-y-auto p-4">
+            {[...activeThread.messages].reverse().map((msg) => {
+              const isMe = msg.senderId === userId;
+              return (
+                <div key={msg.id} className={cn("flex gap-2", isMe ? "justify-end" : "justify-start")}>
+                  <div
+                    className={cn(
+                      "max-w-[78%] rounded-[18px] px-4 py-2.5 text-sm leading-6",
+                      isMe
+                        ? "bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white"
+                        : "bg-[var(--ms-soft-bg)] text-[var(--ms-charcoal)]",
+                    )}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-end gap-2 border-t border-[var(--ms-border)] p-3">
+            <textarea
+              className="flex-1 resize-none rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-2.5 text-sm leading-6 outline-none focus:border-[var(--ms-rose)]"
+              rows={1}
+              placeholder="Write a message…"
+              value={dmText}
+              onChange={(e) => setDmText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white shadow-[0_4px_12px_rgba(212,83,126,0.3)] hover:brightness-110"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* ── Thread list ── */
+        <div className="space-y-2">
+          {sortedThreads.length === 0 ? (
+            <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-10 text-center shadow-[0_4px_16px_rgba(13,27,42,0.04)]">
+              <MessageCircle className="mx-auto h-10 w-10 text-[var(--ms-mauve)] opacity-40" />
+              <p className="mt-4 text-sm font-semibold text-[var(--ms-navy)]">No messages yet</p>
+              <p className="mt-1 text-xs leading-6 text-[var(--ms-mauve)]">
+                Book a service to start a conversation with a professional.
+              </p>
+              <Link
+                href="/book"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--ms-petal)] px-5 py-2 text-sm font-semibold text-[var(--ms-rose)] hover:opacity-90"
+              >
+                Find a professional
+              </Link>
+            </div>
+          ) : (
+            sortedThreads.map((thread) => {
+              const otherIdx = thread.participantIds.findIndex((id) => id !== userId);
+              const otherName = thread.participantNames[otherIdx] ?? "Unknown";
+              const lastMsg = thread.messages.at(-1);
+              const unread = thread.messages.filter((m) => !m.read && m.senderId !== userId).length;
+              return (
+                <button
+                  key={thread.id}
+                  type="button"
+                  onClick={() => {
+                    markThreadRead(thread.id, userId);
+                    setActiveThread(thread);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-[20px] border border-[var(--ms-border)] bg-white p-4 text-left shadow-[0_2px_8px_rgba(13,27,42,0.04)] transition hover:border-[var(--ms-rose)]/30 hover:shadow-[0_4px_16px_rgba(13,27,42,0.08)]"
+                >
+                  <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--ms-petal)] text-base font-bold text-[var(--ms-rose)]">
+                    {otherName[0]}
+                    {unread > 0 && (
+                      <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[9px] font-bold text-white">
+                        {unread}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className={cn("text-sm font-semibold", unread > 0 ? "text-[var(--ms-navy)]" : "text-[var(--ms-charcoal)]")}>
+                        {otherName}
+                      </p>
+                      <p className="shrink-0 text-[10px] text-[var(--ms-mauve)]">
+                        {lastMsg
+                          ? new Date(lastMsg.createdAt).toLocaleDateString("en-KE", { month: "short", day: "numeric" })
+                          : ""}
+                      </p>
+                    </div>
+                    <p className={cn("mt-0.5 truncate text-xs", unread > 0 ? "font-semibold text-[var(--ms-charcoal)]" : "text-[var(--ms-mauve)]")}>
+                      {lastMsg
+                        ? `${lastMsg.senderId === userId ? "You: " : ""}${lastMsg.text}`
+                        : "No messages yet"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Message settings sheet */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-md rounded-t-[32px] bg-white p-5 shadow-[0_-18px_60px_rgba(13,27,42,0.18)] sm:rounded-[32px]">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-[var(--ms-navy)]">Message settings</h2>
+                <p className="text-xs text-[var(--ms-mauve)]">Controls for this inbox only</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className="rounded-full bg-[var(--ms-soft-bg)] p-2"
+              >
+                <X className="h-4 w-4 text-[var(--ms-mauve)]" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: "New message notifications",      desc: "Get notified when someone messages you",                      defaultOn: true  },
+                { label: "Read receipts",                  desc: "Let others know when you've read their message",               defaultOn: true  },
+                { label: "Allow messages from anyone",     desc: "When off, only people you've booked can message you",          defaultOn: false },
+                { label: "Message previews",               desc: "Show the first line of the message in push notifications",     defaultOn: true  },
+              ].map((item) => (
+                <MiniToggleRow key={item.label} label={item.label} desc={item.desc} defaultOn={item.defaultOn} />
+              ))}
+            </div>
+            <p className="mt-4 text-[11px] leading-5 text-[var(--ms-mauve)]">
+              Your phone number and address are never shared with other users inside messages.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Standalone: Requests page (/profile?tab=requests) ─────────────────────────
+
+function RequestsOnlyView({ session }: { session: AppUserSession }) {
+  const [showSettings, setShowSettings] = useState(false);
+
+  if (session.role === "guest") return <GuestProfilePrompt />;
+
+  const isProvider = session.role === "professional" || session.role === "salon";
+  const providerSlug = isProvider
+    ? (session as ProfessionalUserProfile | SalonUserProfile).publicSlug
+    : null;
+  const roleLabel = session.role === "professional" ? "Professional" : "Salon";
+
+  return (
+    <div className="mx-auto max-w-3xl pb-24">
+      {/* Header */}
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-[var(--ms-navy)]">Requests</h1>
+        <button
+          type="button"
+          onClick={() => setShowSettings(true)}
+          className="flex items-center justify-center rounded-full p-2 text-[var(--ms-mauve)] transition hover:text-[var(--ms-plum)]"
+          title="Request settings"
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+      </div>
+
+      {isProvider && providerSlug ? (
+        <ProviderRequestsPanel providerSlug={providerSlug} roleLabel={roleLabel} />
+      ) : session.role === "client" ? (
+        <ClientRequestsPanel session={session} />
+      ) : (
+        <GuestProfilePrompt />
+      )}
+
+      {/* Request settings sheet */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-md rounded-t-[32px] bg-white p-5 shadow-[0_-18px_60px_rgba(13,27,42,0.18)] sm:rounded-[32px]">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-[var(--ms-navy)]">Request settings</h2>
+                <p className="text-xs text-[var(--ms-mauve)]">Booking notification preferences</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className="rounded-full bg-[var(--ms-soft-bg)] p-2"
+              >
+                <X className="h-4 w-4 text-[var(--ms-mauve)]" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: "New booking requests",     desc: "Get notified when a client sends a booking request",        defaultOn: true },
+                { label: "Booking status updates",   desc: "Notify when a booking is accepted, declined, or completed", defaultOn: true },
+                { label: "Cancellation alerts",      desc: "Get notified if a client cancels a confirmed booking",      defaultOn: true },
+                { label: "Appointment reminders",    desc: "Remind you 1 hour before an upcoming appointment",          defaultOn: true },
+              ].map((item) => (
+                <MiniToggleRow key={item.label} label={item.label} desc={item.desc} defaultOn={item.defaultOn} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Client outgoing bookings panel ────────────────────────────────────────────
+
+function ClientRequestsPanel({
+  session,
+}: {
+  session: Extract<AppUserSession, { role: "client" }>;
+}) {
+  const [bookings, setBookings] = useState<BookingRequest[]>([]);
+
+  useEffect(() => {
+    function sync() {
+      setBookings(getClientBookings(session.id));
+    }
+    sync();
+    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [session.id]);
+
+  if (bookings.length === 0) {
+    return (
+      <div className="flex flex-col items-center rounded-[28px] border border-[var(--ms-border)] bg-white py-16 text-center shadow-[0_4px_16px_rgba(13,27,42,0.05)]">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ms-soft-bg)]">
+          <CalendarDays className="h-8 w-8 text-[var(--ms-mauve)] opacity-50" />
+        </div>
+        <p className="mt-4 text-base font-semibold text-[var(--ms-navy)]">No booking requests yet</p>
+        <p className="mt-2 max-w-xs text-sm text-[var(--ms-mauve)]">
+          Choose a nearby professional or salon and your request will appear here.
+        </p>
+        <CTAButton href="/book" className="mt-5">Start a booking</CTAButton>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {bookings.map((booking) => (
+        <div
+          key={booking.id}
+          className="rounded-[24px] border border-[var(--ms-border)] bg-white p-4 shadow-[0_8px_22px_rgba(13,27,42,0.05)]"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--ms-navy)]">{booking.targetName}</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--ms-mauve)]">{booking.services.join(", ")}</p>
+              <p className="mt-2 text-xs font-semibold text-[var(--ms-charcoal)]">
+                {booking.preferredDate} · {booking.preferredTime} · KES {booking.totalKES.toLocaleString()}
+              </p>
+            </div>
+            <span
+              className={cn(
+                "w-fit shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize",
+                STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-500",
+              )}
+            >
+              {booking.status.replace(/_/g, " ")}
+            </span>
+          </div>
+          {booking.notes && (
+            <p className="mt-3 rounded-[18px] bg-[var(--ms-soft-bg)] px-4 py-3 text-xs leading-5 text-[var(--ms-mauve)]">
+              {booking.notes}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Mini toggle row (used in settings sheets) ─────────────────────────────────
+
+function MiniToggleRow({
+  label,
+  desc,
+  defaultOn,
+}: {
+  label: string;
+  desc: string;
+  defaultOn: boolean;
+}) {
+  const [on, setOn] = useState(defaultOn);
+  return (
+    <div className="flex items-start gap-3 rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3">
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-[var(--ms-navy)]">{label}</p>
+        <p className="mt-0.5 text-xs leading-5 text-[var(--ms-mauve)]">{desc}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => setOn((v) => !v)}
+        className={cn(
+          "mt-0.5 flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition",
+          on ? "justify-end bg-[var(--ms-plum)]" : "justify-start bg-[var(--ms-border)]",
+        )}
+      >
+        <span className="h-5 w-5 rounded-full bg-white" />
+      </button>
+    </div>
+  );
+}
+
 // ── Client social profile ─────────────────────────────────────────────────────
 
-type ClientTab = "posts" | "bookings" | "following" | "messages" | "settings";
+type ClientTab = "posts" | "following" | "settings";
 
 function ClientProfileWorkspace({
   session,
@@ -146,7 +565,7 @@ function ClientProfileWorkspace({
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as ClientTab | null) ?? "posts";
   const [activeTab, setActiveTab] = useState<ClientTab>(
-    (["posts", "bookings", "following", "messages", "settings"] as ClientTab[]).includes(initialTab) ? initialTab : "posts"
+    (["posts", "following", "settings"] as ClientTab[]).includes(initialTab) ? initialTab : "posts"
   );
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [saves, setSaves] = useState<SocialSaves>({ professionals: [], salons: [] });
@@ -164,18 +583,11 @@ function ClientProfileWorkspace({
   const [editLocation, setEditLocation] = useState(session.location?.label ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [threads, setThreads] = useState<MessageThread[]>([]);
-  const [bookings, setBookings] = useState<BookingRequest[]>([]);
-  const [activeThread, setActiveThread] = useState<MessageThread | null>(null);
-  const [dmText, setDmText] = useState("");
-  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function sync() {
       setPosts(readPosts().filter((p) => p.authorId === session.id));
       setSaves(readSaves());
-      setThreads(readThreads().filter((t) => t.participantIds.includes(session.id)));
-      setBookings(getClientBookings(session.id));
     }
     sync();
     window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
@@ -381,15 +793,12 @@ function ClientProfileWorkspace({
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="mt-0 flex border-b border-[var(--ms-border)]">
+        {/* Tabs — Posts | Following | Settings gear */}
+        <div className="mt-0 flex items-center border-b border-[var(--ms-border)]">
           {(
             [
-              { key: "posts", label: "Posts", icon: <Grid3X3 className="h-4 w-4" /> },
-              { key: "bookings", label: "Bookings", icon: <CalendarDays className="h-4 w-4" /> },
+              { key: "posts",     label: "Posts",     icon: <Grid3X3 className="h-4 w-4" /> },
               { key: "following", label: "Following", icon: <Users className="h-4 w-4" /> },
-              { key: "messages", label: "Messages", icon: <MessageCircle className="h-4 w-4" /> },
-              { key: "settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
             ] as { key: ClientTab; label: string; icon: ReactNode }[]
           ).map((tab) => (
             <button
@@ -403,15 +812,18 @@ function ClientProfileWorkspace({
                   : "border-transparent text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
               )}
             >
-              <span className="relative">
-                {tab.icon}
-                {tab.key === "messages" && threads.some((t) => t.messages.some((m) => !m.read && m.senderId !== session.id)) && (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[var(--ms-rose)]" />
-                )}
-              </span>
+              {tab.icon}
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
+          {/* Settings gear icon — not a full tab */}
+          <Link
+            href="/settings"
+            className="ml-auto flex items-center justify-center border-b-2 border-transparent px-4 py-3 text-[var(--ms-mauve)] transition hover:text-[var(--ms-plum)]"
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
         </div>
 
         {/* ── Posts tab ────────────────────────────────────────────────────── */}
@@ -475,40 +887,6 @@ function ClientProfileWorkspace({
           </div>
         )}
 
-        {/* ── Bookings tab ────────────────────────────────────────────────── */}
-        {activeTab === "bookings" && (
-          <div className="mt-5 space-y-3">
-            {bookings.length === 0 ? (
-              <div className="flex flex-col items-center py-16 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ms-soft-bg)]">
-                  <CalendarDays className="h-8 w-8 text-[var(--ms-mauve)] opacity-50" />
-                </div>
-                <p className="mt-4 text-base font-semibold text-[var(--ms-navy)]">No bookings yet</p>
-                <p className="mt-2 text-sm text-[var(--ms-mauve)]">Choose a nearby pro or salon and your request will appear here.</p>
-                <CTAButton href="/book" className="mt-5">Start a booking</CTAButton>
-              </div>
-            ) : (
-              bookings.map((booking) => (
-                <div key={booking.id} className="rounded-[24px] border border-[var(--ms-border)] bg-white p-4 shadow-[0_8px_22px_rgba(13,27,42,0.05)]">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--ms-navy)]">{booking.targetName}</p>
-                      <p className="mt-1 text-xs leading-5 text-[var(--ms-mauve)]">{booking.services.join(", ")}</p>
-                      <p className="mt-2 text-xs font-semibold text-[var(--ms-charcoal)]">
-                        {booking.preferredDate} · {booking.preferredTime} · KES {booking.totalKES.toLocaleString()}
-                      </p>
-                    </div>
-                    <span className="w-fit rounded-full bg-[var(--ms-soft-bg)] px-3 py-1 text-xs font-semibold capitalize text-[var(--ms-plum)]">
-                      {booking.status.replace("_", " ")}
-                    </span>
-                  </div>
-                  {booking.notes ? <p className="mt-3 rounded-[18px] bg-[var(--ms-soft-bg)] px-4 py-3 text-xs leading-5 text-[var(--ms-mauve)]">{booking.notes}</p> : null}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
         {/* ── Following tab ────────────────────────────────────────────────── */}
         {activeTab === "following" && (
           <div className="mt-5 space-y-4">
@@ -568,155 +946,6 @@ function ClientProfileWorkspace({
                   </div>
                 )}
               </>
-            )}
-          </div>
-        )}
-
-        {/* ── Messages tab ─────────────────────────────────────────────────── */}
-        {activeTab === "messages" && (
-          <div className="mt-5">
-            {activeThread ? (
-              /* Thread view */
-              <div className="flex flex-col rounded-[24px] border border-[var(--ms-border)] bg-white shadow-[0_4px_16px_rgba(13,27,42,0.06)]">
-                {/* Thread header */}
-                <div className="flex items-center gap-3 border-b border-[var(--ms-border)] p-4">
-                  <button
-                    type="button"
-                    onClick={() => setActiveThread(null)}
-                    className="rounded-full p-1.5 text-[var(--ms-mauve)] hover:text-[var(--ms-rose)]"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ms-petal)] text-sm font-bold text-[var(--ms-rose)]">
-                    {activeThread.participantNames.find((n, i) => activeThread.participantIds[i] !== session.id)?.[0] ?? "?"}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--ms-navy)]">
-                      {activeThread.participantNames.find((n, i) => activeThread.participantIds[i] !== session.id) ?? "Unknown"}
-                    </p>
-                    <p className="text-xs text-[var(--ms-mauve)]">Beauty professional</p>
-                  </div>
-                </div>
-
-                {/* Messages list */}
-                <div className="flex max-h-[360px] flex-col-reverse gap-2 overflow-y-auto p-4">
-                  {[...activeThread.messages].reverse().map((msg) => {
-                    const isMe = msg.senderId === session.id;
-                    return (
-                      <div key={msg.id} className={cn("flex gap-2", isMe ? "justify-end" : "justify-start")}>
-                        <div className={cn(
-                          "max-w-[78%] rounded-[18px] px-4 py-2.5 text-sm leading-6",
-                          isMe
-                            ? "bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white"
-                            : "bg-[var(--ms-soft-bg)] text-[var(--ms-charcoal)]",
-                        )}>
-                          {msg.text}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Compose */}
-                <div className="flex items-end gap-2 border-t border-[var(--ms-border)] p-3">
-                  <textarea
-                    className="flex-1 resize-none rounded-[16px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-2.5 text-sm leading-6 text-[var(--ms-charcoal)] outline-none placeholder:text-[var(--ms-border)] focus:border-[var(--ms-rose)]"
-                    rows={1}
-                    placeholder="Write a message…"
-                    value={dmText}
-                    onChange={(e) => setDmText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        if (!dmText.trim()) return;
-                        const msg = {
-                          id: `msg_${Date.now()}`,
-                          text: dmText.trim(),
-                          senderId: session.id,
-                          senderName: session.firstName,
-                          senderAvatar: session.profilePhoto,
-                          createdAt: new Date().toISOString(),
-                          read: false,
-                        };
-                        sendMessage(activeThread.id, msg);
-                        setDmText("");
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!dmText.trim()) return;
-                      const msg = {
-                        id: `msg_${Date.now()}`,
-                        text: dmText.trim(),
-                        senderId: session.id,
-                        senderName: session.firstName,
-                        senderAvatar: session.profilePhoto,
-                        createdAt: new Date().toISOString(),
-                        read: false,
-                      };
-                      sendMessage(activeThread.id, msg);
-                      setDmText("");
-                    }}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] text-white shadow-[0_4px_12px_rgba(212,83,126,0.3)] hover:brightness-110"
-                  >
-                    <Send className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Thread list */
-              <div className="space-y-2">
-                {threads.length === 0 ? (
-                  <div className="rounded-[24px] border border-[var(--ms-border)] bg-white p-8 text-center shadow-[0_4px_16px_rgba(13,27,42,0.04)]">
-                    <MessageCircle className="mx-auto h-10 w-10 text-[var(--ms-mauve)] opacity-40" />
-                    <p className="mt-4 text-sm font-semibold text-[var(--ms-navy)]">No messages yet</p>
-                    <p className="mt-1 text-xs leading-6 text-[var(--ms-mauve)]">Book a service or follow a professional to start a conversation.</p>
-                    <Link href="/book" className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--ms-petal)] px-5 py-2 text-sm font-semibold text-[var(--ms-rose)] hover:opacity-90">
-                      Find a professional
-                    </Link>
-                  </div>
-                ) : (
-                  threads.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()).map((thread) => {
-                    const otherIdx = thread.participantIds.findIndex((id) => id !== session.id);
-                    const otherName = thread.participantNames[otherIdx] ?? "Unknown";
-                    const lastMsg = thread.messages[thread.messages.length - 1];
-                    const unread = thread.messages.filter((m) => !m.read && m.senderId !== session.id).length;
-                    return (
-                      <button
-                        key={thread.id}
-                        type="button"
-                        onClick={() => {
-                          markThreadRead(thread.id, session.id);
-                          setActiveThread(thread);
-                        }}
-                        className="flex w-full items-center gap-3 rounded-[20px] border border-[var(--ms-border)] bg-white p-4 text-left shadow-[0_2px_8px_rgba(13,27,42,0.04)] transition hover:border-[var(--ms-rose)]/30 hover:shadow-[0_4px_16px_rgba(13,27,42,0.08)]"
-                      >
-                        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--ms-petal)] text-base font-bold text-[var(--ms-rose)]">
-                          {otherName[0]}
-                          {unread > 0 && (
-                            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[9px] font-bold text-white">
-                              {unread}
-                            </span>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className={cn("text-sm font-semibold", unread > 0 ? "text-[var(--ms-navy)]" : "text-[var(--ms-charcoal)]")}>{otherName}</p>
-                            <p className="shrink-0 text-[10px] text-[var(--ms-mauve)]">
-                              {lastMsg ? new Date(lastMsg.createdAt).toLocaleDateString("en-KE", { month: "short", day: "numeric" }) : ""}
-                            </p>
-                          </div>
-                          <p className={cn("mt-0.5 truncate text-xs", unread > 0 ? "font-semibold text-[var(--ms-charcoal)]" : "text-[var(--ms-mauve)]")}>
-                            {lastMsg ? `${lastMsg.senderId === session.id ? "You: " : ""}${lastMsg.text}` : "No messages yet"}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
             )}
           </div>
         )}
@@ -978,7 +1207,7 @@ function EditField({
 // ── Shared social-profile workspace for Professional and Salon ────────────────
 // Both roles get the same Instagram-style shell — only the data fields differ.
 
-type ProviderTab = "posts" | "requests" | "messages" | "settings";
+type ProviderTab = "posts" | "settings";
 
 function ProviderProfileWorkspace({
   session,
@@ -992,7 +1221,7 @@ function ProviderProfileWorkspace({
   const searchParams = useSearchParams();
   const initTab = (searchParams.get("tab") as ProviderTab | null) ?? "posts";
   const [activeTab, setActiveTab] = useState<ProviderTab>(
-    (["posts", "requests", "messages", "settings"] as ProviderTab[]).includes(initTab) ? initTab : "posts",
+    (["posts", "settings"] as ProviderTab[]).includes(initTab) ? initTab : "posts",
   );
 
   const isPro    = session.role === "professional";
@@ -1103,12 +1332,6 @@ function ProviderProfileWorkspace({
     setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000); }, 400);
   }
 
-  const tabCfg: { key: ProviderTab; label: string; icon: ReactNode }[] = [
-    { key: "posts",    label: "Posts",    icon: <Grid3X3 className="h-4 w-4" />    },
-    { key: "requests", label: "Requests", icon: <CalendarDays className="h-4 w-4" /> },
-    { key: "messages", label: "Messages", icon: <MessageCircle className="h-4 w-4" /> },
-    { key: "settings", label: "Settings", icon: <Settings className="h-4 w-4" />   },
-  ];
 
   return (
     <div className="mx-auto max-w-3xl pb-24">
@@ -1220,9 +1443,13 @@ function ProviderProfileWorkspace({
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="mt-0 flex border-b border-[var(--ms-border)]">
-          {tabCfg.map((tab) => (
+        {/* Tabs — Posts | Settings gear */}
+        <div className="mt-0 flex items-center border-b border-[var(--ms-border)]">
+          {(
+            [
+              { key: "posts", label: "Posts", icon: <Grid3X3 className="h-4 w-4" /> },
+            ] as { key: ProviderTab; label: string; icon: ReactNode }[]
+          ).map((tab) => (
             <button
               key={tab.key}
               type="button"
@@ -1236,13 +1463,16 @@ function ProviderProfileWorkspace({
             >
               {tab.icon}
               <span className="hidden sm:inline">{tab.label}</span>
-              {tab.key === "requests" && pending.length > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[10px] font-bold text-white">
-                  {pending.length}
-                </span>
-              )}
             </button>
           ))}
+          {/* Settings gear icon — not a full tab */}
+          <Link
+            href="/settings"
+            className="ml-auto flex items-center justify-center border-b-2 border-transparent px-4 py-3 text-[var(--ms-mauve)] transition hover:text-[var(--ms-plum)]"
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
         </div>
 
         {/* ── Posts tab ──────────────────────────────────────────────── */}
@@ -1374,25 +1604,6 @@ function ProviderProfileWorkspace({
                 ))}
               </div>
             )}
-          </div>
-        )}
-
-        {/* ── Requests tab ───────────────────────────────────────────── */}
-        {activeTab === "requests" && (
-          <div className="mt-5">
-            <ProviderRequestsPanel providerSlug={publicSlug} roleLabel={isPro ? "Professional" : "Salon"} />
-          </div>
-        )}
-
-        {/* ── Messages tab ───────────────────────────────────────────── */}
-        {activeTab === "messages" && (
-          <div className="mt-5">
-            <ProviderMessagesPanel
-              avatar={session.profilePhoto}
-              displayName={displayName}
-              messagingId={publicSlug}
-              roleLabel={isPro ? "Professional" : "Salon"}
-            />
           </div>
         )}
 

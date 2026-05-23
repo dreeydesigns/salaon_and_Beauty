@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart2,
   Building2,
@@ -8,10 +8,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Coins,
-  Crown,
-  Flag,
-  LockKeyhole,
-  MapPin,
   Search,
   ShieldCheck,
   ShoppingBag,
@@ -22,6 +18,7 @@ import {
 
 import { AppShell } from "@/components/app-shell";
 import { CTAButton } from "@/components/marketplace-ui";
+import { APP_SESSION_EVENT, readAppSession, type AppUserSession } from "@/lib/client-session";
 import { cn } from "@/lib/utils";
 
 // ─── Guide content ────────────────────────────────────────────────────────────
@@ -150,6 +147,20 @@ function FaqRow({ q, a }: { q: string; a: string }) {
 
 export default function GuidePage() {
   const [activeTab, setActiveTab] = useState<"clients" | "professionals" | "salons">("clients");
+  const [session, setSession] = useState<AppUserSession | null>(null);
+
+  useEffect(() => {
+    function sync() { setSession(readAppSession()); }
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener(APP_SESSION_EVENT, sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener(APP_SESSION_EVENT, sync);
+    };
+  }, []);
+
+  const isGuest = !session || session.role === "guest";
 
   return (
     <AppShell currentNav="guide" roleMode="salons">
@@ -209,7 +220,7 @@ export default function GuidePage() {
                 {PRO_RULES.map((r) => <RuleRow key={r.title} {...r} />)}
               </div>
             </div>
-            <CTAButton href="/onboarding/professional">Join as a Professional</CTAButton>
+            {isGuest && <CTAButton href="/onboarding/professional">Join as a Professional</CTAButton>}
           </div>
         )}
 
@@ -219,7 +230,7 @@ export default function GuidePage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {SALON_GUIDE.map((s) => <IconSection key={s.title} icon={s.icon} title={s.title} body={s.body} />)}
             </div>
-            <CTAButton href="/onboarding/salon">List your salon</CTAButton>
+            {isGuest && <CTAButton href="/onboarding/salon">List your salon</CTAButton>}
           </div>
         )}
 
