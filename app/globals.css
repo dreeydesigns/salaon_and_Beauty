@@ -376,3 +376,152 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ─── Text Scale (zoom) ────────────────────────────────────────────────────── */
+
+body {
+  zoom: var(--ms-zoom, 1);
+}
+
+/* ─── Reduce Motion (user preference toggle) ──────────────────────────────── */
+
+[data-reduce-motion="true"] html {
+  scroll-behavior: auto !important;
+}
+
+[data-reduce-motion="true"],
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ─── Dark Mode ────────────────────────────────────────────────────────────── */
+
+[data-color-scheme="dark"] {
+  --ms-soft-bg: #12091a;
+  --ms-navy: #eae0f5;
+  --ms-charcoal: #d8cce8;
+  --ms-mauve: #b89db0;
+  --ms-border: rgba(255, 255, 255, 0.12);
+  --ms-petal: #2a1a2e;
+  --ms-lilac: #1e1228;
+  --ms-champagne: #1e1810;
+  --ms-ivory: #1a1510;
+  --ms-white: #1c1530;
+  --background: #12091a;
+  --foreground: #eae0f5;
+}
+
+[data-color-scheme="dark"] body {
+  background-color: #12091a !important;
+  color: #eae0f5 !important;
+}
+
+[data-color-scheme="dark"] .bg-white,
+[data-color-scheme="dark"] .surface-card,
+[data-color-scheme="dark"] .silk-panel,
+[data-color-scheme="dark"] .beauty-card,
+[data-color-scheme="dark"] .soft-panel,
+[data-color-scheme="dark"] .app-hero,
+[data-color-scheme="dark"] .page-loader {
+  background-color: #1c1530 !important;
+  background: #1c1530 !important;
+}
+
+[data-color-scheme="dark"] .beauty-card {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-color-scheme="dark"] .beauty-card:hover {
+  border-color: rgba(201, 168, 76, 0.42) !important;
+}
+
+/* System preference — only activates when no explicit choice is set */
+@media (prefers-color-scheme: dark) {
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) {
+    --ms-soft-bg: #12091a;
+    --ms-navy: #eae0f5;
+    --ms-charcoal: #d8cce8;
+    --ms-mauve: #b89db0;
+    --ms-border: rgba(255, 255, 255, 0.12);
+    --ms-petal: #2a1a2e;
+    --ms-lilac: #1e1228;
+    --ms-champagne: #1e1810;
+    --ms-ivory: #1a1510;
+    --ms-white: #1c1530;
+    --background: #12091a;
+    --foreground: #eae0f5;
+  }
+
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) body {
+    background-color: #12091a !important;
+    color: #eae0f5 !important;
+  }
+
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .bg-white,
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .surface-card,
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .silk-panel,
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .beauty-card,
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .soft-panel,
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .app-hero,
+  html:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .page-loader {
+    background-color: #1c1530 !important;
+    background: #1c1530 !important;
+  }
+}
+
+/* ─── High Contrast ────────────────────────────────────────────────────────── */
+
+[data-high-contrast="true"] {
+  --ms-navy: #000000;
+  --ms-charcoal: #000000;
+  --ms-mauve: #333333;
+  --ms-plum: #1a001a;
+  --ms-rose: #aa0000;
+  --ms-gold: #7a5200;
+  --ms-orchid: #6600aa;
+  --ms-border: rgba(0, 0, 0, 0.6);
+  --ms-soft-bg: #f0f0f0;
+}
+
+[data-high-contrast="true"] body {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+[data-high-contrast="true"] .bg-white,
+[data-high-contrast="true"] .surface-card,
+[data-high-contrast="true"] .silk-panel,
+[data-high-contrast="true"] .beauty-card,
+[data-high-contrast="true"] .soft-panel {
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+}
+
+[data-high-contrast="true"] a {
+  color: #0000cc !important;
+  text-decoration: underline !important;
+}
+
+/* High contrast + dark: dark wins for background, contrast wins for readability */
+[data-color-scheme="dark"][data-high-contrast="true"] body {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+[data-color-scheme="dark"][data-high-contrast="true"] .bg-white,
+[data-color-scheme="dark"][data-high-contrast="true"] .surface-card,
+[data-color-scheme="dark"][data-high-contrast="true"] .silk-panel,
+[data-color-scheme="dark"][data-high-contrast="true"] .beauty-card {
+  background: #0d0d0d !important;
+  border: 2px solid #ffffff !important;
+}
+
+[data-color-scheme="dark"][data-high-contrast="true"] a {
+  color: #88aaff !important;
+}

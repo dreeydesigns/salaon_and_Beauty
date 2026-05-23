@@ -1608,8 +1608,8 @@ export function SettingsUI() {
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-color-scheme", settings.colorScheme);
-    const sizeMap: Record<string, string> = { small: "90%", medium: "100%", large: "115%" };
-    root.style.setProperty("--base-font-size", sizeMap[settings.textSize] ?? "100%");
+    const zoomMap: Record<string, string> = { small: "0.9", medium: "1", large: "1.15" };
+    root.style.setProperty("--ms-zoom", zoomMap[settings.textSize] ?? "1");
     if (settings.reduceMotion) root.setAttribute("data-reduce-motion", "true");
     else root.removeAttribute("data-reduce-motion");
     if (settings.highContrast) root.setAttribute("data-high-contrast", "true");
