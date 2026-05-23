@@ -1752,6 +1752,17 @@ export function SocialHome() {
         {/* ── Feed column ───────────────────────────────────────────── */}
         <div className="min-w-0 flex-1">
 
+          {/* Stories row */}
+          <StoriesRow
+            sessionId={sessionId}
+            sessionName={sessionName}
+            sessionPhoto={sessionPhoto}
+            sessionRole={sessionRole}
+            allStories={allStories}
+            onAddStory={() => canPost ? setShowStoryCreate(true) : showToast("Create a free account to add a story")}
+            onViewStory={(authorId) => setViewingAuthorId(authorId)}
+          />
+
           {/* Rooms navigation bar */}
           <div className="-mx-4 lg:-mx-6">
             <RoomsBar
@@ -1777,30 +1788,6 @@ export function SocialHome() {
               </div>
             </div>
           )}
-
-          {/* Beauty moment header */}
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <p className="text-[18px] font-black tracking-[-0.02em] text-[var(--ms-navy)]">
-                For You <span className="text-[var(--ms-rose)]">✦</span>
-              </p>
-              <p className="text-[11px] text-[var(--ms-mauve)] leading-tight">beauty · style · self-care</p>
-            </div>
-            </div>
-
-          {/* Stories row */}
-          <StoriesRow
-            sessionId={sessionId}
-            sessionName={sessionName}
-            sessionPhoto={sessionPhoto}
-            sessionRole={sessionRole}
-            allStories={allStories}
-            onAddStory={() => canPost ? setShowStoryCreate(true) : showToast("Create a free account to add a story")}
-            onViewStory={(authorId) => setViewingAuthorId(authorId)}
-          />
-
-          {/* Separator */}
-          <div className="mb-3 h-px bg-[var(--ms-border)]/50 -mx-4 lg:-mx-6" />
 
           {/* For You / Following tabs — sticky */}
           <div className="sticky top-[56px] z-20 -mx-4 lg:-mx-6 mb-4">
