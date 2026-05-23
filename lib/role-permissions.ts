@@ -75,7 +75,9 @@ export function getRoleHomeHref(role: AppUserRole | null | undefined) {
 
 export function getRolePrimaryAction(role: AppUserRole | null | undefined) {
   if (role === "professional" || role === "salon") {
-    return { label: "Requests", href: "/profile?tab=requests" };
+    // "Requests" is already a dedicated nav item.
+    // The CTA drives the action that grows their business: sharing work to get discovered.
+    return { label: "New Post", href: "/profile?tab=posts" };
   }
 
   if (role === "shop") {

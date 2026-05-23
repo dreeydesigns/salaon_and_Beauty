@@ -1203,9 +1203,15 @@ function ProviderProfileWorkspace({
         {/* Stats bar */}
         <div className="mt-4 flex gap-6 border-b border-[var(--ms-border)] pb-4">
           {[
-            { label: "Posts",    value: posts.length    },
-            { label: "Pending",  value: pending.length  },
-            { label: isPro ? "Mode" : "Team", value: isPro ? proSess!.serviceMode : `${salonSess!.teamCount}` },
+            { label: "Posts",   value: posts.length },
+            { label: "Pending", value: pending.length },
+            {
+              label: isPro ? "Mode" : "Team",
+              // Guard against undefined — serviceMode/teamCount may not be set on new accounts
+              value: isPro
+                ? (proSess!.serviceMode ?? "—")
+                : `${salonSess!.teamCount ?? 1}`,
+            },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <p className="text-xl font-bold text-[var(--ms-navy)]">{stat.value}</p>
@@ -1257,12 +1263,92 @@ function ProviderProfileWorkspace({
             </button>
 
             {posts.length === 0 ? (
-              <div className="flex flex-col items-center py-16 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ms-soft-bg)]">
-                  <ImagePlus className="h-8 w-8 text-[var(--ms-mauve)] opacity-50" />
+              /* ── First-time onboarding checklist ─────────────────────── */
+              <div className="space-y-3">
+                {/* Header card */}
+                <div className="rounded-[24px] bg-[linear-gradient(135deg,var(--ms-plum),var(--ms-orchid))] px-5 py-5 text-white">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Get started</p>
+                  <h3 className="mt-1 text-xl font-bold">4 steps to your first booking</h3>
+                  <p className="mt-1 text-[13px] text-white/75">Clients discover you through your posts. Here&apos;s how to get found.</p>
                 </div>
-                <p className="mt-4 text-base font-semibold text-[var(--ms-navy)]">Your portfolio is empty</p>
-                <p className="mt-2 text-sm text-[var(--ms-mauve)]">Share your best work — clients discover you through your posts.</p>
+                {/* Checklist steps */}
+                {[
+                  {
+                    step: 1,
+                    title: "Create your account",
+                    sub: "Done! You're in.",
+                    done: true,
+                    action: null,
+                  },
+                  {
+                    step: 2,
+                    title: "Complete your profile",
+                    sub: session.profilePhoto && (isPro ? proSess!.bio : (salonSess as SalonUserProfile & { description?: string })?.description)
+                      ? "Profile looking great!"
+                      : "Add your photo, bio and location so clients trust you",
+                    done: Boolean(session.profilePhoto && (isPro ? proSess!.bio : (salonSess as SalonUserProfile & { description?: string })?.description)),
+                    action: { label: "Edit Profile", tab: "settings" as ProviderTab },
+                  },
+                  {
+                    step: 3,
+                    title: "Share your first post",
+                    sub: "Upload a before/after or portfolio photo — this is how clients find you",
+                    done: posts.length > 0,
+                    action: null, // handled by compose button above
+                  },
+                  {
+                    step: 4,
+                    title: "Publish your listing",
+                    sub: (isPro ? proSess!.listingPublished : salonSess!.listingPublished)
+                      ? "You're live — clients can discover and book you!"
+                      : "Go live so clients can discover and book you",
+                    done: Boolean(isPro ? proSess!.listingPublished : salonSess!.listingPublished),
+                    action: { label: "Go Live", tab: "settings" as ProviderTab },
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.step}
+                    className={cn(
+                      "flex items-start gap-4 rounded-[20px] border px-4 py-4 transition",
+                      item.done
+                        ? "border-[var(--ms-emerald)]/30 bg-[var(--ms-emerald)]/5"
+                        : "border-[var(--ms-border)] bg-white",
+                    )}
+                  >
+                    <span className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold",
+                      item.done
+                        ? "bg-[var(--ms-emerald)] text-white"
+                        : "bg-[var(--ms-soft-bg)] text-[var(--ms-mauve)]",
+                    )}>
+                      {item.done ? <Check className="h-4 w-4" /> : item.step}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("text-[14px] font-semibold", item.done ? "text-[var(--ms-emerald)]" : "text-[var(--ms-navy)]")}>
+                        {item.title}
+                      </p>
+                      <p className="mt-0.5 text-[12px] leading-5 text-[var(--ms-mauve)]">{item.sub}</p>
+                    </div>
+                    {!item.done && item.action && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(item.action!.tab)}
+                        className="shrink-0 rounded-full bg-[var(--ms-plum)] px-3 py-1.5 text-[11px] font-bold text-white transition hover:brightness-110"
+                      >
+                        {item.action.label}
+                      </button>
+                    )}
+                    {!item.done && !item.action && item.step === 3 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPost(true)}
+                        className="shrink-0 rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] px-3 py-1.5 text-[11px] font-bold text-white transition hover:brightness-110"
+                      >
+                        Post now
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-1 sm:gap-2">
@@ -1792,8 +1878,12 @@ function ProviderMessagesPanel({
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(220px,0.38fr)_minmax(0,0.62fr)]">
         <div className="space-y-2">
           {sortedThreads.length === 0 ? (
-            <div className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-5 text-sm leading-6 text-[var(--ms-mauve)]">
-              No client messages yet.
+            <div className="rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-5">
+              <p className="text-[13px] font-semibold text-[var(--ms-navy)]">No messages yet</p>
+              <p className="mt-1.5 text-[12px] leading-5 text-[var(--ms-mauve)]">
+                When a client visits your public profile and taps <strong>Message</strong>, their conversation
+                appears here. Share your posts to get discovered — messages follow bookings.
+              </p>
             </div>
           ) : (
             sortedThreads.map((thread) => {
