@@ -37,6 +37,7 @@ import {
 import { ImageUploadEditor } from "@/components/image-upload-editor";
 import { LanguagePreferenceCard } from "@/components/language-preference-card";
 import { CTAButton, SectionReveal } from "@/components/marketplace-ui";
+import { SalonTeamPanel, TeamMemberDashboard } from "@/components/salon-team-ui";
 import { MyWorldCard } from "@/components/my-world-card";
 import {
   APP_SESSION_EVENT,
@@ -119,6 +120,10 @@ export function RoleProfileWorkspace() {
 
   if (session.role === "shop" || session.role === "delivery") {
     return <OperationsProfilePrompt role={session.role} />;
+  }
+
+  if (session.role === "team_member") {
+    return <TeamMemberDashboard session={session} />;
   }
 
   if (session.role !== "professional") {
@@ -1207,7 +1212,7 @@ function EditField({
 // ── Shared social-profile workspace for Professional and Salon ────────────────
 // Both roles get the same Instagram-style shell — only the data fields differ.
 
-type ProviderTab = "posts" | "settings";
+type ProviderTab = "posts" | "team" | "settings";
 
 function ProviderProfileWorkspace({
   session,
@@ -1221,7 +1226,7 @@ function ProviderProfileWorkspace({
   const searchParams = useSearchParams();
   const initTab = (searchParams.get("tab") as ProviderTab | null) ?? "posts";
   const [activeTab, setActiveTab] = useState<ProviderTab>(
-    (["posts", "settings"] as ProviderTab[]).includes(initTab) ? initTab : "posts",
+    (["posts", "team", "settings"] as ProviderTab[]).includes(initTab) ? initTab : "posts",
   );
 
   const isPro    = session.role === "professional";
@@ -1443,29 +1448,32 @@ function ProviderProfileWorkspace({
           ))}
         </div>
 
-        {/* Tabs — Posts | Settings gear */}
+        {/* Tabs — Posts | [Team if salon] | Settings gear */}
         <div className="mt-0 flex items-center border-b border-[var(--ms-border)]">
           {(
             [
-              { key: "posts", label: "Posts", icon: <Grid3X3 className="h-4 w-4" /> },
-            ] as { key: ProviderTab; label: string; icon: ReactNode }[]
-          ).map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-2 border-b-2 py-3 text-sm font-semibold transition",
-                activeTab === tab.key
-                  ? "border-[var(--ms-plum)] text-[var(--ms-plum)]"
-                  : "border-transparent text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
-              )}
-            >
-              {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-          {/* Settings gear icon — not a full tab */}
+              { key: "posts", label: "Posts",  icon: <Grid3X3 className="h-4 w-4" />, salonOnly: false },
+              { key: "team",  label: "Team",   icon: <Users className="h-4 w-4" />,   salonOnly: true  },
+            ] as { key: ProviderTab; label: string; icon: ReactNode; salonOnly: boolean }[]
+          )
+            .filter((t) => !t.salonOnly || !isPro)
+            .map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveTab(t.key)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-2 border-b-2 py-3 text-sm font-semibold transition",
+                  activeTab === t.key
+                    ? "border-[var(--ms-plum)] text-[var(--ms-plum)]"
+                    : "border-transparent text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]",
+                )}
+              >
+                {t.icon}
+                <span className="hidden sm:inline">{t.label}</span>
+              </button>
+            ))}
+          {/* Settings gear icon — links to /settings page */}
           <Link
             href="/settings"
             className="ml-auto flex items-center justify-center border-b-2 border-transparent px-4 py-3 text-[var(--ms-mauve)] transition hover:text-[var(--ms-plum)]"
@@ -1605,6 +1613,14 @@ function ProviderProfileWorkspace({
               </div>
             )}
           </div>
+        )}
+
+        {/* ── Team tab (salon only) ───────────────────────────────────── */}
+        {activeTab === "team" && !isPro && salonSess && (
+          <SalonTeamPanel
+            session={salonSess}
+            onSave={(s) => onSave(s as AppUserSession)}
+          />
         )}
 
         {/* ── Settings tab ───────────────────────────────────────────── */}

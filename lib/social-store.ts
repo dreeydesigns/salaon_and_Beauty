@@ -97,6 +97,10 @@ export interface SocialPost {
   archived?: boolean;        // owner-archived — toggled on/off by user, hides from public feed
   deleted?: boolean;         // soft-deleted — NEVER hard-removed from storage (regulatory tombstone)
   deletedAt?: string;        // ISO timestamp of deletion — audit trail per Kenyan DPA 2019
+  /** Team member portfolio attribution — set when a team member uploads work */
+  ownedBySalonId?: string;          // salon that owns this image (legal owner)
+  creditedToMemberId?: string;      // team member who did the work (credited artist)
+  creditedToMemberName?: string;    // denormalized — "by [Name]" shown on the image
 }
 
 export interface SocialComment {

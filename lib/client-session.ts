@@ -12,7 +12,7 @@ import {
 } from "@/lib/personalization";
 import { type ServiceMode } from "@/lib/site-data";
 
-export type AppUserRole = "client" | "salon" | "professional" | "shop" | "delivery" | "super_admin" | "guest";
+export type AppUserRole = "client" | "salon" | "professional" | "shop" | "delivery" | "super_admin" | "team_member" | "guest";
 
 export interface GuestUserProfile {
   id: string;
@@ -55,6 +55,29 @@ export interface SuperAdminUserProfile {
   displayName: string;
   phone: string;
   email?: string;
+  createdAt: string;
+}
+
+/**
+ * Team member account — a simplified account type for salon staff.
+ * Linked to a salon; their portfolio uploads belong to the salon.
+ * Cannot access salon pricing, team list, or other members' earnings.
+ */
+export interface TeamMemberProfile {
+  id: string;
+  role: "team_member";
+  firstName: string;
+  phone: string;
+  email?: string;
+  profilePhoto?: string;
+  specialty: string;
+  bio?: string;
+  /** The salon this team member belongs to */
+  salonId: string;
+  salonName: string;
+  salonSlug: string;
+  /** Team member's earnings share (e.g. 20 = 20%) — set by salon admin */
+  commissionPct: number;
   createdAt: string;
 }
 
@@ -110,6 +133,7 @@ export type AppUserSession =
   | ShopUserProfile
   | DeliveryUserProfile
   | SuperAdminUserProfile
+  | TeamMemberProfile
   | GuestUserProfile;
 
 export interface BookableProviderProfile {
@@ -448,6 +472,36 @@ export function createProfessionalSession(
   };
 }
 
+export function createTeamMemberSession(overrides: {
+  firstName: string;
+  phone: string;
+  specialty: string;
+  salonId: string;
+  salonName: string;
+  salonSlug: string;
+  commissionPct: number;
+  id?: string;
+  email?: string;
+  profilePhoto?: string;
+  bio?: string;
+}): TeamMemberProfile {
+  return {
+    id: overrides.id ?? `tm_${Date.now()}`,
+    role: "team_member",
+    firstName: overrides.firstName,
+    phone: overrides.phone,
+    email: overrides.email,
+    profilePhoto: overrides.profilePhoto,
+    specialty: overrides.specialty,
+    bio: overrides.bio,
+    salonId: overrides.salonId,
+    salonName: overrides.salonName,
+    salonSlug: overrides.salonSlug,
+    commissionPct: overrides.commissionPct,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 export function createShopSession(overrides?: Partial<ShopUserProfile>): ShopUserProfile {
   const suffix = cleanPhoneSuffix(overrides?.phone);
   const name = overrides?.shopName ?? "New Shop";
@@ -510,6 +564,18 @@ export function createSessionForRole(role: Exclude<AppUserRole, "guest">, phone?
 
   if (role === "super_admin") {
     return createSuperAdminSession({ phone });
+  }
+
+  if (role === "team_member") {
+    return createTeamMemberSession({
+      firstName: "Team Member",
+      phone: phone ?? "",
+      specialty: "",
+      salonId: "",
+      salonName: "",
+      salonSlug: "",
+      commissionPct: 20,
+    });
   }
 
   return createClientSession({ phone });
