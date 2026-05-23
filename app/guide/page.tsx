@@ -152,7 +152,7 @@ export default function GuidePage() {
   const [activeTab, setActiveTab] = useState<"clients" | "professionals" | "salons">("clients");
 
   return (
-    <AppShell currentNav="home" roleMode="salons">
+    <AppShell currentNav="guide" roleMode="salons">
       <div className="mx-auto max-w-5xl space-y-8 px-4 pb-24 pt-4">
 
         {/* Header */}

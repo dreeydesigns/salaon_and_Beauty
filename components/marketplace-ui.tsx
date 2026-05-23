@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Bell,
+  BookOpen,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -107,7 +108,7 @@ const clientNavItems: NavItem[] = [
 const providerNavItems: NavItem[] = [
   { key: "home",     label: "Home",     href: "/home",                 icon: Home             },
   { key: "requests", label: "Requests", href: "/profile?tab=requests", icon: Inbox            },
-  { key: "posts",    label: "Posts",    href: "/profile?tab=posts",    icon: Grid3X3          },
+  { key: "guide",    label: "Guide",    href: "/guide",                icon: BookOpen         },
   { key: "messages", label: "Messages", href: "/profile?tab=messages", icon: MessageCircleMore},
   { key: "profile",  label: "Me",       href: "/profile",              icon: UserRound        },
 ];
@@ -424,10 +425,9 @@ export function SplitBrandHeader({
     ? [
         ["Home",        "/home"],
         ["Requests",    "/profile?tab=requests"],
-        ["My Posts",    "/profile?tab=posts"],
+        ["Guide",       "/guide"],
         ["Messages",    "/profile?tab=messages"],
         ["Profile",     "/profile"],
-        ["Guide",       "/guide"],
         ["Terms & Conditions", "/terms"],
         ["Help",        "/help"],
       ]
@@ -475,8 +475,8 @@ export function SplitBrandHeader({
                   <DesktopNavLink href="/profile?tab=requests" current={currentNav === "requests"}>
                     Requests
                   </DesktopNavLink>
-                  <DesktopNavLink href="/profile?tab=posts" current={currentNav === "posts"}>
-                    Posts
+                  <DesktopNavLink href="/guide" current={currentNav === "guide"}>
+                    Guide
                   </DesktopNavLink>
                   <DesktopNavLink href="/profile?tab=messages" current={currentNav === "messages"}>
                     Messages
