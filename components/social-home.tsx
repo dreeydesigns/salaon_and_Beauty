@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import {
   Archive,
@@ -1407,7 +1408,7 @@ function TrendingSidebar({
   }>;
   activeHashtag: string | null;
   onTagClick: (tag: string) => void;
-  onCreatorClick: (id: string, name: string) => void;
+  onCreatorClick: (id: string, name?: string) => void;
 }) {
   return (
     <aside className="hidden w-72 shrink-0 xl:block">
@@ -1680,6 +1681,7 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
 // ─── Main SocialHome ──────────────────────────────────────────────────────────
 
 export function SocialHome() {
+  const router       = useRouter();
   const searchParams = useSearchParams();
   const initTab = (searchParams.get("tab") as FeedTab | null) ?? "foryou";
 
@@ -1965,10 +1967,8 @@ export function SocialHome() {
             setActiveAuthorFilter(null);
             setActiveTab("foryou");
           }}
-          onCreatorClick={(id, name) => {
-            setActiveAuthorFilter((prev) => (prev?.id === id ? null : { id, name }));
-            setActiveHashtag(null);
-            setActiveTab("foryou");
+          onCreatorClick={(id) => {
+            router.push(`/u/${id}`);
           }}
         />
       </div>
