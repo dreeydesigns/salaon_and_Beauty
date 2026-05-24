@@ -1392,6 +1392,9 @@ function TrendingSidebar({
   onFollowToggle,
   onToast,
   suggestedCreators,
+  activeHashtag,
+  onTagClick,
+  onCreatorClick,
 }: {
   followedAuthors: Set<string>;
   onFollowToggle: (id: string) => void;
@@ -1402,6 +1405,9 @@ function TrendingSidebar({
     role: SocialPost["authorRole"];
     sub: string;
   }>;
+  activeHashtag: string | null;
+  onTagClick: (tag: string) => void;
+  onCreatorClick: (id: string, name: string) => void;
 }) {
   return (
     <aside className="hidden w-72 shrink-0 xl:block">
@@ -1411,21 +1417,40 @@ function TrendingSidebar({
             <Flame className="h-4 w-4 text-[var(--ms-rose)]" />
             <p className="text-sm font-bold text-[var(--ms-navy)]">Trending</p>
           </div>
-          <div className="space-y-3">
-            {TRENDING_TAGS.map((t, i) => (
-              <button
-                key={t.tag}
-                type="button"
-                onClick={() => onToast("Showing " + t.tag)}
-                className="flex w-full items-center gap-3 group"
-              >
-                <span className="w-4 text-right text-[11px] font-bold text-[var(--ms-mauve)]">{i + 1}</span>
-                <div className="text-left">
-                  <p className="text-[13px] font-bold text-[var(--ms-navy)] group-hover:text-[var(--ms-plum)]">{t.tag}</p>
-                  <p className="text-[11px] text-[var(--ms-mauve)]">{t.posts}</p>
-                </div>
-              </button>
-            ))}
+          <div className="space-y-1">
+            {TRENDING_TAGS.map((t, i) => {
+              const isActive = activeHashtag === t.tag;
+              return (
+                <button
+                  key={t.tag}
+                  type="button"
+                  onClick={() => onTagClick(t.tag)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-[12px] px-2 py-2 transition group",
+                    isActive
+                      ? "bg-[var(--ms-petal)]"
+                      : "hover:bg-[var(--ms-soft-bg)]",
+                  )}
+                >
+                  <span className={cn(
+                    "w-4 text-right text-[11px] font-bold",
+                    isActive ? "text-[var(--ms-rose)]" : "text-[var(--ms-mauve)]",
+                  )}>{i + 1}</span>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className={cn(
+                      "text-[13px] font-bold transition",
+                      isActive ? "text-[var(--ms-plum)]" : "text-[var(--ms-navy)] group-hover:text-[var(--ms-plum)]",
+                    )}>{t.tag}</p>
+                    <p className="text-[11px] text-[var(--ms-mauve)]">{t.posts}</p>
+                  </div>
+                  {isActive && (
+                    <span className="shrink-0 rounded-full bg-[var(--ms-plum)] px-2 py-0.5 text-[10px] font-bold text-white">
+                      Active
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1440,14 +1465,25 @@ function TrendingSidebar({
               const following = followedAuthors.has(s.id);
               return (
                 <div key={s.id} className="flex items-center gap-3">
-                  <div className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white bg-gradient-to-br",
-                    avatarGradient(s.role),
-                  )}>
+                  <button
+                    type="button"
+                    onClick={() => onCreatorClick(s.id, s.name)}
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white bg-gradient-to-br transition hover:scale-105 hover:ring-2 hover:ring-[var(--ms-plum)] hover:ring-offset-1",
+                      avatarGradient(s.role),
+                    )}
+                    title={`See ${s.name}'s posts`}
+                  >
                     {s.name[0]}
-                  </div>
+                  </button>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-bold text-[var(--ms-navy)]">{s.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => onCreatorClick(s.id, s.name)}
+                      className="block truncate text-left text-[13px] font-bold text-[var(--ms-navy)] hover:text-[var(--ms-plum)] transition"
+                    >
+                      {s.name}
+                    </button>
                     <p className="truncate text-[11px] text-[var(--ms-mauve)]">{s.sub}</p>
                   </div>
                   <button
@@ -1663,6 +1699,8 @@ export function SocialHome() {
   const [allStories,        setAllStories]        = useState<Story[]>([]);
   const [showStoryCreate,   setShowStoryCreate]   = useState(false);
   const [viewingAuthorId,   setViewingAuthorId]   = useState<string | null>(null);
+  const [activeHashtag,     setActiveHashtag]     = useState<string | null>(null);
+  const [activeAuthorFilter,setActiveAuthorFilter] = useState<{ id: string; name: string } | null>(null);
 
   const showToast = useCallback((msg: string) => setToast(msg), []);
 
@@ -1741,10 +1779,22 @@ export function SocialHome() {
       ? allPosts.filter((p) => followedIds.has(p.authorId) || p.authorId === sessionId)
       : allPosts;
 
-  const filteredPosts =
+  const categoryPosts =
     activeCategory === "all"
       ? feedPosts
       : feedPosts.filter((p) => p.type === activeCategory);
+
+  const hashtagPosts = activeHashtag
+    ? categoryPosts.filter(
+        (p) =>
+          p.tags.some((t) => t.toLowerCase() === activeHashtag.toLowerCase()) ||
+          p.caption.toLowerCase().includes(activeHashtag.toLowerCase()),
+      )
+    : categoryPosts;
+
+  const filteredPosts = activeAuthorFilter
+    ? hashtagPosts.filter((p) => p.authorId === activeAuthorFilter.id)
+    : hashtagPosts;
 
   return (
     <>
@@ -1767,9 +1817,32 @@ export function SocialHome() {
           <div className="-mx-4 lg:-mx-6">
             <RoomsBar
               activeRoomId={activeRoomId}
-              onSelect={(room) => setActiveRoomId(room.id)}
+              onSelect={(room) => {
+                setActiveRoomId(room.id);
+                setActiveHashtag(null);
+                setActiveAuthorFilter(null);
+              }}
             />
           </div>
+
+          {/* Active filter banner */}
+          {(activeHashtag || activeAuthorFilter) && (
+            <div className="mb-2 flex items-center gap-2 rounded-[16px] bg-[var(--ms-petal)] px-4 py-2.5">
+              <Flame className="h-3.5 w-3.5 shrink-0 text-[var(--ms-rose)]" />
+              <p className="flex-1 text-[13px] font-semibold text-[var(--ms-plum)]">
+                {activeHashtag
+                  ? <>Showing posts tagged <span className="font-bold">{activeHashtag}</span></>
+                  : <>Posts by <span className="font-bold">{activeAuthorFilter!.name}</span></>}
+              </p>
+              <button
+                type="button"
+                onClick={() => { setActiveHashtag(null); setActiveAuthorFilter(null); }}
+                className="rounded-full bg-[var(--ms-plum)] px-3 py-1 text-[11px] font-bold text-white"
+              >
+                Clear ✕
+              </button>
+            </div>
+          )}
 
           {/* Guest banner */}
           {isGuest && (
@@ -1796,7 +1869,7 @@ export function SocialHome() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setActiveTab(t)}
+                  onClick={() => { setActiveTab(t); setActiveHashtag(null); setActiveAuthorFilter(null); }}
                   className={cn(
                     "relative flex flex-1 items-center justify-center gap-2 py-3 text-[13px] font-bold transition-colors",
                     activeTab === t
@@ -1886,6 +1959,17 @@ export function SocialHome() {
           onFollowToggle={handleFollowToggle}
           onToast={showToast}
           suggestedCreators={suggestedCreators}
+          activeHashtag={activeHashtag}
+          onTagClick={(tag) => {
+            setActiveHashtag((prev) => (prev === tag ? null : tag));
+            setActiveAuthorFilter(null);
+            setActiveTab("foryou");
+          }}
+          onCreatorClick={(id, name) => {
+            setActiveAuthorFilter((prev) => (prev?.id === id ? null : { id, name }));
+            setActiveHashtag(null);
+            setActiveTab("foryou");
+          }}
         />
       </div>
 
