@@ -26,16 +26,24 @@ export function AppShell({
   allowedRoles?: AppUserRole[];
 }) {
   return (
-    <div className="feminine-shell min-h-screen">
+    <div className="feminine-shell flex min-h-screen flex-col">
       <AppUsageTracker />
       {/* Guest 10-min timer + booking/checkout gate — renders nothing until triggered */}
       <GuestAuthGate />
       <SplitBrandHeader currentNav={currentNav} />
-      <main className="mx-auto min-h-[calc(100vh-180px)] w-full max-w-7xl overflow-x-clip px-4 pb-28 pt-6 lg:px-6 lg:pb-12">
-        {requireSession ? <ClientSessionGate allowedRoles={allowedRoles}>{children}</ClientSessionGate> : children}
+      
+      <main className="mx-auto flex w-full max-w-7xl flex-grow flex-col px-4 pt-6 lg:px-6">
+        {requireSession ? (
+          <ClientSessionGate allowedRoles={allowedRoles}>
+            {children}
+          </ClientSessionGate>
+        ) : (
+          children
+        )}
       </main>
+      
       {showFooter ? (
-        <footer className="border-t border-[var(--ms-border)] bg-white/90">
+        <footer className="mt-auto border-t border-[var(--ms-border)] bg-white/90">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-[var(--ms-mauve)] lg:flex-row lg:items-center lg:justify-between lg:px-6">
             <div>
               <p className="font-semibold text-[var(--ms-navy)]">Mobile Salon</p>
@@ -63,6 +71,7 @@ export function AppShell({
           </div>
         </footer>
       ) : null}
+      
       {showBottomNav ? <BottomMobileNav currentNav={currentNav} /> : null}
     </div>
   );

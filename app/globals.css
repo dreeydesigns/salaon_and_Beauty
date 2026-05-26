@@ -28,14 +28,6 @@
   --foreground: var(--ms-charcoal);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: "DM Sans", "Aptos", "Segoe UI", sans-serif;
-  --font-display: "Playfair Display", "Cormorant Garamond", Georgia, serif;
-  --font-script: "Great Vibes", "Dancing Script", "Segoe Script", cursive;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -77,6 +69,14 @@ textarea:focus-visible,
 summary:focus-visible {
   outline: 3px solid rgba(232, 62, 140, 0.36);
   outline-offset: 4px;
+}
+
+:root {
+  --ms-zoom-val: 1;
+}
+
+.zoom-initial {
+  --ms-zoom: var(--ms-zoom-val);
 }
 
 summary {
@@ -165,7 +165,6 @@ h1,
 h2,
 h3 {
   overflow-wrap: break-word;
-  text-wrap: balance;
 }
 
 .beauty-link {
@@ -206,9 +205,6 @@ h3 {
   padding-block: 0.35rem 1.2rem;
   scroll-padding-inline: 1rem;
   scroll-snap-type: inline mandatory;
-  scrollbar-color: rgba(201, 168, 76, 0.9) rgba(13, 27, 42, 0.08);
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
 }
 
 .scroll-row > * {
