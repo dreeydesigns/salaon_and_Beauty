@@ -27,6 +27,7 @@ import {
   Palette,
   Phone,
   Repeat2,
+  SaveIcon,
   Shield,
   ShieldCheck,
   ShieldOff,
@@ -159,11 +160,16 @@ function Toggle({
   onChange: (next: boolean) => void;
   disabled?: boolean;
 }) {
+  const ariaAttrs = {
+    role: "switch",
+    "aria-label": "Toggle setting",
+    "aria-checked": on ? "true" : "false",
+  } as const;
+
   return (
     <button
       type="button"
-      role="switch"
-      aria-checked={on}
+      {...ariaAttrs}
       disabled={disabled}
       onClick={() => onChange(!on)}
       className={cn(
@@ -326,7 +332,7 @@ function Row({ def, last }: { def: RowDef; last: boolean }) {
 
   if (def.kind === "link") {
     if (isReadOnly) {
-      return <div style={{ cursor: "default", pointerEvents: "none" }}>{inner}</div>;
+      return <div className="cursor-default pointer-events-none">{inner}</div>;
     }
     if (def.href) {
       return (
@@ -401,6 +407,7 @@ function OtpBoxes({
           ref={(el) => { refs.current[i] = el; }}
           type="text"
           inputMode="numeric"
+          aria-label={`Digit ${i + 1}`}
           maxLength={1}
           value={digits[i]?.trim() ?? ""}
           onChange={(e) => handleChange(i, e.target.value)}
@@ -494,6 +501,7 @@ function PhoneChangeSheet({
             <button
               type="button"
               onClick={onCancel}
+              aria-label="Close dialog"
               className="mt-1 rounded-full p-1 text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)]"
             >
               <X className="h-4 w-4" />
@@ -676,13 +684,7 @@ function LanguageModal({
             >
               Cancel
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="flex-1 rounded-full bg-[var(--ms-plum)] py-3 text-[13px] font-bold text-white transition hover:brightness-110"
-            >
-              Save
-            </button>
+            <button onClick={handleSave} aria-label="Save changes"><SaveIcon /></button>
           </div>
         </div>
       </div>
@@ -751,6 +753,7 @@ function TwoFactorModal({
             <button
               type="button"
               onClick={onCancel}
+              aria-label="Close dialog"
               className="mt-1 rounded-full p-1 text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)]"
             >
               <X className="h-4 w-4" />
@@ -926,7 +929,7 @@ function AgeVerifyModal({
             <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--ms-soft-bg)]">
               <ShieldCheck className="h-6 w-6 text-[var(--ms-plum)]" strokeWidth={1.85} />
             </div>
-            <button type="button" onClick={onCancel} className="mt-1 rounded-full p-1 text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)]">
+            <button type="button" onClick={onCancel} aria-label="Close dialog" className="mt-1 rounded-full p-1 text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)]">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -935,10 +938,11 @@ function AgeVerifyModal({
             Adult products on Counter are intended for people aged 18 and above only.
           </p>
           <div className="mt-5">
-            <label className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
+            <label htmlFor="age-confirm-dob" className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
               Date of birth
             </label>
             <input
+              id="age-confirm-dob"
               type="date"
               value={dob}
               onChange={(e) => { setDob(e.target.value); setError(""); }}
@@ -1206,6 +1210,7 @@ function ReportProblemModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close dialog"
               className="mt-1 rounded-full p-1 text-[var(--ms-mauve)] hover:bg-[var(--ms-soft-bg)]"
             >
               <X className="h-4 w-4" />
@@ -1219,10 +1224,11 @@ function ReportProblemModal({ onClose }: { onClose: () => void }) {
           <div className="mt-4 space-y-3">
             {/* Category */}
             <div>
-              <label className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
+              <label htmlFor="report-category" className="mb-1.5 block text-[12px] font-semibold text-[var(--ms-navy)]">
                 Category
               </label>
               <select
+                id="report-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full rounded-[14px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-3 text-[14px] text-[var(--ms-navy)] outline-none focus:border-[var(--ms-plum)] transition"
@@ -1270,6 +1276,7 @@ function ReportProblemModal({ onClose }: { onClose: () => void }) {
                   <button
                     type="button"
                     onClick={() => setScreenshot(null)}
+                    aria-label="Remove screenshot"
                     className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white"
                   >
                     <X className="h-3.5 w-3.5" />
