@@ -2,7 +2,7 @@ import { sql } from '@vercel/postgres';
 import { hashPassword } from '@/lib/auth';
 import crypto from 'crypto';
 
-// Explicit type definitions to keep TypeScript happy
+// Strict interface definition to eliminate type errors permanently
 interface DatabaseRow {
   id: string;
   user_id: string;
@@ -14,7 +14,6 @@ interface DatabaseRow {
 
 /**
  * Create a new authenticated session in the database
- * Called after user logs in or signs up
  */
 export async function createSession(
   userId: string,
@@ -23,20 +22,18 @@ export async function createSession(
   ipAddress?: string
 ) {
   try {
-    // Generate secure random token
     const token = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto
       .createHash('sha256')
       .update(token)
       .digest('hex');
 
-    // Store session in database
     await sql`
       INSERT INTO sessions (user_id, token_hash, device_name, browser, ip_address, is_current)
       VALUES (${userId}, ${tokenHash}, ${deviceName}, ${browser || null}, ${ipAddress || null}, true)
     `;
 
-    return token; // Return the unhashed token to send to client
+    return token;
   } catch (error) {
     console.error('Error creating session:', error);
     throw error;
@@ -44,7 +41,7 @@ export async function createSession(
 }
 
 /**
- * Verify an existing session token and return the associated user data
+ * Verify an existing session token
  */
 export async function verifySession(token: string) {
   try {
@@ -88,7 +85,7 @@ export async function getActiveSessions(userId: string) {
 }
 
 /**
- * Delete a specific session (logout from specific device)
+ * Delete a specific session
  */
 export async function deleteSession(sessionId: string) {
   try {
@@ -100,7 +97,7 @@ export async function deleteSession(sessionId: string) {
 }
 
 /**
- * Delete all sessions except current (sign out all other devices)
+ * Delete all sessions except current
  */
 export async function deleteOtherSessions(userId: string, currentSessionId: string) {
   try {
@@ -115,7 +112,7 @@ export async function deleteOtherSessions(userId: string, currentSessionId: stri
 }
 
 /**
- * Invalidate all sessions for a user (used on password change, account deletion request)
+ * Invalidate all sessions for a user
  */
 export async function invalidateAllSessions(userId: string) {
   try {
