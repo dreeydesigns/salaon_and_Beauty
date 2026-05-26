@@ -56,7 +56,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased" data-scroll-behavior="smooth">
+    <html 
+      lang="en" 
+      className="h-full antialiased" 
+      data-scroll-behavior="smooth"
+      // Providing the initial style here prevents the hydration mismatch
+      style={{ "--ms-zoom": "1" } as React.CSSProperties} 
+    >
       <head>
         {/* No-flash: apply saved theme/zoom/lang before first paint */}
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />

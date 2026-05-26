@@ -1,5 +1,6 @@
 "use client";
 
+import { deleteSession } from "@/lib/db-sessions";
 import Link from "next/link";
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import {
@@ -1648,10 +1649,30 @@ export function SettingsUI() {
     showToast("Adult products enabled");
   }
 
-  function handleSignOut() {
+  // This function runs when the user clicks "Sign Out"
+  async function handleSignOut() {
+    try {
+      // 1. Look inside the browser's storage to see who is logged in
+      const currentSession = readAppSession();
+
+      // 2. If we found a logged-in user, use their ID to delete them from our database
+      if (currentSession?.id) {
+        await deleteSession(currentSession.id);
+        console.log("Deleted session from database successfully");
+      }
+    } catch (error) {
+      // If something goes wrong (like no internet), just log it so it doesn't crash the app
+      console.error("Database logout failed, but proceeding anyway:", error);
+    }
+
+    // 3. Finally, clear the browser's memory of the user
     clearAppSession();
+    
+    // 4. Close the confirmation box
     setShowSignOut(false);
-    window.location.replace("/");
+    
+    // 5. Force the page to refresh/redirect so they are officially logged out
+    window.location.href = "/";
   }
 
   function handleTwoFactorToggle(next: boolean) {
