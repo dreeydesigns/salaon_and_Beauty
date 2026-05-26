@@ -6,14 +6,12 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    /* This layout is now completely free of sidebars. 
-       - min-h-screen ensures it fills the height.
-       - flex centers the content.
-       - max-w-xl (on large screens) allows the form to expand slightly 
-         more than the mobile-only setting.
+    /* - w-screen h-screen: Forces the layout to be the size of the window.
+       - bg-[#FAF9F6]: Keeps your background color.
+       - flex: Removes all grid/column limitations.
     */
-    <div className="w-full min-h-screen bg-[#FAF9F6] flex items-center justify-center p-6">
-      <div className="w-full max-w-[400px] lg:max-w-[450px]">
+    <div className="w-screen min-h-screen bg-[#FAF9F6] flex">
+      <div className="w-full">
         {children}
       </div>
     </div>
