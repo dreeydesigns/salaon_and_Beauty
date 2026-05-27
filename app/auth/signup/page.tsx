@@ -28,7 +28,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // This is the missing piece that fixes your error
+    // This is the essential part that fixes the error
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
       'size': 'invisible',
       'sitekey': '6Ldz3f8sAAAAACWp8KeMSOsmUUixXVIqyBx4S0fj',
@@ -65,11 +65,8 @@ export default function SignupPage() {
 
   return (
     <div className="w-full max-w-md mx-auto p-6">
-      {/* Required for Firebase reCAPTCHA */}
       <div id="recaptcha-container"></div>
-      
       {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
-
       {step === 1 ? (
         <form onSubmit={handleRequestOTP} className="space-y-4">
           <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254XXXXXXXXX" required className="w-full border p-2"/>
