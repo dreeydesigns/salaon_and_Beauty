@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 
-// 1. Firebase Initialization
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -18,12 +17,10 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
-// Prevent TypeScript errors for window objects
 declare global { interface Window { recaptchaVerifier: any; confirmationResult: ConfirmationResult; } }
 
 export default function SignupPage() {
   const router = useRouter();
-  
   const [step, setStep] = useState<1 | 2>(1);
   const [phone, setPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -31,7 +28,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 2. Initialize Recaptcha
+    // This is the missing piece that fixes your error
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
       'size': 'invisible',
       'sitekey': '6Ldz3f8sAAAAACWp8KeMSOsmUUixXVIqyBx4S0fj',
@@ -43,7 +40,6 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
     try {
-      // Direct Firebase Auth call
       const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
       window.confirmationResult = confirmation;
       setStep(2);
@@ -69,7 +65,7 @@ export default function SignupPage() {
 
   return (
     <div className="w-full max-w-md mx-auto p-6">
-      {/* 3. Required reCAPTCHA container */}
+      {/* Required for Firebase reCAPTCHA */}
       <div id="recaptcha-container"></div>
       
       {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
