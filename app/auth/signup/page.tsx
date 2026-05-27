@@ -1,84 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
+
+// 1. Firebase Initialization
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+
+// Prevent TypeScript errors for window objects
+declare global { interface Window { recaptchaVerifier: any; confirmationResult: ConfirmationResult; } }
 
 export default function SignupPage() {
   const router = useRouter();
   
   const [step, setStep] = useState<1 | 2>(1);
-  const [firstName, setFirstName] = useState('');
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tempToken, setTempToken] = useState('');
+
+  useEffect(() => {
+    // 2. Initialize Recaptcha
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      'size': 'invisible',
+      'sitekey': '6Ldz3f8sAAAAACWp8KeMSOsmUUixXVIqyBx4S0fj',
+    });
+  }, []);
 
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !phone || !password) {
-      setError('Please fill in all fields.');
-      return;
-    }
-
-    const cleanPhone = phone.replace(/\D/g, '');
-    
     setLoading(true);
     setError(null);
-
-    // DIAGNOSTIC: Log the URL to the browser console
-    console.log("Attempting to fetch:", window.location.origin + '/api/auth/otp');
-
     try {
-      const res = await fetch('/api/auth/otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone }),
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send verification code.');
-      }
-
-      setTempToken(btoa(JSON.stringify({ phone: cleanPhone })));
+      // Direct Firebase Auth call
+      const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+      window.confirmationResult = confirmation;
       setStep(2);
     } catch (err: any) {
-      console.error("Fetch Error:", err);
-      setError(err.message);
+      setError('Error: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyAndRegister = async (e: React.FormEvent) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-
     try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          phone: phone.replace(/\D/g, ''), 
-          firstName, 
-          password, 
-          tempToken 
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Registration failed.');
-      }
-      
-      router.push('/');
+      await window.confirmationResult.confirm(otpCode);
+      router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      setError('Invalid code.');
     } finally {
       setLoading(false);
     }
@@ -86,78 +69,20 @@ export default function SignupPage() {
 
   return (
     <div className="w-full max-w-md mx-auto p-6">
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 text-xs font-mono rounded">
-          {error}
-        </div>
-      )}
+      {/* 3. Required reCAPTCHA container */}
+      <div id="recaptcha-container"></div>
+      
+      {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
 
       {step === 1 ? (
-        <form onSubmit={handleRequestOTP} className="space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-serif">Create Account</h2>
-          </div>
-          
-          <input 
-            type="text" 
-            placeholder="First Name" 
-            value={firstName} 
-            onChange={(e) => setFirstName(e.target.value)} 
-            className="w-full border-b py-2 text-sm focus:outline-none focus:border-black" 
-            required 
-          />
-          
-          <input 
-            type="tel" 
-            maxLength={10} 
-            placeholder="07XXXXXXXX" 
-            value={phone} 
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} 
-            className="w-full border-b py-2 text-sm focus:outline-none focus:border-black" 
-            required 
-          />
-          
-          <input 
-            type="password" 
-            placeholder="Password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            className="w-full border-b py-2 text-sm focus:outline-none focus:border-black" 
-            required 
-          />
-          
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-black text-white py-3 text-xs uppercase tracking-widest hover:bg-neutral-800 disabled:bg-neutral-300"
-          >
-            {loading ? 'Sending...' : 'Request Verification'}
-          </button>
+        <form onSubmit={handleRequestOTP} className="space-y-4">
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254XXXXXXXXX" required className="w-full border p-2"/>
+          <button type="submit" disabled={loading} className="w-full bg-black text-white py-2">Request Code</button>
         </form>
       ) : (
-        <form onSubmit={handleVerifyAndRegister} className="space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-serif">Verify Phone</h2>
-            <p className="text-xs text-neutral-400">Code sent to: 0{phone.slice(-9)}</p>
-          </div>
-          
-          <input 
-            type="text" 
-            maxLength={6} 
-            value={otpCode} 
-            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
-            className="w-full border-b py-2 text-center text-xl tracking-[0.5em] focus:outline-none focus:border-black" 
-            placeholder="000000" 
-            required 
-          />
-          
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-black text-white py-3 text-xs uppercase tracking-widest"
-          >
-            {loading ? 'Verifying...' : 'Complete Registration'}
-          </button>
+        <form onSubmit={handleVerifyOTP} className="space-y-4">
+          <input type="text" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} placeholder="000000" required className="w-full border p-2"/>
+          <button type="submit" disabled={loading} className="w-full bg-black text-white py-2">Verify & Register</button>
         </form>
       )}
     </div>
