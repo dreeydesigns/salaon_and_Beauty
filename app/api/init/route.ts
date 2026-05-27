@@ -57,9 +57,12 @@ export async function POST(req: NextRequest) {
       )
     `;
 
-    // ── OTP codes (hashed, upsert-per-phone, with attempt limiting) ────────
+    // ── OTP codes (hashed, upsert-per-phone, with attempt limiting) ──────────
+    // DROP first so schema changes (e.g. code → otp_hash) always apply cleanly.
+    // OTPs are ephemeral (5-min TTL) so dropping live rows is safe.
+    await sql`DROP TABLE IF EXISTS otp_codes`;
     await sql`
-      CREATE TABLE IF NOT EXISTS otp_codes (
+      CREATE TABLE otp_codes (
         phone       TEXT PRIMARY KEY,
         otp_hash    TEXT         NOT NULL,
         expires_at  TIMESTAMPTZ  NOT NULL,
