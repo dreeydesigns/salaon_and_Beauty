@@ -12,15 +12,15 @@ const sms = AT.SMS;
  * Send SMS via Africa's Talking
  */
 export async function sendSMS(phoneNumber: string, message: string) {
-  try {
-    const options = {
-      enqueue: true,
-    };
+  // In sandbox mode use "Sandbox"; in production use your registered short code
+  // configured via AT_SENDER_ID env var (e.g. "MobileSalon")
+  const from = process.env.AT_SENDER_ID ?? "Sandbox";
 
+  try {
     const result = await sms.send({
       to: [phoneNumber],
-      message: message,
-      ...options,
+      from,
+      message,
     });
 
     console.log('SMS sent:', result);
