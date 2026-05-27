@@ -44,21 +44,21 @@ export async function POST(req: NextRequest) {
             created_at = NOW()
     `;
   } catch (dbError) {
-    console.error("OTP DB error:", dbError);
+    console.error("[OTP] DB error — otp_codes table may not exist. Run POST /api/init first.", dbError);
     return NextResponse.json(
-      { ok: false, error: "Database error. Please try again." },
+      { ok: false, error: "Database error. The OTP table may not be initialised — contact support." },
       { status: 500 },
     );
   }
 
-  // ── Send via Africa's Talking HTTP API (no SDK — avoids build-time issues) ─
+  // ── Send via Africa's Talking HTTP API ─────────────────────────────────────
   const AT_USERNAME = process.env.AT_USERNAME;
   const AT_API_KEY  = process.env.AT_API_KEY;
 
   if (!AT_USERNAME || !AT_API_KEY) {
-    console.error("Missing AT_USERNAME or AT_API_KEY environment variables");
+    console.error("[OTP] Missing AT_USERNAME or AT_API_KEY env vars");
     return NextResponse.json(
-      { ok: false, error: "SMS service is not configured. Please contact support." },
+      { ok: false, error: "SMS service is not configured." },
       { status: 503 },
     );
   }
@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
     `Your Mobile Salon code is: ${otp}. ` +
     `Valid for 5 minutes. Do not share this code.`;
 
+  console.log(`[OTP] Sending to ${phone} via AT username="${AT_USERNAME}"`);
+
+  let atResult: unknown;
   try {
     const atRes = await fetch(
       "https://api.africastalking.com/version1/messaging",
@@ -85,26 +88,34 @@ export async function POST(req: NextRequest) {
       },
     );
 
-    const atResult = (await atRes.json()) as {
-      SMSMessageData?: { Recipients?: { statusCode?: number }[] };
-    };
-    const statusCode = atResult?.SMSMessageData?.Recipients?.[0]?.statusCode;
-
-    // 101 = Sent successfully in AT API
-    if (statusCode !== 101) {
-      console.error("Africa's Talking error:", JSON.stringify(atResult));
-      return NextResponse.json(
-        { ok: false, error: "Could not send SMS. Check the phone number and try again." },
-        { status: 502 },
-      );
-    }
+    atResult = await atRes.json();
+    console.log("[OTP] AT response:", JSON.stringify(atResult));
   } catch (smsError) {
-    console.error("SMS fetch error:", smsError);
+    console.error("[OTP] AT fetch failed:", smsError);
     return NextResponse.json(
-      { ok: false, error: "SMS delivery failed. Please try again." },
+      { ok: false, error: "Could not reach SMS gateway. Try again." },
       { status: 502 },
     );
   }
 
+  const typed = atResult as {
+    SMSMessageData?: { Recipients?: { statusCode?: number; status?: string; number?: string }[] };
+  };
+  const recipient  = typed?.SMSMessageData?.Recipients?.[0];
+  const statusCode = recipient?.statusCode;
+
+  // 101 = Sent, 102 = Sent to queue (both acceptable)
+  if (statusCode !== 101 && statusCode !== 102) {
+    console.error("[OTP] AT rejected send. recipient:", JSON.stringify(recipient));
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `SMS not delivered (AT status ${statusCode ?? "unknown"}): ${recipient?.status ?? "no status"}`,
+      },
+      { status: 502 },
+    );
+  }
+
+  console.log(`[OTP] SMS dispatched successfully to ${phone}, AT statusCode=${statusCode}`);
   return NextResponse.json({ ok: true, message: "Code sent" });
 }
