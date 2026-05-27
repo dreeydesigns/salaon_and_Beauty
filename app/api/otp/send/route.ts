@@ -24,22 +24,23 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Generate & hash OTP ────────────────────────────────────────────────────
-  const otp     = crypto.randomInt(100_000, 999_999).toString();
-  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+  const otp       = crypto.randomInt(100_000, 999_999).toString();
+  const otpHash   = crypto.createHash("sha256").update(otp).digest("hex");
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   // ── Persist (upsert — one active OTP per phone at a time) ─────────────────
   try {
     await sql`
       INSERT INTO otp_codes (phone, otp_hash, expires_at, attempts)
-      VALUES (${phone}, ${otpHash}, NOW() + INTERVAL '5 minutes', 0)
+      VALUES (${phone}, ${otpHash}, ${expiresAt}, 0)
       ON CONFLICT (phone) DO UPDATE
         SET otp_hash   = ${otpHash},
-            expires_at = NOW() + INTERVAL '5 minutes',
+            expires_at = ${expiresAt},
             attempts   = 0,
             created_at = NOW()
     `;
   } catch (dbError) {
-    console.error("[OTP] DB error:", dbError);
+    console.error("[OTP] DB insert error — full details:", dbError);
     return NextResponse.json(
       { ok: false, error: "Database error: " + String(dbError) },
       { status: 500 },
