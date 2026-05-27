@@ -112,6 +112,7 @@ export function ImageUploadEditor({
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ w: number; h: number } | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
@@ -179,13 +180,13 @@ export function ImageUploadEditor({
     setFilters({ brightness: preset.brightness, contrast: preset.contrast, saturation: preset.saturation, preset: key });
   }
 
-  // ── Save: render canvas → dataURL ─────────────────────────────────────────
+  // ── Save: render canvas → upload to Cloudinary → call onSave with URL ───────
 
   function handleSave() {
-    if (!rawUrl) return;
+    if (!rawUrl || uploading) return;
     const img = new window.Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => {
+    img.onload = async () => {
       const srcW = img.naturalWidth;
       const srcH = img.naturalHeight;
       const cx = (crop.left / 100) * srcW;
@@ -196,13 +197,37 @@ export function ImageUploadEditor({
       canvas.width = cw;
       canvas.height = ch;
       const ctx = canvas.getContext("2d")!;
-      // Apply CSS-equivalent filters via ctx.filter
       ctx.filter = filterCss(filters);
       ctx.drawImage(img, cx, cy, cw, ch, 0, 0, cw, ch);
-      const result = canvas.toDataURL("image/jpeg", 0.92);
-      setSavedUrl(result);
-      onSave(result);
-      setMode("idle");
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+
+      // Try to upload to Cloudinary; fall back to data URL if API unavailable
+      setUploading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dataUrl, folder: "mobile-salon/user-uploads" }),
+        });
+        if (res.ok) {
+          const json = (await res.json()) as { ok: boolean; url?: string };
+          const finalUrl = json.ok && json.url ? json.url : dataUrl;
+          setSavedUrl(finalUrl);
+          onSave(finalUrl);
+        } else {
+          // API unavailable in dev or offline — use data URL as fallback
+          setSavedUrl(dataUrl);
+          onSave(dataUrl);
+        }
+      } catch {
+        // Offline / API not reachable — use data URL
+        setSavedUrl(dataUrl);
+        onSave(dataUrl);
+      } finally {
+        setUploading(false);
+        setMode("idle");
+      }
     };
     img.src = rawUrl;
   }
@@ -497,9 +522,10 @@ export function ImageUploadEditor({
             <button
               type="button"
               onClick={handleSave}
-              className="flex-1 rounded-full bg-[var(--ms-rose)] py-3 text-sm font-semibold text-white transition hover:brightness-110"
+              disabled={uploading}
+              className="flex-1 rounded-full bg-[var(--ms-rose)] py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-60"
             >
-              Save image ✓
+              {uploading ? "Uploading…" : "Save image ✓"}
             </button>
           </div>
         </div>
