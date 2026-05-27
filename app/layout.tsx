@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en" 
       className="h-full antialiased zoom-initial" 
       data-scroll-behavior="smooth"
+      suppressHydrationWarning   // ← add this
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
