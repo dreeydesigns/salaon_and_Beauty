@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { sendBookingConfirmation } from '@/lib/africas-talking';
 
 /**
  * Create a new booking
@@ -44,16 +43,6 @@ export async function POST(req: NextRequest) {
     `;
 
     const booking = bookingResult.rows[0];
-
-    // Send confirmation SMS
-    if (userResult.rows.length > 0) {
-      await sendBookingConfirmation(userResult.rows[0].phone, {
-        serviceName: service.name,
-        date: bookingDate,
-        time: bookingTime,
-        price: service.price,
-      });
-    }
 
     return NextResponse.json({
       success: true,
