@@ -1,17 +1,23 @@
 import AfricasTalking from 'africastalking';
 
-const credentials = {
-  apiKey: process.env.AT_API_KEY || '',
-  username: process.env.AT_USERNAME || '',
-};
-
-const AT = AfricasTalking(credentials);
-const sms = AT.SMS;
+/**
+ * Lazily initialise the AT SDK so Joi validation only runs at request time
+ * (when env vars are populated), not at build time (when they are empty).
+ */
+function getSmsSdk() {
+  const AT = AfricasTalking({
+    apiKey:   process.env.AT_API_KEY  ?? '',
+    username: process.env.AT_USERNAME ?? '',
+  });
+  return AT.SMS;
+}
 
 /**
  * Send SMS via Africa's Talking
  */
 export async function sendSMS(phoneNumber: string, message: string) {
+  const sms = getSmsSdk();
+
   // In sandbox mode use "Sandbox"; in production use your registered short code
   // configured via AT_SENDER_ID env var (e.g. "MobileSalon")
   const from = process.env.AT_SENDER_ID ?? "Sandbox";
