@@ -52,8 +52,16 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Send via Africa's Talking HTTP API (no SDK — avoids build-time issues) ─
-  const AT_USERNAME = process.env.AT_USERNAME ?? "sandbox";
-  const AT_API_KEY  = process.env.AT_API_KEY  ?? "";
+  const AT_USERNAME = process.env.AT_USERNAME;
+  const AT_API_KEY  = process.env.AT_API_KEY;
+
+  if (!AT_USERNAME || !AT_API_KEY) {
+    console.error("Missing AT_USERNAME or AT_API_KEY environment variables");
+    return NextResponse.json(
+      { ok: false, error: "SMS service is not configured. Please contact support." },
+      { status: 503 },
+    );
+  }
 
   const message =
     `Your Mobile Salon code is: ${otp}. ` +
