@@ -176,6 +176,11 @@ export async function POST(req: NextRequest) {
       )
     `;
 
+    // ── Firebase UID column (idempotent) ──────────────────────────────────
+    await sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid TEXT UNIQUE
+    `;
+
     // ── User settings ─────────────────────────────────────────────────────
     await sql`
       CREATE TABLE IF NOT EXISTS user_settings (

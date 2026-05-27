@@ -39,6 +39,7 @@ import {
   type ThemeKey,
 } from "@/lib/personalization";
 import { isValidE164, parsePhoneNumber } from "@/lib/phone-utils";
+import { setupRecaptcha, sendOTP } from "@/lib/phone-auth";
 import { PhoneInput } from "@/components/phone-input";
 import { OTPInput } from "@/components/otp-input";
 import { professionals } from "@/lib/site-data";
@@ -83,6 +84,9 @@ export function ClientSignupFlow() {
     if (draft?.phone) setFullPhone(parsePhoneNumber(draft.phone).fullE164);
     setPassword(draft?.password ?? "");
     setPhotoNudgeHidden(isPhotoNudgeDismissed());
+
+    // Set up invisible reCAPTCHA for Firebase Phone Auth
+    setupRecaptcha("recaptcha-container");
   }, []);
 
   function persistDetails(next?: Partial<{ firstName: string; phone: string; password: string }>) {
@@ -101,28 +105,15 @@ export function ClientSignupFlow() {
     setSendError("");
     persistDetails();
 
-    try {
-      const response = await fetch("/api/otp/send", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone: fullPhone }),
-      });
-      const result = (await response.json()) as { ok?: boolean; error?: string };
+    const result = await sendOTP(fullPhone);
 
-      if (!response.ok || !result.ok) {
-        throw new Error(result.error ?? "Could not send code");
-      }
-
+    if (result.ok) {
       setStep(3);
-    } catch (err) {
-      setSendError(
-        err instanceof Error
-          ? err.message
-          : "We could not send the code. Check your number and try again.",
-      );
-    } finally {
-      setSubmitting(false);
+    } else {
+      setSendError(result.error ?? "We could not send the code. Check your number and try again.");
     }
+
+    setSubmitting(false);
   }
 
 
@@ -576,6 +567,9 @@ export function ClientSignupFlow() {
           ) : null}
         </div>
       </section>
+
+      {/* Required anchor for Firebase invisible reCAPTCHA — must stay in the DOM */}
+      <div id="recaptcha-container" />
     </main>
   );
 }

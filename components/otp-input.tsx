@@ -21,6 +21,7 @@ import {
 } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sendOTP, verifyOTP } from "@/lib/phone-auth";
 
 interface OTPInputProps {
   /** Full E.164 phone number being verified, e.g. "+254743817931" */
@@ -104,29 +105,20 @@ export function OTPInput({
   async function verify(code: string) {
     setStatus("loading");
     setErrorMsg("");
-    try {
-      const res  = await fetch("/api/otp/verify", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone, otp: code }),
-      });
-      const data = (await res.json()) as { success?: boolean; verified?: boolean; error?: string };
 
-      if (res.ok && (data.success || data.verified)) {
-        setStatus("success");
-        onVerified();
-        return;
-      }
+    const result = await verifyOTP(code);
 
-      // Wrong code
-      setStatus("error");
-      setErrorMsg(data.error ?? "Incorrect code. Try again.");
-    } catch {
-      setStatus("error");
-      setErrorMsg("Connection error. Please try again.");
+    if (result.ok) {
+      setStatus("success");
+      onVerified();
+      return;
     }
 
-    // Shake and reset boxes on any failure
+    // Wrong / expired code
+    setStatus("error");
+    setErrorMsg(result.error ?? "Incorrect code. Try again.");
+
+    // Shake and reset boxes on failure
     setShake(true);
     window.setTimeout(() => setShake(false), 500);
     setDigits(Array(LEN).fill(""));
@@ -148,15 +140,8 @@ export function OTPInput({
     setErrorMsg("");
     refs.current[0]?.focus();
 
-    try {
-      await fetch("/api/otp/send", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone }),
-      });
-    } catch {
-      // Silent fail — user sees the "Resend" confirmation via countdown reset
-    }
+    // Re-send via Firebase — silent fail, user sees countdown reset as confirmation
+    await sendOTP(phone).catch(() => null);
   }
 
   const allFilled = digits.every(Boolean);

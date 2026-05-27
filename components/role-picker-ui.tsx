@@ -13,7 +13,7 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   createSessionForRole,
@@ -21,6 +21,7 @@ import {
   writeAppSession,
   type AppUserRole,
 } from "@/lib/client-session";
+import { setupRecaptcha, sendOTP, verifyOTP } from "@/lib/phone-auth";
 import { parsePhoneNumber } from "@/lib/phone-utils";
 import { cn } from "@/lib/utils";
 
@@ -272,8 +273,25 @@ function PhoneStep({
   onSend: (phone: string) => void;
 }) {
   const [phone, setPhone] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
   const clean = phone.replace(/\D/g, "");
   const valid = clean.length >= 9; // Kenyan numbers: at least 9 digits
+
+  async function handleSendClick() {
+    if (!valid || sending) return;
+    setSending(true);
+    setSendError("");
+
+    const result = await sendOTP(`+254${clean}`);
+
+    if (result.ok) {
+      onSend(phone); // notify parent — navigate to OTP step
+    } else {
+      setSendError(result.error ?? "Could not send code. Try again.");
+      setSending(false);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -326,6 +344,7 @@ function PhoneStep({
                 // Normalise: strip country code / leading zero, keep local digits only
                 const parsed = parsePhoneNumber(e.target.value);
                 setPhone(parsed.localNumber.slice(0, parsed.country.digits));
+                setSendError("");
               }}
               className="flex-1 bg-transparent px-4 py-3.5 text-sm text-[var(--ms-navy)] outline-none placeholder:text-[var(--ms-mauve)]/50"
               autoComplete="tel"
@@ -333,21 +352,26 @@ function PhoneStep({
           </div>
         </div>
 
+        {/* Error */}
+        {sendError && (
+          <p className="mt-3 text-center text-xs font-medium text-red-500">{sendError}</p>
+        )}
+
         {/* Send OTP */}
         <button
           type="button"
-          disabled={!valid}
-          onClick={() => onSend(phone)}
+          disabled={!valid || sending}
+          onClick={() => void handleSendClick()}
           className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
           style={{ backgroundColor: color }}
         >
-          Send verification code
-          <ArrowRight className="h-4 w-4" />
+          {sending ? "Sending…" : "Send verification code"}
+          {!sending && <ArrowRight className="h-4 w-4" />}
         </button>
       </div>
 
       <p className="text-center text-xs text-[var(--ms-mauve)]">
-        Standard SMS rates may apply.
+        Delivered via Firebase. No SMS charges.
       </p>
     </div>
   );
@@ -382,22 +406,14 @@ function OtpStep({
     }
     setVerifying(true);
     setError("");
-    try {
-      const res = await fetch("/api/otp/verify", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone: fullPhone, otp: code }),
-      });
-      const data = (await res.json()) as { verified?: boolean; success?: boolean; error?: string };
-      if (res.ok && (data.verified || data.success)) {
-        onVerified();
-      } else {
-        setError(data.error ?? "Incorrect code. Try again.");
-        setOtp("");
-      }
-    } catch {
-      setError("Connection error. Try again.");
-    } finally {
+
+    const result = await verifyOTP(code);
+
+    if (result.ok) {
+      onVerified();
+    } else {
+      setError(result.error ?? "Incorrect code. Try again.");
+      setOtp("");
       setVerifying(false);
     }
   }
@@ -406,13 +422,7 @@ function OtpStep({
     setOtp("");
     setError("");
     setResent(true);
-    try {
-      await fetch("/api/otp/send", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone: fullPhone }),
-      });
-    } catch { /* silent */ }
+    await sendOTP(fullPhone).catch(() => null);
     setTimeout(() => setResent(false), 3000);
   }
 
@@ -513,6 +523,10 @@ export function SignInRolePicker({
   const role = SIGN_IN_ROLES.find((r) => r.key === active) ?? SIGN_IN_ROLES[0];
   const dest = role.key === "client" ? returnTo : role.signInDest;
 
+  useEffect(() => {
+    setupRecaptcha("recaptcha-container");
+  }, []);
+
   function handleRoleChange(key: SignInRoleKey) {
     setActive(key);
     setStep("role");
@@ -539,108 +553,106 @@ export function SignInRolePicker({
     }
   }
 
-  if (step === "phone") {
-    return (
-      <PhoneStep
-        color={role.color}
-        onBack={() => setStep("role")}
-        onSend={handleSend}
-      />
-    );
-  }
-
-  if (step === "otp") {
-    return (
-      <OtpStep
-        color={role.color}
-        phone={phone}
-        onBack={() => setStep("phone")}
-        onVerified={handleVerified}
-      />
-    );
-  }
-
-  // Step: "role"
   return (
-    <div className="space-y-5">
-      {/* Tab pills */}
-      <div className="flex gap-2 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1.5">
-        {SIGN_IN_ROLES.map((r) => {
-          const Icon = r.icon;
-          const isActive = r.key === active;
-          return (
-            <button
-              key={r.key}
-              type="button"
-              onClick={() => handleRoleChange(r.key as SignInRoleKey)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 text-sm font-semibold transition-all"
-              style={
-                isActive
-                  ? { backgroundColor: r.color, color: "#fff", boxShadow: `0 6px 20px ${r.color}44` }
-                  : { color: "var(--ms-mauve)" }
-              }
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">{r.label}</span>
-            </button>
-          );
-        })}
-      </div>
+    <>
+      {/* Required anchor for Firebase invisible reCAPTCHA — must always be in the DOM */}
+      <div id="recaptcha-container" />
 
-      {/* Active role card */}
-      <div
-        className="rounded-[24px] border p-5 transition-all"
-        style={{ backgroundColor: role.colorLight, borderColor: role.colorBorder }}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <span
-              className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-              style={{ backgroundColor: role.color, color: "#fff" }}
-            >
-              {role.badge}
-            </span>
-            <p className="mt-3 text-2xl font-semibold" style={{ color: role.color }}>
-              {role.tagline}
-            </p>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--ms-charcoal)]">
-              {role.description}
-            </p>
+      {step === "phone" ? (
+        <PhoneStep
+          color={role.color}
+          onBack={() => setStep("role")}
+          onSend={handleSend}
+        />
+      ) : step === "otp" ? (
+        <OtpStep
+          color={role.color}
+          phone={phone}
+          onBack={() => setStep("phone")}
+          onVerified={handleVerified}
+        />
+      ) : (
+        <div className="space-y-5">
+          {/* Tab pills */}
+          <div className="flex gap-2 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1.5">
+            {SIGN_IN_ROLES.map((r) => {
+              const Icon = r.icon;
+              const isActive = r.key === active;
+              return (
+                <button
+                  key={r.key}
+                  type="button"
+                  onClick={() => handleRoleChange(r.key as SignInRoleKey)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 text-sm font-semibold transition-all"
+                  style={
+                    isActive
+                      ? { backgroundColor: r.color, color: "#fff", boxShadow: `0 6px 20px ${r.color}44` }
+                      : { color: "var(--ms-mauve)" }
+                  }
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{r.label}</span>
+                </button>
+              );
+            })}
           </div>
-          <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: role.color }}
+
+          {/* Active role card */}
+          <div
+            className="rounded-[24px] border p-5 transition-all"
+            style={{ backgroundColor: role.colorLight, borderColor: role.colorBorder }}
           >
-            <role.icon className="h-5 w-5" />
-          </span>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span
+                  className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                  style={{ backgroundColor: role.color, color: "#fff" }}
+                >
+                  {role.badge}
+                </span>
+                <p className="mt-3 text-2xl font-semibold" style={{ color: role.color }}>
+                  {role.tagline}
+                </p>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--ms-charcoal)]">
+                  {role.description}
+                </p>
+              </div>
+              <span
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white"
+                style={{ backgroundColor: role.color }}
+              >
+                <role.icon className="h-5 w-5" />
+              </span>
+            </div>
+
+            {/* CTA → goes to phone step */}
+            <button
+              type="button"
+              onClick={() => setStep("phone")}
+              className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110"
+              style={{ backgroundColor: role.color }}
+            >
+              Sign in as {role.label}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Helper hint */}
+          <p className="rounded-[16px] bg-[var(--ms-soft-bg)] px-4 py-3 text-center text-xs leading-5 text-[var(--ms-mauve)]">
+            Not sure?{" "}
+            <button
+              type="button"
+              onClick={() => handleRoleChange("client")}
+              className="font-semibold"
+              style={{ color: SIGN_IN_ROLES[0].color }}
+            >
+              Start as Client
+            </button>{" "}
+            — you can always book without a pro account.
+          </p>
         </div>
-
-        {/* CTA → goes to phone step */}
-        <button
-          type="button"
-          onClick={() => setStep("phone")}
-          className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110"
-          style={{ backgroundColor: role.color }}
-        >
-          Sign in as {role.label}
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Helper hint */}
-      <p className="rounded-[16px] bg-[var(--ms-soft-bg)] px-4 py-3 text-center text-xs leading-5 text-[var(--ms-mauve)]">
-        Not sure?{" "}
-        <button
-          type="button"
-          onClick={() => handleRoleChange("client")}
-          className="font-semibold"
-          style={{ color: SIGN_IN_ROLES[0].color }}
-        >
-          Start as Client
-        </button>{" "}
-        — you can always book without a pro account.
-      </p>
-    </div>
+      )}
+    </>
   );
 }
 
@@ -663,6 +675,10 @@ export function SignUpRolePicker({
 
   const role = ROLES.find((r) => r.key === active)!;
   const canProceed = agreedCommunity && agreedTerms;
+
+  useEffect(() => {
+    setupRecaptcha("recaptcha-container");
+  }, []);
 
   function handleRoleChange(key: RoleKey) {
     setActive(key);
@@ -690,29 +706,25 @@ export function SignUpRolePicker({
     }
   }
 
-  if (step === "phone") {
-    return (
-      <PhoneStep
-        color={role.color}
-        onBack={() => setStep("role")}
-        onSend={handleSend}
-      />
-    );
-  }
-
-  if (step === "otp") {
-    return (
-      <OtpStep
-        color={role.color}
-        phone={phone}
-        onBack={() => setStep("phone")}
-        onVerified={handleVerified}
-      />
-    );
-  }
-
-  // Step: "role" — role picker + agreements
   return (
+    <>
+      {/* Required anchor for Firebase invisible reCAPTCHA — must always be in the DOM */}
+      <div id="recaptcha-container" />
+
+      {step === "phone" ? (
+        <PhoneStep
+          color={role.color}
+          onBack={() => setStep("role")}
+          onSend={handleSend}
+        />
+      ) : step === "otp" ? (
+        <OtpStep
+          color={role.color}
+          phone={phone}
+          onBack={() => setStep("phone")}
+          onVerified={handleVerified}
+        />
+      ) : (
     <div className="space-y-5">
       {/* Role grid — 5 items, compact, always shows labels */}
       <div className="grid grid-cols-5 gap-1 rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] p-1">
@@ -858,5 +870,7 @@ export function SignUpRolePicker({
         <span className="ml-1">accounts also available</span>
       </p>
     </div>
+      )}
+    </>
   );
 }
