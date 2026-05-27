@@ -47,6 +47,20 @@ import { cn } from "@/lib/utils";
 
 const otpLength = 6;
 
+/**
+ * Strip any country code / leading zero so we always store exactly 9 local digits.
+ * Handles pasted values like: +254743817931, 254743817931, 0743817931, 743817931.
+ */
+function normalisePhone(raw: string): string {
+  // Remove everything that's not a digit
+  let digits = raw.replace(/\D/g, "");
+  // Strip Kenya country code if present (e.g. pasted "+254743817931" → "254743817931")
+  if (digits.startsWith("254") && digits.length > 9) digits = digits.slice(3);
+  // Strip local leading zero (e.g. "0743817931")
+  else if (digits.startsWith("0") && digits.length > 9) digits = digits.slice(1);
+  return digits.slice(0, 9);
+}
+
 export function ClientSignupFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -92,7 +106,7 @@ export function ClientSignupFlow() {
 
     setTheme(storedTheme);
     setFirstName(draft?.firstName ?? "");
-    setPhoneDigits(draft?.phone?.replace("+254", "").slice(0, 9) ?? "");
+    setPhoneDigits(normalisePhone(draft?.phone ?? ""));
     setPassword(draft?.password ?? "");
     setPhotoNudgeHidden(isPhotoNudgeDismissed());
   }, []);
@@ -428,7 +442,7 @@ export function ClientSignupFlow() {
                       inputMode="numeric"
                       maxLength={9}
                       onChange={(event) => {
-                        const nextPhone = event.target.value.replace(/\D/g, "").slice(0, 9);
+                        const nextPhone = normalisePhone(event.target.value);
                         setPhoneDigits(nextPhone);
                         persistDetails({ phone: `+254${nextPhone}` });
                       }}
@@ -499,7 +513,10 @@ export function ClientSignupFlow() {
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Step 3 of 5 — Verify your number</p>
               <h1 className="mt-3 font-display text-5xl leading-tight text-[var(--ms-plum)]">Check your messages.</h1>
               <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">
-                We sent a 6-digit code to {fullPhone}. It expires in 5 minutes.
+                We sent a 6-digit code to{" "}
+                <span className="font-semibold text-[var(--ms-navy)]">
+                  +254 {phoneDigits.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
+                </span>. It expires in 5 minutes.
               </p>
               <div className={cn("mt-6 grid grid-cols-6 gap-2 transition", otpShake ? "translate-x-1" : "")}>
                 {otp.map((digit, index) => (
