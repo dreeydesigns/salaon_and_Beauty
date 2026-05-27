@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       )
     `;
 
-    // ── OTPs ───────────────────────────────────────────────────────────────
+    // ── OTPs (legacy plaintext store) ─────────────────────────────────────
     await sql`
       CREATE TABLE IF NOT EXISTS otps (
         id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -54,6 +54,17 @@ export async function POST(req: NextRequest) {
         expires_at  TIMESTAMP    NOT NULL,
         verified_at TIMESTAMP,
         created_at  TIMESTAMP    DEFAULT NOW()
+      )
+    `;
+
+    // ── OTP codes (hashed, upsert-per-phone, with attempt limiting) ────────
+    await sql`
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        phone       TEXT PRIMARY KEY,
+        otp_hash    TEXT         NOT NULL,
+        expires_at  TIMESTAMPTZ  NOT NULL,
+        attempts    INTEGER      DEFAULT 0,
+        created_at  TIMESTAMPTZ  DEFAULT NOW()
       )
     `;
 
@@ -181,7 +192,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       message: "All tables created (or already existed). Database is ready.",
-      tables: ["users", "otps", "sessions", "posts", "comments", "follows", "stories", "services", "bookings", "user_settings"],
+      tables: ["users", "otps", "otp_codes", "sessions", "posts", "comments", "follows", "stories", "services", "bookings", "user_settings"],
     });
   } catch (error) {
     console.error("DB init error:", error);

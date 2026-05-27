@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
-  Check,
   Eye,
   EyeOff,
   MapPin,
@@ -17,10 +16,7 @@ import {
 } from "lucide-react";
 import {
   useEffect,
-  useRef,
   useState,
-  type ClipboardEvent,
-  type KeyboardEvent,
   type ReactNode,
 } from "react";
 
@@ -42,24 +38,11 @@ import {
   type ClientUserProfile,
   type ThemeKey,
 } from "@/lib/personalization";
+import { isValidE164, parsePhoneNumber } from "@/lib/phone-utils";
+import { PhoneInput } from "@/components/phone-input";
+import { OTPInput } from "@/components/otp-input";
 import { professionals } from "@/lib/site-data";
 import { cn } from "@/lib/utils";
-
-const otpLength = 6;
-
-/**
- * Strip any country code / leading zero so we always store exactly 9 local digits.
- * Handles pasted values like: +254743817931, 254743817931, 0743817931, 743817931.
- */
-function normalisePhone(raw: string): string {
-  // Remove everything that's not a digit
-  let digits = raw.replace(/\D/g, "");
-  // Strip Kenya country code if present (e.g. pasted "+254743817931" → "254743817931")
-  if (digits.startsWith("254") && digits.length > 9) digits = digits.slice(3);
-  // Strip local leading zero (e.g. "0743817931")
-  else if (digits.startsWith("0") && digits.length > 9) digits = digits.slice(1);
-  return digits.slice(0, 9);
-}
 
 export function ClientSignupFlow() {
   const router = useRouter();
@@ -71,13 +54,9 @@ export function ClientSignupFlow() {
   const [showPassword, setShowPassword] = useState(false);
   const [theme, setTheme] = useState<ThemeKey>("not_set");
   const [firstName, setFirstName] = useState("");
-  const [phoneDigits, setPhoneDigits] = useState("");
+  const [fullPhone, setFullPhone] = useState("");   // E.164, e.g. "+254743817931"
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState(Array.from({ length: otpLength }, () => ""));
-  const [otpError, setOtpError] = useState("");
-  const [otpShake, setOtpShake] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [resendCount, setResendCount] = useState(0);
+  const [sendError, setSendError] = useState("");   // error from /api/otp/send
   const [submitting, setSubmitting] = useState(false);
   const [locationMode, setLocationMode] = useState<ClientLocation["mode"] | null>(null);
   const [manualLocation, setManualLocation] = useState("");
@@ -85,15 +64,10 @@ export function ClientSignupFlow() {
   const [locationData, setLocationData] = useState<ClientLocation | null>(null);
   const [profile, setProfile] = useState<ClientUserProfile | null>(null);
   const [photoNudgeHidden, setPhotoNudgeHidden] = useState(false);
-  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
-
   const themeConfig = getThemeConfig(theme);
-  const fullPhone = `+254${phoneDigits}`;
-  const phoneIsValid = /^7\d{8}$/.test(phoneDigits);
+  const phoneIsValid = isValidE164(fullPhone);
   const passwordScore = getPasswordScore(password);
   const detailsValid = firstName.trim().length > 0 && phoneIsValid && password.length >= 8;
-  const otpCode = otp.join("");
-  const otpComplete = otpCode.length === otpLength && otp.every(Boolean);
   const rankedProfessionals = rankProfessionals(
     professionals.filter((professional) => professional.verified),
     "top-rated",
@@ -106,104 +80,51 @@ export function ClientSignupFlow() {
 
     setTheme(storedTheme);
     setFirstName(draft?.firstName ?? "");
-    setPhoneDigits(normalisePhone(draft?.phone ?? ""));
+    if (draft?.phone) setFullPhone(parsePhoneNumber(draft.phone).fullE164);
     setPassword(draft?.password ?? "");
     setPhotoNudgeHidden(isPhotoNudgeDismissed());
   }, []);
 
-  useEffect(() => {
-    if (step !== 3 || resendTimer <= 0) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setResendTimer((current) => Math.max(0, current - 1));
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [resendTimer, step]);
-
   function persistDetails(next?: Partial<{ firstName: string; phone: string; password: string }>) {
     writeSignupDraft({
       firstName: next?.firstName ?? firstName,
-      phone: next?.phone ?? fullPhone,
-      password: next?.password ?? password,
+      phone:     next?.phone     ?? fullPhone,
+      password:  next?.password  ?? password,
       theme,
       tribeBadge: themeConfig.tribeBadge,
     });
   }
 
-  async function sendVerificationCode(isResend = false) {
-    if (!detailsValid || submitting) {
-      return;
-    }
-
-    const nextResendCount = isResend ? resendCount + 1 : Math.max(resendCount, 1);
-
-    if (nextResendCount > 3) {
-      return;
-    }
-
+  async function sendVerificationCode() {
+    if (!detailsValid || submitting) return;
     setSubmitting(true);
+    setSendError("");
     persistDetails();
 
     try {
-      const response = await fetch("/api/auth/client/send-otp", {
-        method: "POST",
+      const response = await fetch("/api/otp/send", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, resendCount: nextResendCount }),
+        body:    JSON.stringify({ phone: fullPhone }),
       });
-      const result = (await response.json()) as { ok?: boolean; resendCount?: number };
+      const result = (await response.json()) as { ok?: boolean; error?: string };
 
       if (!response.ok || !result.ok) {
-        throw new Error("OTP could not be sent");
+        throw new Error(result.error ?? "Could not send code");
       }
 
-      setResendCount(result.resendCount ?? nextResendCount);
-      setResendTimer(30);
-      setOtp(Array.from({ length: otpLength }, () => ""));
-      setOtpError("");
       setStep(3);
-      window.setTimeout(() => otpRefs.current[0]?.focus(), 80);
-    } catch {
-      setOtpError("We could not send the code. Check the phone number and try again.");
+    } catch (err) {
+      setSendError(
+        err instanceof Error
+          ? err.message
+          : "We could not send the code. Check your number and try again.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function verifyOtp() {
-    if (!otpComplete || submitting) {
-      return;
-    }
-
-    setSubmitting(true);
-    setOtpError("");
-
-    try {
-      const response = await fetch("/api/auth/client/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, code: otpCode }),
-      });
-      const result = (await response.json()) as { ok?: boolean; verified?: boolean };
-
-      if (!response.ok || !result.ok || !result.verified) {
-        throw new Error("OTP mismatch");
-      }
-
-      writeSignupDraft({ otpVerified: true, phone: fullPhone, firstName, password, theme, tribeBadge: themeConfig.tribeBadge });
-      setStep(4);
-    } catch {
-      setOtpError("That code didn't match. Try again.");
-      setOtp(Array.from({ length: otpLength }, () => ""));
-      setOtpShake(true);
-      window.setTimeout(() => setOtpShake(false), 450);
-      window.setTimeout(() => otpRefs.current[0]?.focus(), 80);
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function createClientProfile(location: ClientLocation) {
     setSubmitting(true);
@@ -254,31 +175,6 @@ export function ClientSignupFlow() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function handleOtpChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, "").slice(-1);
-    const next = [...otp];
-    next[index] = digit;
-    setOtp(next);
-
-    if (digit && index < otpLength - 1) {
-      otpRefs.current[index + 1]?.focus();
-    }
-  }
-
-  function handleOtpKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  }
-
-  function handleOtpPaste(event: ClipboardEvent<HTMLInputElement>) {
-    event.preventDefault();
-    const pastedDigits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, otpLength).split("");
-    const next = Array.from({ length: otpLength }, (_, index) => pastedDigits[index] ?? "");
-    setOtp(next);
-    otpRefs.current[Math.min(pastedDigits.length, otpLength - 1)]?.focus();
   }
 
   function useGpsLocation() {
@@ -433,28 +329,14 @@ export function ClientSignupFlow() {
                     value={firstName}
                   />
                 </label>
-                <label className="block rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Phone</span>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-[var(--ms-navy)]">+254</span>
-                    <input
-                      className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[var(--ms-navy)] outline-none"
-                      inputMode="numeric"
-                      maxLength={9}
-                      onChange={(event) => {
-                        const nextPhone = normalisePhone(event.target.value);
-                        setPhoneDigits(nextPhone);
-                        persistDetails({ phone: `+254${nextPhone}` });
-                      }}
-                      placeholder="712 345 678"
-                      value={phoneDigits}
-                    />
-                  </div>
-                  {phoneDigits && !phoneIsValid ? (
-                    <p className="mt-2 text-xs font-semibold text-[var(--ms-danger)]">Use a Kenyan number like +2547XXXXXXXX.</p>
-                  ) : null}
-                  <p className="mt-2 text-xs text-[var(--ms-mauve)]">This is how we verify you. No spam. Ever.</p>
-                </label>
+                <PhoneInput
+                  value={fullPhone}
+                  onChange={(e164) => {
+                    setFullPhone(e164);
+                    persistDetails({ phone: e164 });
+                  }}
+                />
+                <p className="text-xs text-[var(--ms-mauve)]">This is how we verify you. No spam. Ever.</p>
                 <label className="block rounded-[24px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-4 py-4">
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ms-mauve)]">Password</span>
                   <div className="mt-3 flex items-center gap-2">
@@ -492,15 +374,20 @@ export function ClientSignupFlow() {
                   </p>
                 </label>
               </div>
+              {sendError && (
+                <p className="rounded-[16px] bg-red-50 px-4 py-3 text-sm font-semibold text-[var(--ms-danger)]">
+                  {sendError}
+                </p>
+              )}
               <button
-                className="mt-6 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition disabled:opacity-40"
+                className="inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition disabled:opacity-40"
                 disabled={!detailsValid || submitting}
                 onClick={() => void sendVerificationCode()}
                 style={{ backgroundColor: themeConfig.accentColor }}
                 type="button"
               >
-                Send verification code
-                <ArrowRight className="h-4 w-4" />
+                {submitting ? "Sending…" : "Send verification code"}
+                {!submitting && <ArrowRight className="h-4 w-4" />}
               </button>
               <p className="mt-4 rounded-[22px] bg-[var(--ms-soft-bg)] px-4 py-3 text-sm leading-6 text-[var(--ms-mauve)]">
                 We will never share your number. Your profile is private until you choose to book.
@@ -515,56 +402,28 @@ export function ClientSignupFlow() {
               <p className="mt-4 text-sm leading-7 text-[var(--ms-mauve)]">
                 We sent a 6-digit code to{" "}
                 <span className="font-semibold text-[var(--ms-navy)]">
-                  +254 {phoneDigits.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
+                  {fullPhone.replace(/(\+\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}
                 </span>. It expires in 5 minutes.
               </p>
-              <div className={cn("mt-6 grid grid-cols-6 gap-2 transition", otpShake ? "translate-x-1" : "")}>
-                {otp.map((digit, index) => (
-                  <input
-                    aria-label={`OTP digit ${index + 1}`}
-                    className="h-14 rounded-[18px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] text-center text-xl font-semibold text-[var(--ms-navy)] outline-none focus:border-[var(--ms-rose)]"
-                    inputMode="numeric"
-                    key={`otp-${index}`}
-                    maxLength={1}
-                    onChange={(event) => handleOtpChange(index, event.target.value)}
-                    onKeyDown={(event) => handleOtpKeyDown(index, event)}
-                    onPaste={handleOtpPaste}
-                    ref={(node) => {
-                      otpRefs.current[index] = node;
-                    }}
-                    value={digit}
-                  />
-                ))}
-              </div>
-              {otpError ? <p className="mt-3 text-sm font-semibold text-[var(--ms-danger)]">{otpError}</p> : null}
+
+              {/* Self-contained OTP entry — handles verification, errors, resend */}
+              <OTPInput
+                phone={fullPhone}
+                accentColor={themeConfig.accentColor}
+                onVerified={() => {
+                  writeSignupDraft({ otpVerified: true, phone: fullPhone, firstName, password, theme, tribeBadge: themeConfig.tribeBadge });
+                  setStep(4);
+                }}
+              />
+
               <button
-                className="mt-6 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition disabled:opacity-40"
-                disabled={!otpComplete || submitting}
-                onClick={() => void verifyOtp()}
-                style={{ backgroundColor: themeConfig.accentColor }}
+                className="mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]"
+                onClick={() => setStep(2)}
                 type="button"
               >
-                Verify and continue
-                <Check className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" />
+                Change number
               </button>
-              <div className="mt-5 flex flex-col gap-2 text-center text-sm sm:flex-row sm:items-center sm:justify-between">
-                <button
-                  className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-semibold text-[var(--ms-mauve)]"
-                  onClick={() => setStep(2)}
-                  type="button"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Change number
-                </button>
-                <button
-                  className="rounded-full px-4 py-2 font-semibold text-[var(--ms-plum)] disabled:text-[var(--ms-mauve)]"
-                  disabled={resendTimer > 0 || resendCount >= 3 || submitting}
-                  onClick={() => void sendVerificationCode(true)}
-                  type="button"
-                >
-                  {resendCount >= 3 ? "Too many resend attempts" : resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
-                </button>
-              </div>
             </ScreenShell>
           ) : null}
 

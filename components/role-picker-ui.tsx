@@ -21,6 +21,7 @@ import {
   writeAppSession,
   type AppUserRole,
 } from "@/lib/client-session";
+import { parsePhoneNumber } from "@/lib/phone-utils";
 import { cn } from "@/lib/utils";
 
 // ─── Role definitions ────────────────────────────────────────────────────────
@@ -321,7 +322,11 @@ function PhoneStep({
               type="tel"
               placeholder="7XX XXX XXX"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                // Normalise: strip country code / leading zero, keep local digits only
+                const parsed = parsePhoneNumber(e.target.value);
+                setPhone(parsed.localNumber.slice(0, parsed.country.digits));
+              }}
               className="flex-1 bg-transparent px-4 py-3.5 text-sm text-[var(--ms-navy)] outline-none placeholder:text-[var(--ms-mauve)]/50"
               autoComplete="tel"
             />
@@ -364,20 +369,50 @@ function OtpStep({
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [resent, setResent] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
-  function handleVerify() {
-    if (otp.replace(/\s/g, "").length === 6) {
-      setError("");
-      onVerified();
-    } else {
+  // Full E.164 number for API calls (phone here is local digits, e.g. "743817931")
+  const fullPhone = `+254${phone}`;
+
+  async function handleVerify() {
+    const code = otp.replace(/\s/g, "");
+    if (code.length !== 6) {
       setError("Enter the 6-digit code to continue.");
+      return;
+    }
+    setVerifying(true);
+    setError("");
+    try {
+      const res = await fetch("/api/otp/verify", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone: fullPhone, otp: code }),
+      });
+      const data = (await res.json()) as { verified?: boolean; success?: boolean; error?: string };
+      if (res.ok && (data.verified || data.success)) {
+        onVerified();
+      } else {
+        setError(data.error ?? "Incorrect code. Try again.");
+        setOtp("");
+      }
+    } catch {
+      setError("Connection error. Try again.");
+    } finally {
+      setVerifying(false);
     }
   }
 
-  function handleResend() {
+  async function handleResend() {
     setOtp("");
     setError("");
     setResent(true);
+    try {
+      await fetch("/api/otp/send", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone: fullPhone }),
+      });
+    } catch { /* silent */ }
     setTimeout(() => setResent(false), 3000);
   }
 
@@ -427,13 +462,13 @@ function OtpStep({
         {/* Verify */}
         <button
           type="button"
-          disabled={otp.replace(/\s/g, "").length < 6}
-          onClick={handleVerify}
+          disabled={otp.replace(/\s/g, "").length < 6 || verifying}
+          onClick={() => void handleVerify()}
           className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
           style={{ backgroundColor: color }}
         >
-          Verify &amp; continue
-          <ArrowRight className="h-4 w-4" />
+          {verifying ? "Verifying…" : "Verify & continue"}
+          {!verifying && <ArrowRight className="h-4 w-4" />}
         </button>
 
         {/* Resend */}
@@ -443,7 +478,7 @@ function OtpStep({
           ) : (
             <button
               type="button"
-              onClick={handleResend}
+              onClick={() => void handleResend()}
               className="text-xs text-[var(--ms-mauve)] underline-offset-2 hover:underline"
             >
               Didn&rsquo;t receive it? Resend code
