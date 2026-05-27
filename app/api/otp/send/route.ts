@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
           username: AT_USERNAME,
           to:       phone,
           message,
+          ...(process.env.AT_SENDER_ID ? { from: process.env.AT_SENDER_ID } : {}),
         }).toString(),
       },
     );
@@ -101,11 +102,12 @@ export async function POST(req: NextRequest) {
 
   // 101 = Sent, 102 = Sent to queue (both acceptable)
   if (statusCode !== 101 && statusCode !== 102) {
-    console.error("[OTP] AT rejected send. recipient:", JSON.stringify(recipient));
+    console.error("[OTP] AT rejected send. Full AT response:", JSON.stringify(atResult));
     return NextResponse.json(
       {
         ok: false,
         error: `SMS not delivered (AT status ${statusCode ?? "unknown"}): ${recipient?.status ?? "no status"}`,
+        atResponse: atResult,
       },
       { status: 502 },
     );
