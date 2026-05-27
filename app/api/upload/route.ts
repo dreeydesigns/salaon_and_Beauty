@@ -98,7 +98,5 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Allow large request bodies for base64 images
-export const config = {
-  api: { bodyParser: { sizeLimit: "10mb" } },
-};
+// Allow large bodies for base64 image uploads (Next.js App Router config)
+export const maxDuration = 30;

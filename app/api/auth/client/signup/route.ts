@@ -55,16 +55,21 @@ export async function POST(request: Request) {
     );
 
     // Build the client profile returned to the frontend
+    const now = new Date().toISOString();
+    const resolvedTheme = (theme as ClientUserProfile["theme"]) ?? "not_set";
     const profile: ClientUserProfile = {
-      id: userId,
-      role: "client",
-      firstName: firstName,
-      phone: phone,
-      theme: (theme as ClientUserProfile["theme"]) ?? "not_set",
-      tribeBadge: tribeBadge ?? "✨",
-      quizCompleted: theme !== "not_set",
-      themeSetBy: theme === "not_set" ? "fallback" : "quiz",
-      themeUpdatedAt: new Date().toISOString(),
+      id:              userId,
+      role:            "client",
+      firstName:       firstName,
+      phone:           phone,
+      theme:           resolvedTheme,
+      tribeBadge:      tribeBadge ?? "✨",
+      quizCompleted:   resolvedTheme !== "not_set",
+      themeSetBy:      resolvedTheme === "not_set" ? "fallback" : "quiz",
+      themeUpdatedAt:  now,
+      createdAt:       now,
+      subscription:    { tier: "none", status: "teaser" },
+      tribes:          resolvedTheme === "not_set" ? [] : [resolvedTheme],
     };
 
     const response = NextResponse.json({ ok: true, profile });
