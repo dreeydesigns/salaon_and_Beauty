@@ -31,22 +31,17 @@ export async function POST(req: NextRequest) {
   try {
     await sql`
       INSERT INTO otp_codes (phone, otp_hash, expires_at, attempts)
-      VALUES (
-        ${phone},
-        ${otpHash},
-        NOW() + INTERVAL '5 minutes',
-        0
-      )
+      VALUES (${phone}, ${otpHash}, NOW() + INTERVAL '5 minutes', 0)
       ON CONFLICT (phone) DO UPDATE
-        SET otp_hash   = EXCLUDED.otp_hash,
-            expires_at = EXCLUDED.expires_at,
+        SET otp_hash   = ${otpHash},
+            expires_at = NOW() + INTERVAL '5 minutes',
             attempts   = 0,
             created_at = NOW()
     `;
   } catch (dbError) {
-    console.error("[OTP] DB error — otp_codes table may not exist. Run POST /api/init first.", dbError);
+    console.error("[OTP] DB error:", dbError);
     return NextResponse.json(
-      { ok: false, error: "Database error. The OTP table may not be initialised — contact support." },
+      { ok: false, error: "Database error: " + String(dbError) },
       { status: 500 },
     );
   }
