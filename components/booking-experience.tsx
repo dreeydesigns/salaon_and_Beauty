@@ -31,6 +31,7 @@ import { PaymentDisclaimer, usePaymentDisclaimer } from "@/components/payment-di
 import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
 import { readAppSession, readRegisteredProviders, type BookableProviderProfile } from "@/lib/client-session";
 import { writeBooking } from "@/lib/social-store";
+import { showToast } from "@/lib/toast";
 import { openGuestGate } from "@/lib/guest-session";
 
 type ProviderSort = "nearest" | "rating" | "response" | "available" | "booked" | "verified";
@@ -269,6 +270,7 @@ export function BookingExperience() {
 
     const timer = window.setTimeout(() => {
       setStatus("done");
+      showToast("Booking confirmed! Check Activity for updates.", "success");
     }, 1600);
 
     return () => window.clearTimeout(timer);
@@ -319,10 +321,9 @@ export function BookingExperience() {
     step === 4 ||
     step === 5;
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!disclaimerAccepted) return;
 
-    // Write the booking to the shared store so the selected pro/salon sees it instantly.
     const session = readAppSession();
     if (!session || session.role === "guest") {
       saveBookingDraft();
@@ -334,10 +335,15 @@ export function BookingExperience() {
       return;
     }
 
+    setStatus("processing");
+
     if (session && targetType && targetId && selectedServiceIds.length > 0 && selectedDate && selectedTime) {
       const targetName = targetEntity?.name ?? targetId;
+      const localId = globalThis.crypto?.randomUUID?.() ?? `bk_${new Date().getTime()}`;
+
+      // 1. Write to localStorage immediately (instant UI update)
       writeBooking({
-        id: globalThis.crypto?.randomUUID?.() ?? `bk_${new Date().getTime()}`,
+        id: localId,
         clientId: session.id,
         clientName: session.role === "client" ? session.firstName : "Mobile Salon Admin",
         clientPhone: session.phone,
@@ -354,9 +360,24 @@ export function BookingExperience() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
-    }
 
-    setStatus("processing");
+      // 2. Persist to DB (fire-and-forget — localStorage is already written)
+      fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          localId,
+          serviceNames: selectedServices.map((s) => s.name),
+          providerSlug: targetId,
+          providerName: targetName,
+          targetType,
+          bookingDate: selectedDate,
+          bookingTime: selectedTime,
+          totalKES: totalMin,
+          notes: contact.note || undefined,
+        }),
+      }).catch(() => null); // silent — localStorage is source of truth for MVP
+    }
   }
 
   function handleNextStep() {

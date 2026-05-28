@@ -5,12 +5,15 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { CTAButton, SectionReveal } from "@/components/marketplace-ui";
 import { ClientRatingFlow } from "@/components/service-session";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { readAppSession } from "@/lib/client-session";
 import {
   getClientBookings,
+  writeBooking,
   SOCIAL_CHANGE_EVENT,
   type BookingRequest,
 } from "@/lib/social-store";
+import { signalSessionExpired } from "@/components/session-expiry-modal";
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -23,26 +26,55 @@ const STATUS_COLORS: Record<string, string> = {
   draft:                 "bg-gray-100 text-gray-500",
 };
 
-function BookingCard({ booking }: { booking: BookingRequest }) {
-  const date = new Date(booking.preferredDate).toLocaleDateString("en-KE", {
-    weekday: "short", day: "numeric", month: "short", year: "numeric",
-  });
+function SkeletonCard() {
   return (
-    <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_28px_rgba(13,27,42,0.07)]">
+    <div className="animate-pulse rounded-[24px] bg-white p-5 shadow-[0_8px_28px_rgba(13,27,42,0.07)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-2/3 rounded-full bg-[var(--ms-border)]" />
+          <div className="h-3 w-1/2 rounded-full bg-[var(--ms-border)]" />
+        </div>
+        <div className="h-6 w-16 shrink-0 rounded-full bg-[var(--ms-border)]" />
+      </div>
+      <div className="mt-3 flex gap-4">
+        <div className="h-3 w-24 rounded-full bg-[var(--ms-border)]" />
+        <div className="h-3 w-16 rounded-full bg-[var(--ms-border)]" />
+        <div className="h-3 w-20 rounded-full bg-[var(--ms-border)]" />
+      </div>
+    </div>
+  );
+}
+
+function BookingCard({ booking }: { booking: BookingRequest }) {
+  const dateStr = (() => {
+    try {
+      return new Date(booking.preferredDate).toLocaleDateString("en-KE", {
+        weekday: "short", day: "numeric", month: "short", year: "numeric",
+      });
+    } catch { return booking.preferredDate; }
+  })();
+
+  return (
+    <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_28px_rgba(13,27,42,0.07)] transition hover:shadow-[0_12px_36px_rgba(13,27,42,0.12)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{booking.targetName}</p>
           <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{booking.services.join(", ")}</p>
         </div>
-        <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize", STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-500")}>
+        <span className={cn(
+          "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize",
+          STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-500"
+        )}>
           {booking.status.replace(/_/g, " ")}
         </span>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--ms-mauve)]">
-        <span>{date}</span>
+        <span>{dateStr}</span>
         <span>{booking.preferredTime}</span>
         {booking.location && <span>{booking.location}</span>}
-        <span className="font-semibold text-[var(--ms-navy)]">KES {booking.totalKES.toLocaleString()}</span>
+        <span className="font-semibold text-[var(--ms-navy)]">
+          KES {booking.totalKES.toLocaleString()}
+        </span>
       </div>
     </div>
   );
@@ -50,40 +82,103 @@ function BookingCard({ booking }: { booking: BookingRequest }) {
 
 export default function ActivityPage() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  async function loadBookings() {
+    const session = readAppSession();
+    if (!session || session.role === "guest") { setLoading(false); return; }
+
+    // Load from localStorage immediately
+    const local = getClientBookings(session.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setBookings(local);
+    setLoading(false);
+
+    // Then try DB and merge (DB is source of truth for status)
+    try {
+      const res = await fetch("/api/bookings", { credentials: "include" });
+      if (res.status === 401) { signalSessionExpired(); return; }
+      if (!res.ok) return;
+      const data = await res.json() as { ok: boolean; bookings?: Array<{
+        local_id?: string; id: string; service_names?: string[];
+        provider_name?: string; provider_slug?: string; target_type?: string;
+        booking_date: string; booking_time: string; total_kes?: number;
+        notes?: string; status: string; created_at: string; updated_at: string;
+      }> };
+      if (!data.ok || !data.bookings) return;
+
+      // Merge: write any DB bookings not yet in localStorage
+      for (const dbB of data.bookings) {
+        const localId = dbB.local_id ?? dbB.id;
+        const exists = local.some((b) => b.id === localId || b.id === dbB.id);
+        if (!exists) {
+          const mapped: BookingRequest = {
+            id: localId,
+            clientId: session.id,
+            clientName: session.role === "client" ? (session as { firstName: string }).firstName : "User",
+            targetType: (dbB.target_type ?? "professionals") as "salons" | "professionals",
+            targetSlug: dbB.provider_slug ?? "",
+            targetName: dbB.provider_name ?? "Provider",
+            services: dbB.service_names ?? [],
+            preferredDate: dbB.booking_date,
+            preferredTime: dbB.booking_time,
+            totalKES: dbB.total_kes ?? 0,
+            notes: dbB.notes ?? undefined,
+            status: dbB.status as BookingRequest["status"],
+            createdAt: dbB.created_at,
+            updatedAt: dbB.updated_at,
+          };
+          writeBooking(mapped);
+        }
+      }
+
+      // Re-read localStorage (now includes DB bookings)
+      const merged = getClientBookings(session.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setBookings(merged);
+    } catch { /* stay with localStorage */ }
+  }
 
   useEffect(() => {
-    function sync() {
+    void loadBookings();
+
+    function onStorageChange() {
       const session = readAppSession();
-      if (!session || session.role === "guest") { setLoaded(true); return; }
-      const myBookings = getClientBookings(session.id);
-      setBookings(myBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      setLoaded(true);
+      if (!session) return;
+      const local = getClientBookings(session.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setBookings(local);
     }
-    sync();
-    window.addEventListener(SOCIAL_CHANGE_EVENT, sync);
-    window.addEventListener("storage", sync);
+
+    window.addEventListener(SOCIAL_CHANGE_EVENT, onStorageChange);
+    window.addEventListener("storage", onStorageChange);
     return () => {
-      window.removeEventListener(SOCIAL_CHANGE_EVENT, sync);
-      window.removeEventListener("storage", sync);
+      window.removeEventListener(SOCIAL_CHANGE_EVENT, onStorageChange);
+      window.removeEventListener("storage", onStorageChange);
     };
   }, []);
 
   return (
-    <AppShell currentNav="activity" roleMode="salons" requireSession>
+    <AppShell currentNav="activity" requireSession>
       <ClientRatingFlow />
-
+      <ErrorBoundary>
       <div className="section-grid">
         <SectionReveal className="rounded-[36px] bg-white p-6 shadow-[0_18px_48px_rgba(13,27,42,0.08)] lg:p-8">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Activity</p>
-          <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Your bookings, saves, and follow-ups — in one place.</h1>
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">
+            Your bookings, saves, and follow-ups — in one place.
+          </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ms-mauve)]">
-            Upcoming appointments, recent requests, and saved providers stay organised here.
+            Upcoming appointments, recent requests, and status updates stay organised here.
           </p>
         </SectionReveal>
 
-        {loaded && bookings.length === 0 ? (
-          <SectionReveal className="rounded-[28px] bg-white p-8 text-center shadow-[0_12px_40px_rgba(13,27,42,0.08)]">
+        {loading ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {[1, 2, 3].map((n) => <SkeletonCard key={n} />)}
+          </div>
+        ) : bookings.length === 0 ? (
+          <SectionReveal className="rounded-[28px] bg-white p-10 text-center shadow-[0_12px_40px_rgba(13,27,42,0.08)]">
             <p className="text-3xl font-semibold text-[var(--ms-navy)]">No bookings yet</p>
             <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
               When you book a service, it will appear here so you can track its status.
@@ -105,12 +200,15 @@ export default function ActivityPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--ms-mauve)]">Need a fresh request?</p>
-              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">Jump back into booking without losing context.</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-[var(--ms-navy)]">
+                Jump back into booking without losing context.
+              </h2>
             </div>
             <CTAButton href="/book">Book again</CTAButton>
           </div>
         </SectionReveal>
       </div>
+      </ErrorBoundary>
     </AppShell>
   );
 }

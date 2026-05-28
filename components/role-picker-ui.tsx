@@ -677,7 +677,7 @@ export function SignInRolePicker({
 
 // ─── Sign-up picker ───────────────────────────────────────────────────────────
 
-type SignUpStep = "role" | "phone" | "otp";
+type SignUpStep = "role" | "phone" | "otp" | "name";
 
 export function SignUpRolePicker({
   onSuccess,
@@ -714,30 +714,46 @@ export function SignUpRolePicker({
 
   const [signingUp, setSigningUp] = useState(false);
   const [signUpError, setSignUpError] = useState("");
+  const [displayName, setDisplayName] = useState("");
 
-  async function handleVerified() {
-    const fullPhone = `+254${phone.replace(/\D/g, "")}`;
-    // Non-client roles: create DB user now (client defers to ClientSignupFlow)
+  function handleVerified() {
+    // Non-client roles: collect a name first, then create the DB user
     if (role.key !== "client") {
-      setSigningUp(true);
-      setSignUpError("");
-      try {
-        const res = await fetch("/api/auth/phone-signin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: fullPhone, role: role.key }),
-        });
-        const data = await res.json() as { ok: boolean; error?: string };
-        if (!data.ok) {
-          setSignUpError(data.error ?? "Could not create account. Try again.");
-          setSigningUp(false);
-          return;
-        }
-      } catch {
-        setSignUpError("Network error. Please try again.");
+      setStep("name");
+      return;
+    }
+    // Client: defer to ClientSignupFlow
+    const fullPhone = `+254${phone.replace(/\D/g, "")}`;
+    const existing = readAppSession();
+    if (!existing || existing.role !== role.key) {
+      writeAppSession(createSessionForRole(role.key as Exclude<AppUserRole, "guest">, fullPhone));
+    }
+    if (onSuccess) { onSuccess(role.signUpHref); } else { router.push(role.signUpHref); }
+  }
+
+  async function handleNameSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const name = displayName.trim();
+    if (!name) return;
+    const fullPhone = `+254${phone.replace(/\D/g, "")}`;
+    setSigningUp(true);
+    setSignUpError("");
+    try {
+      const res = await fetch("/api/auth/phone-signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: fullPhone, role: role.key, firstName: name }),
+      });
+      const data = await res.json() as { ok: boolean; error?: string };
+      if (!data.ok) {
+        setSignUpError(data.error ?? "Could not create account. Try again.");
         setSigningUp(false);
         return;
       }
+    } catch {
+      setSignUpError("Network error. Please try again.");
+      setSigningUp(false);
+      return;
     }
     const existing = readAppSession();
     if (!existing || existing.role !== role.key) {
@@ -766,6 +782,40 @@ export function SignUpRolePicker({
           onBack={() => setStep("phone")}
           onVerified={handleVerified}
         />
+      ) : step === "name" ? (
+        <form onSubmit={(e) => void handleNameSubmit(e)} className="space-y-4">
+          <button type="button" onClick={() => setStep("otp")} className="flex items-center gap-1.5 text-xs text-[var(--ms-mauve)] hover:text-[var(--ms-navy)]">
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </button>
+          <div className="rounded-[24px] border p-5" style={{ backgroundColor: role.colorLight, borderColor: role.colorBorder }}>
+            <p className="text-sm font-semibold" style={{ color: role.color }}>What should we call you?</p>
+            <p className="mt-1 text-xs text-[var(--ms-mauve)]">This name appears on your {role.label} profile.</p>
+            <label className="mt-4 block rounded-[20px] border border-[var(--ms-border)] bg-white px-4 py-3.5 transition focus-within:border-[var(--ms-rose)]">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--ms-mauve)]">
+                {role.key === "salon" ? "Salon name" : "Your name"}
+              </span>
+              <input
+                autoFocus
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+                placeholder={role.key === "salon" ? "e.g. Glam Studio" : "e.g. Amina Odhiambo"}
+                className="mt-1.5 block w-full bg-transparent text-sm text-[var(--ms-charcoal)] outline-none placeholder:text-[var(--ms-mauve)]/50"
+              />
+            </label>
+          </div>
+          {signUpError && <p className="rounded-[14px] bg-red-50 px-4 py-3 text-xs font-medium text-red-600">{signUpError}</p>}
+          <button
+            type="submit"
+            disabled={signingUp || !displayName.trim()}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+            style={{ backgroundColor: role.color }}
+          >
+            {signingUp ? "Creating account…" : `Continue as ${role.label}`}
+            {!signingUp && <ArrowRight className="h-4 w-4" />}
+          </button>
+        </form>
       ) : (
     <div className="space-y-5">
       {/* Role grid — 5 items, compact, always shows labels */}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { showToast } from "@/lib/toast";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
@@ -603,21 +604,33 @@ function ClientProfileWorkspace({
     };
   }, [session.id]);
 
-  function handleSaveProfile() {
+  async function handleSaveProfile() {
     setSaving(true);
-    onSave({
+    const next = {
       ...session,
       firstName: editFirstName,
       phone: editPhone,
       email: editEmail || undefined,
       bio: editBio || undefined,
       username: editUsername || undefined,
-    });
-    setTimeout(() => {
-      setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }, 400);
+    };
+    onSave(next);
+    try {
+      await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: editFirstName,
+          bio: editBio || undefined,
+          username: editUsername || undefined,
+          location: editLocation || undefined,
+        }),
+      });
+      showToast("Profile saved.", "success");
+    } catch { showToast("Saved locally — will sync when online.", "info"); }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   function handleAvatarSave(dataUrl: string) {
@@ -1328,13 +1341,25 @@ function ProviderProfileWorkspace({
     setCommentText("");
   }
 
-  function handleSaveSettings() {
+  async function handleSaveSettings() {
     setSaving(true);
     const next: AppUserSession = isPro
       ? { ...session, displayName: editDisplayName, specialty: editSubtitle, phone: editPhone, email: editEmail || undefined, location: editLocation, bio: editBio } as AppUserSession
       : { ...session, salonName: editDisplayName, phone: editPhone, email: editEmail || undefined, location: editLocation, description: editBio } as AppUserSession;
     onSave(next);
-    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000); }, 400);
+    try {
+      await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(isPro
+          ? { displayName: editDisplayName, specialty: editSubtitle, bio: editBio, location: editLocation }
+          : { salonName: editDisplayName, bio: editBio, location: editLocation }),
+      });
+      showToast("Profile saved.", "success");
+    } catch { showToast("Saved locally — will sync when online.", "info"); }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   }
 
 

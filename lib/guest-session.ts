@@ -1,7 +1,7 @@
 /**
  * Guest session gating utilities — INACTIVITY-based timer.
  *
- * Guests browse freely. After INACTIVITY_TIMEOUT_MS (10 min) of no
+ * Guests browse freely. After INACTIVITY_TIMEOUT_MS (30 min) of no
  * interaction (scroll, click, keypress, touch), the gate fires and they must
  * sign in or create an account to continue.
  *
@@ -10,7 +10,7 @@
  * after authenticating.
  *
  * The saved return URL expires INACTIVITY_TIMEOUT_MS after the gate opened.
- * If the user takes longer than 10 min to sign in, cart / booking state is
+ * If the user takes longer than 30 min to sign in, cart / booking state is
  * stale — we send them home.
  *
  * Activity tracking is set up in GuestAuthGate via recordGuestActivity().
@@ -36,7 +36,7 @@ export type GuestGateReason =
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-export const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+export const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

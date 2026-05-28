@@ -34,6 +34,7 @@ import { professionals, salons } from "@/lib/site-data";
 import { rankProfessionals, rankSalons } from "@/lib/discovery-ranking";
 import { cn } from "@/lib/utils";
 import { ClientRatingFlow } from "@/components/service-session";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 type DiscoverTab = "salons" | "professionals" | "services" | "packages";
 type SortKey = "top-rated" | "nearest" | "price-low" | "earliest";
@@ -161,7 +162,7 @@ export default function DiscoverPage() {
   return (
     <AppShell currentNav="discover" showFooter>
       <ClientRatingFlow />
-
+      <ErrorBoundary>
       <div className="mx-auto max-w-7xl px-4 pb-24 pt-4 lg:px-6">
         {/* Header */}
         <div className="mb-5">
@@ -393,6 +394,7 @@ export default function DiscoverPage() {
           toggleValue={toggle}
         />
       )}
+      </ErrorBoundary>
     </AppShell>
   );
 }

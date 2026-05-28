@@ -176,9 +176,39 @@ export async function POST(req: NextRequest) {
       )
     `;
 
+    // ── Flexible booking columns (idempotent migrations) ─────────────────
+    // Make service_id / provider_id nullable so bookings can be created
+    // from the static site-data without requiring seeded DB services.
+    await sql`ALTER TABLE bookings ALTER COLUMN service_id DROP NOT NULL`.catch(() => null);
+    await sql`ALTER TABLE bookings ALTER COLUMN provider_id DROP NOT NULL`.catch(() => null);
+    await sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS service_names  TEXT[]`.catch(() => null);
+    await sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS provider_slug  TEXT`.catch(() => null);
+    await sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS provider_name  TEXT`.catch(() => null);
+    await sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS target_type    TEXT`.catch(() => null);
+    await sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_kes      INTEGER`.catch(() => null);
+    await sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS local_id       TEXT UNIQUE`.catch(() => null);
+
     // ── Firebase UID column (idempotent) ──────────────────────────────────
     await sql`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid TEXT UNIQUE
+    `;
+
+    // ── Additional user profile columns ──────────────────────────────────
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS username      TEXT UNIQUE`.catch(() => null);
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS specialty     TEXT`.catch(() => null);
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS service_mode  TEXT`.catch(() => null);
+
+    // ── Contact messages ──────────────────────────────────────────────────
+    await sql`
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name       TEXT NOT NULL,
+        email      TEXT,
+        phone      TEXT,
+        subject    TEXT,
+        message    TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
     `;
 
     // ── User settings ─────────────────────────────────────────────────────
@@ -200,7 +230,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       message: "All tables created (or already existed). Database is ready.",
-      tables: ["users", "otps", "otp_codes", "sessions", "posts", "comments", "follows", "stories", "services", "bookings", "user_settings"],
+      tables: ["users", "otps", "otp_codes", "sessions", "posts", "comments", "follows", "stories", "services", "bookings", "user_settings", "contact_messages"],
     });
   } catch (error) {
     console.error("DB init error:", error);
