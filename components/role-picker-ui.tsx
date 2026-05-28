@@ -538,18 +538,35 @@ export function SignInRolePicker({
     setStep("otp");
   }
 
-  function handleVerified() {
-    // Write session
-    const existing = readAppSession();
-    if (existing?.role === role.key) {
-      writeAppSession(existing);
-    } else {
-      writeAppSession(createSessionForRole(role.key as Exclude<AppUserRole, "guest">, `+254${phone.replace(/\D/g, "")}`));
-    }
-    if (onSuccess) {
-      onSuccess(dest);
-    } else {
-      router.push(dest);
+  const [signingIn, setSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState("");
+
+  async function handleVerified() {
+    setSigningIn(true);
+    setSignInError("");
+    const fullPhone = `+254${phone.replace(/\D/g, "")}`;
+    try {
+      const res = await fetch("/api/auth/phone-signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: fullPhone, role: role.key }),
+      });
+      const data = await res.json() as { ok: boolean; user?: { id: string; firstName: string; role: string; phone: string }; error?: string };
+      if (!data.ok || !data.user) {
+        setSignInError(data.error ?? "Sign-in failed. Please try again.");
+        setSigningIn(false);
+        return;
+      }
+      const existing = readAppSession();
+      if (existing?.role === role.key) {
+        writeAppSession({ ...existing, id: data.user.id, phone: data.user.phone });
+      } else {
+        writeAppSession(createSessionForRole(role.key as Exclude<AppUserRole, "guest">, fullPhone));
+      }
+      if (onSuccess) { onSuccess(dest); } else { router.push(dest); }
+    } catch {
+      setSignInError("Network error. Please check your connection.");
+      setSigningIn(false);
     }
   }
 
@@ -557,6 +574,8 @@ export function SignInRolePicker({
     <>
       {/* Required anchor for Firebase invisible reCAPTCHA — must always be in the DOM */}
       <div id="recaptcha-container" />
+      {signInError && <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-600">{signInError}</div>}
+      {signingIn && <div className="rounded-[14px] bg-[var(--ms-soft-bg)] px-4 py-3 text-center text-xs text-[var(--ms-mauve)]">Signing you in…</div>}
 
       {step === "phone" ? (
         <PhoneStep
@@ -693,23 +712,46 @@ export function SignUpRolePicker({
     setStep("otp");
   }
 
-  function handleVerified() {
-    // Write a preview session so profile-setup pages know the role/user context
+  const [signingUp, setSigningUp] = useState(false);
+  const [signUpError, setSignUpError] = useState("");
+
+  async function handleVerified() {
+    const fullPhone = `+254${phone.replace(/\D/g, "")}`;
+    // Non-client roles: create DB user now (client defers to ClientSignupFlow)
+    if (role.key !== "client") {
+      setSigningUp(true);
+      setSignUpError("");
+      try {
+        const res = await fetch("/api/auth/phone-signin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: fullPhone, role: role.key }),
+        });
+        const data = await res.json() as { ok: boolean; error?: string };
+        if (!data.ok) {
+          setSignUpError(data.error ?? "Could not create account. Try again.");
+          setSigningUp(false);
+          return;
+        }
+      } catch {
+        setSignUpError("Network error. Please try again.");
+        setSigningUp(false);
+        return;
+      }
+    }
     const existing = readAppSession();
     if (!existing || existing.role !== role.key) {
-      writeAppSession(createSessionForRole(role.key as Exclude<AppUserRole, "guest">, `+254${phone.replace(/\D/g, "")}`));
+      writeAppSession(createSessionForRole(role.key as Exclude<AppUserRole, "guest">, fullPhone));
     }
-    if (onSuccess) {
-      onSuccess(role.signUpHref);
-    } else {
-      router.push(role.signUpHref);
-    }
+    if (onSuccess) { onSuccess(role.signUpHref); } else { router.push(role.signUpHref); }
   }
 
   return (
     <>
       {/* Required anchor for Firebase invisible reCAPTCHA — must always be in the DOM */}
       <div id="recaptcha-container" />
+      {signUpError && <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-600">{signUpError}</div>}
+      {signingUp && <div className="rounded-[14px] bg-[var(--ms-soft-bg)] px-4 py-3 text-center text-xs text-[var(--ms-mauve)]">Creating your account…</div>}
 
       {step === "phone" ? (
         <PhoneStep

@@ -50,10 +50,19 @@ export default async function AuthPage({
 
             {mode === "forgot-password" && (
               <>
-                <FormField label="Email" type="email" />
+                <div className="rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-soft-bg)] px-5 py-5 text-center">
+                  <p className="text-sm font-semibold text-[var(--ms-navy)]">Password reset coming soon</p>
+                  <p className="mt-2 text-xs leading-5 text-[var(--ms-mauve)]">
+                    Password reset by email is not yet available. If you have access to your phone number, please{" "}
+                    <Link className="font-semibold text-[var(--ms-plum)]" href="/auth/sign-in">
+                      sign in with OTP
+                    </Link>{" "}
+                    instead.
+                  </p>
+                </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <CTAButton className="sm:flex-1" href="/auth/sign-in">
-                    Send reset link
+                    Back to sign in
                   </CTAButton>
                 </div>
               </>

@@ -331,7 +331,7 @@ export default function PublicLandingPage() {
             <span className="text-[#C8284A]">Mobile</span> Salon
           </p>
           <div className="flex flex-wrap gap-4">
-            <Link className="hover:text-white" href="/help">Privacy</Link>
+            <Link className="hover:text-white" href="/privacy">Privacy</Link>
             <Link className="hover:text-white" href="/terms">Terms</Link>
             <Link className="hover:text-white" href="/help">Contact</Link>
             <Link className="hover:text-white" href="/help">Help</Link>
