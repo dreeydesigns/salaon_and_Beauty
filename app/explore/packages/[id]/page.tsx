@@ -364,7 +364,7 @@ export default function PackageDetailPage() {
 
           {/* Book Now CTA */}
           <Link
-            href={`/book?rush=true&packageId=${id}`}
+            href={`/book?rush=true&packageId=${id}&serviceIds=${encodeURIComponent(pkg.services.join(","))}`}
             className="block w-full rounded-full bg-[linear-gradient(135deg,var(--ms-rose),var(--ms-orchid))] py-3.5 text-center text-sm font-semibold text-white shadow-[0_4px_16px_rgba(214,51,108,0.30)] transition hover:brightness-110"
           >
             Book this package
