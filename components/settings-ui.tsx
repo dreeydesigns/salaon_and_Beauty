@@ -1,6 +1,5 @@
 "use client";
 
-import { deleteSession } from "@/lib/db-sessions";
 import Link from "next/link";
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import {
@@ -1353,6 +1352,7 @@ function DeactivateAccountModal({ onCancel }: { onCancel: () => void }) {
         );
       } catch { /* noop */ }
       clearAppSession();
+      fetch("/api/auth/signout", { method: "POST" }).catch(() => null);
       window.location.replace("/");
     }, 800);
   }
@@ -1658,22 +1658,14 @@ export function SettingsUI() {
 
   // This function runs when the user clicks "Sign Out"
   async function handleSignOut() {
-    try {
-      // 1. Look inside the browser's storage to see who is logged in
-      const currentSession = readAppSession();
-
-      // 2. If we found a logged-in user, use their ID to delete them from our database
-      if (currentSession?.id) {
-        await deleteSession(currentSession.id);
-        console.log("Deleted session from database successfully");
-      }
-    } catch (error) {
-      // If something goes wrong (like no internet), just log it so it doesn't crash the app
-      console.error("Database logout failed, but proceeding anyway:", error);
-    }
-
-    // 3. Finally, clear the browser's memory of the user
+    // Clear localStorage session immediately so UI updates
     clearAppSession();
+    // Clear the server-side httpOnly cookie
+    try {
+      await fetch("/api/auth/signout", { method: "POST" });
+    } catch {
+      // Network error — cookie will expire naturally; user is already logged out locally
+    }
     
     // 4. Close the confirmation box
     setShowSignOut(false);

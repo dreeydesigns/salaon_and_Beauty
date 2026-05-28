@@ -417,6 +417,8 @@ export function SplitBrandHeader({
   function handleSignOut() {
     clearAppSession();
     setMenuOpen(false);
+    // Also clear the server-side httpOnly session cookie
+    fetch("/api/auth/signout", { method: "POST" }).catch(() => null);
   }
 
   // Mobile menu links — role-aware
