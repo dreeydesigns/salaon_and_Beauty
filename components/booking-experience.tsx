@@ -32,6 +32,7 @@ import { cn, formatDurationRange, formatPriceRange } from "@/lib/utils";
 import { readAppSession, readRegisteredProviders, type BookableProviderProfile } from "@/lib/client-session";
 import { writeBooking } from "@/lib/social-store";
 import { showToast } from "@/lib/toast";
+import { ConfettiBurst, TrustShield, BookingTimeline } from "@/components/wow-ux";
 import { openGuestGate } from "@/lib/guest-session";
 
 type ProviderSort = "nearest" | "rating" | "response" | "available" | "booked" | "verified";
@@ -386,13 +387,21 @@ export function BookingExperience() {
 
   if (status === "done") {
     return (
+      <>
+        <ConfettiBurst active={true} />
       <SectionReveal className="mx-auto max-w-4xl rounded-[36px] bg-white p-6 shadow-[0_22px_60px_rgba(13,27,42,0.1)] lg:p-8">
         <div className="mx-auto max-w-2xl text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--ms-gold)]/15">
-            <CheckCircle2 className="h-10 w-10 text-[var(--ms-gold)]" />
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(200,40,74,0.12),rgba(201,168,76,0.18))]">
+            <CheckCircle2 className="h-10 w-10 text-[var(--ms-rose)]" />
           </div>
-          <p className="mt-6 text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Done</p>
-          <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Your paid request is confirmed.</h1>
+          <p className="mt-6 text-xs uppercase tracking-[0.24em] text-[var(--ms-mauve)]">Confirmed ✨</p>
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--ms-navy)]">Your booking is confirmed!</h1>
+          <div className="mt-4 flex justify-center">
+            <TrustShield variant="payment" />
+          </div>
+          <div className="mt-5 flex justify-center">
+            <BookingTimeline status="accepted" />
+          </div>
           <p className="mt-3 text-sm leading-7 text-[var(--ms-mauve)]">
             {targetEntity ? `${"name" in targetEntity ? targetEntity.name : "Selected provider"} has your request.` : "Your request has been sent."} The payment is marked as held until service completion is confirmed.
           </p>
@@ -445,6 +454,7 @@ export function BookingExperience() {
           </div>
         </div>
       </SectionReveal>
+      </>
     );
   }
 

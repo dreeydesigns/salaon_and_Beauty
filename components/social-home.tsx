@@ -66,6 +66,7 @@ import {
   STORY_CHANGE_EVENT,
   type Story,
 } from "@/lib/story-store";
+import { GreetingBanner, DailyCheckIn } from "@/components/wow-ux";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1803,6 +1804,14 @@ export function SocialHome() {
       <div className="mx-auto flex max-w-[960px] items-start gap-6 px-4 pb-28 pt-3 lg:px-6">
         {/* ── Feed column ───────────────────────────────────────────── */}
         <div className="min-w-0 flex-1">
+
+          {/* Greeting + daily check-in — only for logged-in users */}
+          {!isGuest && (
+            <div className="mb-4 space-y-2.5">
+              <GreetingBanner />
+              <DailyCheckIn />
+            </div>
+          )}
 
           {/* Stories row */}
           <StoriesRow

@@ -716,22 +716,27 @@ export function BottomMobileNav({ currentNav }: { currentNav: NavKey }) {
             <li className="min-w-0" key={item.key}>
               <Link
                 className={cn(
-                  "flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-medium transition",
-                  active && !isCounter && "bg-white text-[var(--ms-navy)]",
-                  active && isCounter && "bg-[var(--ms-rose)] text-white",
-                  !active && "text-white/72 hover:text-white",
+                  "flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-medium transition-all duration-200",
+                  active && !isCounter && "bg-white text-[var(--ms-navy)] scale-[1.06]",
+                  active && isCounter && "bg-[var(--ms-rose)] text-white scale-[1.06]",
+                  !active && "text-white/72 hover:text-white hover:scale-105",
                 )}
                 href={item.href}
               >
-                <span className="relative">
-                  <Icon className="h-4 w-4" />
+                <motion.span
+                  className="relative"
+                  animate={active ? { scale: [1, 1.22, 0.92, 1.05, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.38, ease: "easeOut" }}
+                  key={active ? "active" : "inactive"}
+                >
+                  <Icon className={cn("h-4 w-4", active ? "stroke-[2.5px]" : "stroke-[1.75px]")} />
                   {hasNotif && (
                     <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--ms-rose)] text-[8px] font-bold text-white">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
-                </span>
-                {item.label}
+                </motion.span>
+                <span className={cn(active ? "font-semibold" : "")}>{item.label}</span>
               </Link>
             </li>
           );
@@ -1126,6 +1131,54 @@ export function SecureContactCard({
   );
 }
 
+// ─── SaveHeart ────────────────────────────────────────────────────────────────
+// Floating bookmark heart for cards — top-right corner overlay.
+
+function SaveHeart({ slug, type }: { slug: string; type: "salon" | "professional" }) {
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saves = JSON.parse(localStorage.getItem("ms_saves_v2") ?? "{}") as Record<string, boolean>;
+      setSaved(!!saves[`${type}:${slug}`]);
+    } catch { /* ignore */ }
+  }, [slug, type]);
+
+  function handleSave(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const key = `${type}:${slug}`;
+    try {
+      const saves = JSON.parse(localStorage.getItem("ms_saves_v2") ?? "{}") as Record<string, boolean>;
+      if (saves[key]) { delete saves[key]; setSaved(false); }
+      else { saves[key] = true; setSaved(true); }
+      localStorage.setItem("ms_saves_v2", JSON.stringify(saves));
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <motion.button
+      type="button"
+      aria-label={saved ? "Remove from saved" : "Save"}
+      onClick={handleSave}
+      whileTap={{ scale: 0.85 }}
+      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-[0_2px_8px_rgba(13,27,42,0.16)] backdrop-blur-sm"
+    >
+      <motion.div
+        animate={saved ? { scale: [1, 1.35, 0.9, 1.1, 1] } : { scale: 1 }}
+        transition={{ duration: 0.42, ease: "easeOut" }}
+      >
+        <Heart
+          className={cn(
+            "h-4 w-4 transition-colors duration-200",
+            saved ? "fill-[var(--ms-rose)] text-[var(--ms-rose)]" : "text-[var(--ms-mauve)]",
+          )}
+        />
+      </motion.div>
+    </motion.button>
+  );
+}
+
 export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolean }) {
   const bookHref = buildBookingHref({ targetType: "salons", targetId: salon.slug });
   const salonHref = `/salons/${salon.slug}`;
@@ -1177,25 +1230,27 @@ export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolea
 
   return (
     <Link href={salonHref} className="group block min-w-0">
-      <article className="overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <article className="card-lift overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_4px_14px_rgba(13,27,42,0.07)]">
         {/* Photo */}
         <div className={cn("relative h-[180px] w-full overflow-hidden bg-gradient-to-br", salon.heroMood)}>
           <ImageLayer asset={salon.image} priority sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 90vw" />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_40%,rgba(13,27,42,0.52)_100%)]" />
           {/* Overlaid pills */}
           <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
-            {salon.verified && <VerifiedBadge />}
+            {salon.verified && <span className="verified-glow inline-flex"><VerifiedBadge /></span>}
             <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ms-navy)] backdrop-blur-sm">
               <MapPin className="h-3 w-3" />
               {salon.location.length > 14 ? salon.location.slice(0, 14) + "…" : salon.location}
             </span>
           </div>
-          {/* "See their work" hover overlay — matches ProfessionalCard pattern */}
+          {/* "See their work" hover overlay */}
           <div className="absolute inset-0 flex items-center justify-center bg-[rgba(13,27,42,0.0)] transition-all duration-200 group-hover:bg-[rgba(13,27,42,0.38)]">
             <span className="scale-90 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[var(--ms-navy)] opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
-              See their work
+              See their work →
             </span>
           </div>
+          {/* Bookmark heart — top right */}
+          <SaveHeart slug={salon.slug} type="salon" />
         </div>
         {/* Info */}
         <div className="p-4">
@@ -1210,7 +1265,7 @@ export function SalonCard({ salon, listView }: { salon: Salon; listView?: boolea
           </div>
           {/* Book Now — intercepted for guests */}
           <CTAButton
-            className="mt-4 w-full"
+            className="btn-press mt-4 w-full"
             href={bookHref}
             onClick={(e: React.MouseEvent) => {
               interceptBook(e);
@@ -1263,14 +1318,14 @@ export function ProfessionalCard({ professional, listView }: { professional: Pro
 
   return (
     <Link href={`/professionals/${professional.slug}`} className="group block min-w-0">
-      <article className="overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <article className="card-lift overflow-hidden rounded-[18px] border border-[var(--ms-border)] bg-white shadow-[0_4px_14px_rgba(13,27,42,0.07)]">
         {/* Photo — 180px desktop, 160px mobile */}
         <div className={cn("relative h-[160px] overflow-hidden bg-gradient-to-br sm:h-[180px]", professional.heroMood)}>
           <ImageLayer asset={professional.image} />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,27,42,0.0)_40%,rgba(13,27,42,0.48)_100%)]" />
           {/* Overlaid pills */}
           <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
-            {professional.verified && <VerifiedBadge />}
+            {professional.verified && <span className="verified-glow inline-flex"><VerifiedBadge /></span>}
             <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ms-navy)] backdrop-blur-sm">
               <MapPin className="h-3 w-3" />
               {professional.location.length > 12 ? professional.location.slice(0, 12) + "…" : professional.location}
@@ -1279,9 +1334,11 @@ export function ProfessionalCard({ professional, listView }: { professional: Pro
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-center justify-center bg-[rgba(13,27,42,0.0)] transition-all duration-200 group-hover:bg-[rgba(13,27,42,0.38)]">
             <span className="scale-90 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[var(--ms-navy)] opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
-              See their work
+              See their work →
             </span>
           </div>
+          {/* Save heart */}
+          <SaveHeart slug={professional.slug} type="professional" />
         </div>
 
         {/* Info */}

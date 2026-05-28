@@ -14,33 +14,25 @@ import {
   type BookingRequest,
 } from "@/lib/social-store";
 import { signalSessionExpired } from "@/components/session-expiry-modal";
+import { BookingTimeline, TrustShield } from "@/components/wow-ux";
 import { cn } from "@/lib/utils";
-
-const STATUS_COLORS: Record<string, string> = {
-  pending:               "bg-amber-100 text-amber-700",
-  accepted:              "bg-green-100 text-green-700",
-  completed:             "bg-blue-100 text-blue-700",
-  cancelled:             "bg-red-100 text-red-600",
-  declined:              "bg-red-100 text-red-600",
-  reschedule_requested:  "bg-purple-100 text-purple-700",
-  draft:                 "bg-gray-100 text-gray-500",
-};
 
 function SkeletonCard() {
   return (
-    <div className="animate-pulse rounded-[24px] bg-white p-5 shadow-[0_8px_28px_rgba(13,27,42,0.07)]">
+    <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_28px_rgba(13,27,42,0.07)]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-2/3 rounded-full bg-[var(--ms-border)]" />
-          <div className="h-3 w-1/2 rounded-full bg-[var(--ms-border)]" />
+          <div className="skeleton h-4 w-2/3" />
+          <div className="skeleton h-3 w-1/2" />
         </div>
-        <div className="h-6 w-16 shrink-0 rounded-full bg-[var(--ms-border)]" />
+        <div className="skeleton h-6 w-16 shrink-0" />
       </div>
       <div className="mt-3 flex gap-4">
-        <div className="h-3 w-24 rounded-full bg-[var(--ms-border)]" />
-        <div className="h-3 w-16 rounded-full bg-[var(--ms-border)]" />
-        <div className="h-3 w-20 rounded-full bg-[var(--ms-border)]" />
+        <div className="skeleton h-3 w-24" />
+        <div className="skeleton h-3 w-16" />
+        <div className="skeleton h-3 w-20" />
       </div>
+      <div className="skeleton mt-4 h-8 w-full" style={{ borderRadius: "0.75rem" }} />
     </div>
   );
 }
@@ -55,27 +47,37 @@ function BookingCard({ booking }: { booking: BookingRequest }) {
   })();
 
   return (
-    <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_28px_rgba(13,27,42,0.07)] transition hover:shadow-[0_12px_36px_rgba(13,27,42,0.12)]">
+    <div className="card-lift rounded-[24px] bg-white p-5 shadow-[0_8px_28px_rgba(13,27,42,0.07)]">
+      {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-[var(--ms-navy)]">{booking.targetName}</p>
           <p className="mt-0.5 text-xs text-[var(--ms-mauve)]">{booking.services.join(", ")}</p>
         </div>
-        <span className={cn(
-          "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize",
-          STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-500"
-        )}>
-          {booking.status.replace(/_/g, " ")}
-        </span>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--ms-mauve)]">
-        <span>{dateStr}</span>
-        <span>{booking.preferredTime}</span>
-        {booking.location && <span>{booking.location}</span>}
-        <span className="font-semibold text-[var(--ms-navy)]">
+        <span className="shrink-0 text-base font-bold text-[var(--ms-navy)]">
           KES {booking.totalKES.toLocaleString()}
         </span>
       </div>
+
+      {/* Meta row */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--ms-mauve)]">
+        <span>{dateStr}</span>
+        <span>·</span>
+        <span>{booking.preferredTime}</span>
+        {booking.location && <><span>·</span><span>{booking.location}</span></>}
+      </div>
+
+      {/* Animated timeline */}
+      <div className="mt-4">
+        <BookingTimeline status={booking.status as Parameters<typeof BookingTimeline>[0]["status"]} />
+      </div>
+
+      {/* Trust shield for active bookings */}
+      {(booking.status === "pending" || booking.status === "accepted") && (
+        <div className="mt-3">
+          <TrustShield variant="payment" />
+        </div>
+      )}
     </div>
   );
 }
