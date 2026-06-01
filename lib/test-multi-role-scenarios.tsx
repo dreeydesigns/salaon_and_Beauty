@@ -258,7 +258,14 @@ export function RoleSelectorComponent() {
   );
 }
 
-function RoleCard({ title, description, icon, onClick }) {
+interface RoleCardProps {
+  title: string;
+  description: string;
+  icon: string;
+  onClick: () => void;
+}
+
+function RoleCard({ title, description, icon, onClick }: RoleCardProps) {
   return (
     <button className="role-card" onClick={onClick}>
       <div className="role-icon">{icon}</div>
